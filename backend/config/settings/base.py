@@ -312,3 +312,15 @@ RAG_MAX_CONTEXT_TOKENS = 4000
 RAG_EMBEDDING_MODEL = "text-embedding-3-small"
 RAG_LLM_MODEL = "gpt-4o-mini"
 RAG_TEMPERATURE = 0.1
+
+# ===========================
+# OpenAI
+# ===========================
+OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
+
+# ===========================
+# Storage
+# ===========================
+STORAGE_BACKEND = config("STORAGE_BACKEND", default="local")
+STORAGE_LOCAL_PATH = BASE_DIR / "media" / "documents"
+

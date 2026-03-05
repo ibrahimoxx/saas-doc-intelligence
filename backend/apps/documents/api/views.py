@@ -117,11 +117,18 @@ class DocumentsListView(APIView):
             indexing_status=DocumentStatus.QUEUED,
         )
 
-        # Create processing job (will be picked up by Celery later)
+        # Create processing job (will be picked up by Celery)
         DocumentProcessingJob.objects.create(
             document_version=version,
             job_type=JobType.INDEX,
         )
+
+        # Trigger async ingestion pipeline
+        try:
+            from apps.ingestion.tasks import process_document_task
+            process_document_task.delay(str(version.id))
+        except Exception as e:
+            logger.warning(f"Could not dispatch ingestion task: {e}")
 
         logger.info(
             "Document uploaded",
