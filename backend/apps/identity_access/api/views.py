@@ -10,6 +10,8 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
+from apps.audit_observability.services import log_action
+from apps.core.constants import AuditAction
 from apps.identity_access.api.serializers import (
     ChangePasswordSerializer,
     LoginSerializer,
@@ -39,6 +41,7 @@ class LoginView(APIView):
         refresh = RefreshToken.for_user(user)
 
         logger.info("User logged in", extra={"user_id": str(user.id), "email": user.email})
+        log_action(AuditAction.LOGIN, user=user, resource_type="user", resource_id=user.id, request=request)
 
         return Response(
             {
@@ -67,6 +70,7 @@ class RegisterView(APIView):
         refresh = RefreshToken.for_user(user)
 
         logger.info("User registered", extra={"user_id": str(user.id), "email": user.email})
+        log_action(AuditAction.USER_CREATED, user=user, resource_type="user", resource_id=user.id, request=request)
 
         return Response(
             {
@@ -103,6 +107,7 @@ class LogoutView(APIView):
             pass  # Token already blacklisted or invalid — still return 200
 
         logger.info("User logged out", extra={"user_id": str(request.user.id)})
+        log_action(AuditAction.LOGOUT, user=request.user, resource_type="user", resource_id=request.user.id, request=request)
         return Response({"message": "Déconnexion réussie."}, status=status.HTTP_200_OK)
 
 

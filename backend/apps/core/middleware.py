@@ -22,6 +22,7 @@ class RequestIdMiddleware:
     - Injects request_id into request object
     - Adds X-Request-Id response header
     - Makes request_id available via get_request_id() for logging
+    - Sets request context for audit logging
     """
 
     def __init__(self, get_response):
@@ -33,6 +34,10 @@ class RequestIdMiddleware:
         request.request_id = request_id
         _request_id.value = request_id
 
+        # Set audit request context
+        from apps.audit_observability.services import set_request_context
+        set_request_context(request)
+
         response = self.get_response(request)
         response["X-Request-Id"] = request_id
 
@@ -40,3 +45,4 @@ class RequestIdMiddleware:
         _request_id.value = None
 
         return response
+

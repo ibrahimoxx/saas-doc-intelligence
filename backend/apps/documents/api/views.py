@@ -8,7 +8,8 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.core.constants import DocumentStatus, JobType
+from apps.audit_observability.services import log_action
+from apps.core.constants import AuditAction, DocumentStatus, JobType
 from apps.core.permissions import IsTenantManager, IsTenantMember
 from apps.documents.api.serializers import (
     DocumentProcessingJobSerializer,
@@ -132,6 +133,13 @@ class DocumentsListView(APIView):
                 "user_id": str(request.user.id),
             },
         )
+        log_action(
+            AuditAction.DOCUMENT_UPLOADED,
+            user=request.user, tenant_id=tenant_id,
+            resource_type="document", resource_id=document.id,
+            details={"file_name": file_obj.name, "size_bytes": file_meta["size_bytes"]},
+            request=request,
+        )
 
         return Response(DocumentSerializer(document).data, status=status.HTTP_201_CREATED)
 
@@ -193,6 +201,13 @@ class DocumentDetailView(APIView):
                 "document_id": str(document_id),
                 "user_id": str(request.user.id),
             },
+        )
+        log_action(
+            AuditAction.DOCUMENT_DELETED,
+            user=request.user, tenant_id=tenant_id,
+            resource_type="document", resource_id=document_id,
+            details={"title": document.title},
+            request=request,
         )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
