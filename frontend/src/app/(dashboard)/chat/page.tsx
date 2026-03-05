@@ -11,7 +11,9 @@ import {
 } from "@/services/conversation.service";
 import type { TenantMembership } from "@/types/tenant.types";
 
-export default function ChatPage() {
+import { Suspense } from "react";
+
+function ChatContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -669,5 +671,17 @@ export default function ChatPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center bg-slate-900">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+      </div>
+    }>
+      <ChatContent />
+    </Suspense>
   );
 }
