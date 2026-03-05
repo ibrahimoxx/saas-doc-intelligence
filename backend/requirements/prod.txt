@@ -1,0 +1,7 @@
+-r base.txt
+
+# ===========================
+# Production extras
+# ===========================
+# gunicorn already in base.txt
+# whitenoise already in base.txt
