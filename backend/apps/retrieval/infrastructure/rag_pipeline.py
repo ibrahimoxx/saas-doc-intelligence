@@ -138,8 +138,27 @@ def _ask_gemini(question: str, context: str, model: str, temperature: float) -> 
         method="POST",
     )
 
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        result = json.loads(resp.read().decode("utf-8"))
+    import time
+    from urllib.error import HTTPError
+
+    max_retries = 5
+    for attempt in range(max_retries):
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                result = json.loads(resp.read().decode("utf-8"))
+            break
+        except HTTPError as e:
+            if e.code == 429 and attempt < max_retries - 1:
+                delay = min(5 * (2 ** attempt), 60)
+                logger.warning(f"Gemini API rate limit hit (429). Retrying in {delay}s...")
+                time.sleep(delay)
+            else:
+                logger.error(f"Gemini API failed after {max_retries} retries: {e}")
+                return {
+                    "answer": "⚠️ **Quota Gemini atteint (Trop de requêtes)**\n\nGoogle Gemini limite l'utilisation à 15 requêtes par minute sur l'offre gratuite. Veuillez patienter une minute avant de poser une nouvelle question.",
+                    "model": "gemini-quota-exceeded",
+                    "tokens_used": {"prompt": 0, "completion": 0, "total": 0},
+                }
 
     answer = result["candidates"][0]["content"]["parts"][0]["text"]
 

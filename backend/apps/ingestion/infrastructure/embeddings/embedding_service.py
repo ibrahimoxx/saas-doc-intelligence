@@ -8,6 +8,8 @@ Auto-detects provider: Gemini > OpenAI > dev.
 import json
 import logging
 import urllib.request
+from urllib.error import HTTPError
+import time
 from typing import Optional
 
 from django.conf import settings
@@ -91,8 +93,19 @@ def _embed_gemini(texts: list[str]) -> list[list[float]]:
             method="POST",
         )
 
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            result = json.loads(resp.read().decode("utf-8"))
+        max_retries = 5
+        for attempt in range(max_retries):
+            try:
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    result = json.loads(resp.read().decode("utf-8"))
+                break # Break out of the retry loop on success
+            except HTTPError as e:
+                if e.code == 429 and attempt < max_retries - 1:
+                    delay = min(5 * (2 ** attempt), 60)
+                    logger.warning(f"Gemini API rate limit hit (429) for embeddings. Retrying in {delay}s...")
+                    time.sleep(delay)
+                else:
+                    raise # Re-raise other HTTP errors or the last 429 error
 
         vec = result["embedding"]["values"]
 
