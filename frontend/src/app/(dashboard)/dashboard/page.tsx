@@ -115,7 +115,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="stats-grid">
-          <div className="stat-card">
+          <div className="stat-card clickable" onClick={() => router.push("/documents")}>
             <div className="stat-icon">📄</div>
             <div className="stat-label">Documents</div>
             <div className="stat-value">—</div>
@@ -254,6 +254,16 @@ export default function DashboardPage() {
 
         .stat-card:hover {
           border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        .stat-card.clickable {
+          cursor: pointer;
+        }
+
+        .stat-card.clickable:hover {
+          border-color: #6366f1;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15);
         }
 
         .stat-icon {

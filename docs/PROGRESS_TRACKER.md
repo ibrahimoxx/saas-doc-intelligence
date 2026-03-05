@@ -5,109 +5,81 @@
 
 ---
 
-## Phase 0 — Discovery + Extraction + Decision Checklist ✅
+## Phase 0 — Discovery + Planning ✅
 
-**Date** : 2026-03-05 | **Statut** : ✅ Terminée
-
-### Documentation créée (14 fichiers dans `docs/`)
-
-| Fichier | Rôle |
-|---------|------|
-| `MASTER_CONTEXT.md` | Source de vérité consolidée |
-| `NON_NEGOTIABLE_RULES.md` | 27 règles non négociables |
-| `PRODUCT_SCOPE_AND_POSITIONING.md` | Positionnement multi-secteurs + wedge |
-| `ARCHITECTURE_DECISIONS.md` | 13 ADR légers |
-| `ARCHITECTURE_V1.md` | Architecture système complète |
-| `PHASE_PLAN_AND_MODEL_POLICY.md` | 10 phases + politique modèle IA |
-| `ROADMAP.md` | 6 milestones + planning hebdo |
-| `RISKS_AND_MITIGATIONS.md` | 10 risques + mitigations |
-| `TASK_BOARD.md` | 10 epics avec tâches détaillées |
-| `HANDOFF_CHECKPOINTS.md` | 7 checkpoints utilisateur |
-| `PROJECT_BRIEF.md` | Vision, MVP scope, KPIs |
-| `RUNBOOK_SETUP.md` | Guide setup local dev |
-| `DECISIONS.md` | Log décisions (15 validées + 6 pendantes) |
-| `PROGRESS_TRACKER.md` | Ce fichier |
-
-**Checkpoint 0** : ✅ Validé par l'utilisateur
+**Date** : 2026-03-05 | 14 fichiers docs créés, Checkpoint 0 validé.
 
 ---
 
 ## Phase 1 — Foundation ✅
 
-**Date** : 2026-03-05 | **Statut** : ✅ Terminée et vérifiée
+**Date** : 2026-03-05 | ~85 fichiers créés.
 
-### 1.1 — Fichiers racine monorepo ✅
-
-`README.md`, `.gitignore`, `.editorconfig`, `docker-compose.yml` (PG16 pgvector port 5433 + Redis 7), `infra/docker/init-db.sql`
-
-### 1.2 — Django bootstrap ✅
-
-`manage.py`, `.env.example`, `pyproject.toml`, `requirements/` (base, dev, prod)
-
-### 1.3 — Django config multi-env ✅
-
-`config/settings/` (base, dev, staging, prod), `urls.py`, `wsgi.py`, `asgi.py`
-
-### 1.4 — Core module (9 fichiers) ✅
-
-`models.py` (BaseUUIDModel, TenantScopedModel, SoftDeleteModel), `middleware.py` (RequestId), `exceptions.py` (custom handler + business exceptions), `permissions.py` (IsTenantMember/Admin/Manager), `pagination.py`, `constants.py` (tous les enums), `logging.py` (JsonFormatter), `urls.py` (health check), `utils.py`
-
-### 1.5 — 8 modules métier ✅
-
-Chacun avec `__init__.py`, `apps.py`, `migrations/`, sous-dossiers domain/application/infrastructure/api
-
-| Module | Extras |
-|--------|--------|
-| `identity_access` | Custom User model (email auth), admin.py, api/urls.py |
-| `tenancy` | Tenant, TenantMembership, KnowledgeSpace models, admin.py |
-| `documents` | Squelette + ingestion/retrieval sub-dirs |
-| `ingestion` | parsers/, chunking/, embeddings/, vector_store/ |
-| `retrieval` | llm/, prompts/ |
-| `conversations` | Squelette |
-| `audit_observability` | Squelette |
-| `admin_ops` | Squelette |
-
-### 1.6 — Workers + Tests + Scripts ✅
-
-`workers/celery_app.py`, `tests/conftest.py` + structure unit/integration/api, `scripts/seed_dev.py`, `scripts/smoke_test.py`
-
-### 1.7 — Frontend Next.js ✅
-
-`package.json` (Next.js 15 + React 19 + Tailwind v4), `tsconfig.json`, `next.config.mjs` (API proxy), `postcss.config.mjs`, `globals.css`, `layout.tsx`, `page.tsx`, `api-client.ts`, 5 fichiers types TS (auth, tenant, document, chat, api)
-
-### 1.8 — Checkpoint 1 — Vérifié ✅
-
-| Check | Résultat |
-|-------|----------|
-| Docker compose (PG + Redis) | ✅ Running (port 5433) |
-| pip install (dev.txt) | ✅ 90+ packages installés |
-| makemigrations | ✅ identity_access + tenancy |
-| migrate | ✅ Toutes les migrations OK |
-| Backend health check | ✅ `GET /api/v1/health/ HTTP/1.1 200 43` |
-| npm install | ✅ 326 packages, 0 vulnerabilities |
-| Frontend dev server | ✅ Next.js 15.5.12, compilé en 5.4s, `GET / 200` |
-| Seed data | ✅ admin@docpilot.dev, Cabinet Démo, owner, Général |
-| Git push | ✅ 111 objets → `github.com:ibrahimoxx/saas-doc-intelligence.git` |
-
-### Problèmes rencontrés et résolus
-
-1. **Port 5432 occupé** : PostgreSQL local existant → changé Docker vers port 5433
-2. **Migrations manquantes** : dossiers `migrations/` non créés → générés manuellement
-3. **uuid-ossp extension** : échappement PowerShell impossible → non bloquant (UUID géré côté Python)
-
-### Total Phase 1 : ~85 fichiers créés, tout vérifié
+Backend Django (config multi-env, core module 9 fichiers, 8 modules métier), Frontend Next.js 15, Docker Compose (PG16 pgvector port 5433 + Redis 7). Checkpoint 1 validé : migrations OK, health check 200, seed data, git push 111 objets → `github.com:ibrahimoxx/saas-doc-intelligence.git`.
 
 ---
 
-## Phase 2 — Identity/Access + Tenancy + RBAC 🔲
+## Phase 2 — Identity/Access + Tenancy + RBAC ✅
 
-(Prochaine étape)
+**Date** : 2026-03-05 | **Statut** : ✅ Terminée et vérifiée
+
+### Backend — 8 fichiers créés
+
+| Fichier | Description |
+|---------|-------------|
+| `identity_access/api/serializers.py` | Login, register, me, change-password serializers |
+| `identity_access/api/views.py` | 6 endpoints JWT (login, register, refresh, logout, me, change-password) |
+| `identity_access/api/urls.py` | 6 routes auth |
+| `identity_access/backends.py` | Email auth backend (timing attack protection) |
+| `tenancy/api/serializers.py` | Tenant CRUD, membership, invite, knowledge spaces, permissions |
+| `tenancy/api/views.py` | 6 endpoints (my tenants, create, detail, permissions, members CRUD, spaces) |
+| `tenancy/api/urls.py` | 6 routes tenancy |
+| `config/settings/base.py` | + `token_blacklist` app + `AUTHENTICATION_BACKENDS` |
+
+### Frontend — 6 fichiers créés
+
+| Fichier | Description |
+|---------|-------------|
+| `services/auth.service.ts` | Service auth (login, register, refresh, logout, me) |
+| `services/tenant.service.ts` | Service tenancy (my tenants, create, members, spaces) |
+| `hooks/useAuth.tsx` | Context auth global (token management, auto-refresh) |
+| `(auth)/login/page.tsx` | Page login (dark glassmorphism) |
+| `(dashboard)/dashboard/page.tsx` | Dashboard + tenant selector |
+| `page.tsx` | Auto-redirect /login ou /dashboard |
+
+### 12 endpoints API
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| POST | `/api/v1/auth/login/` | Connexion JWT |
+| POST | `/api/v1/auth/register/` | Inscription |
+| POST | `/api/v1/auth/refresh/` | Refresh token |
+| POST | `/api/v1/auth/logout/` | Blacklist token |
+| GET/PATCH | `/api/v1/auth/me/` | Profil |
+| POST | `/api/v1/auth/change-password/` | Changement mot de passe |
+| GET/POST | `/api/v1/tenants/` | Mes tenants / créer |
+| GET | `/api/v1/tenants/{id}/` | Détail |
+| GET | `/api/v1/tenants/{id}/me/permissions/` | Permissions |
+| GET/POST | `/api/v1/tenants/{id}/members/` | Membres / inviter |
+| PATCH/DEL | `/api/v1/tenants/{id}/members/{mid}/` | Modifier/retirer |
+| GET/POST | `/api/v1/tenants/{id}/spaces/` | Espaces |
+
+### Vérification ✅
+
+- 13 migrations token_blacklist → OK
+- Login → Dashboard → "Bienvenue, Admin Dev 👋" + "Cabinet Démo (owner)"
+- Tenant selector fonctionnel
+
+---
 
 ## Phase 3 — Documents 🔲
-## Phase 4 — Audit baseline + request_id 🔲
+
+(En cours)
+
+## Phase 4 — Audit baseline 🔲
 ## Phase 5 — Ingestion async 🔲
 ## Phase 6 — Retrieval + RAG + Citations 🔲
 ## Phase 7 — Conversations/History 🔲
 ## Phase 8 — Admin Stats 🔲
-## Phase 9 — Hardening sécurité + observabilité 🔲
-## Phase 10 — Déploiement staging/prod 🔲
+## Phase 9 — Hardening sécurité 🔲
+## Phase 10 — Déploiement 🔲
