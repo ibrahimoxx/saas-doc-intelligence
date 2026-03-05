@@ -1,17 +1,39 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+
 export default function Home() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading) {
+      if (isAuthenticated) {
+        router.push("/dashboard");
+      } else {
+        router.push("/login");
+      }
+    }
+  }, [isLoading, isAuthenticated, router]);
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-8">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">
-          DocPilot AI
-        </h1>
-        <p className="text-lg text-gray-600 mb-8">
-          Plateforme de Document Intelligence
-        </p>
-        <p className="text-sm text-gray-400">
-          🚧 En construction — Phase 1 Foundation
-        </p>
-      </div>
-    </main>
+    <div style={{
+      minHeight: "100vh",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "#0f172a",
+    }}>
+      <div style={{
+        width: 40,
+        height: 40,
+        border: "3px solid rgba(99, 102, 241, 0.2)",
+        borderTopColor: "#6366f1",
+        borderRadius: "50%",
+        animation: "spin 0.8s linear infinite",
+      }} />
+    </div>
   );
 }

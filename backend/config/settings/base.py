@@ -38,6 +38,7 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "django_filters",
 ]
@@ -109,6 +110,13 @@ DATABASES = {
 # Custom User Model
 # ===========================
 AUTH_USER_MODEL = "identity_access.User"
+
+# ===========================
+# Authentication Backends
+# ===========================
+AUTHENTICATION_BACKENDS = [
+    "apps.identity_access.backends.EmailBackend",
+]
 
 # ===========================
 # Password Validation
