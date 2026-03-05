@@ -33,6 +33,7 @@ django-storages>=1.14,<2.0
 # AI / RAG
 # ===========================
 openai>=1.50,<2.0
+google-generativeai>=0.8,<1.0
 tiktoken>=0.7,<1.0
 
 # ===========================

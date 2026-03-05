@@ -51,6 +51,7 @@ export default function DocumentsPage() {
   const [uploadError, setUploadError] = useState("");
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [spaceId, setSpaceId] = useState<string | null>(null);
+  const [tenantError, setTenantError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -68,21 +69,25 @@ export default function DocumentsPage() {
   const loadTenantAndDocuments = async () => {
     // Get first tenant
     const tenantRes = await apiClient.get<any[]>("/tenants/");
-    if (tenantRes.data && tenantRes.data.length > 0) {
-      const tid = tenantRes.data[0].tenant.id;
-      setTenantId(tid);
+    if (!tenantRes.data || tenantRes.data.length === 0) {
+      setTenantError("Vous n'êtes membre d'aucune organisation. Connectez-vous avec un compte qui a un tenant (ex: admin@docpilot.dev) ou ajoutez-vous via l'admin Django.");
+      setLoading(false);
+      return;
+    }
 
-      // Get first space
-      const spacesRes = await apiClient.get<any[]>(`/tenants/${tid}/spaces/`);
-      if (spacesRes.data && spacesRes.data.length > 0) {
-        setSpaceId(spacesRes.data[0].id);
-      }
+    const tid = tenantRes.data[0].tenant.id;
+    setTenantId(tid);
 
-      // Load documents
-      const docsRes = await apiClient.get<DocumentData[]>(`/tenants/${tid}/documents/`);
-      if (docsRes.data) {
-        setDocuments(docsRes.data);
-      }
+    // Get first space
+    const spacesRes = await apiClient.get<any[]>(`/tenants/${tid}/spaces/`);
+    if (spacesRes.data && spacesRes.data.length > 0) {
+      setSpaceId(spacesRes.data[0].id);
+    }
+
+    // Load documents
+    const docsRes = await apiClient.get<DocumentData[]>(`/tenants/${tid}/documents/`);
+    if (docsRes.data) {
+      setDocuments(docsRes.data);
     }
     setLoading(false);
   };
@@ -126,6 +131,17 @@ export default function DocumentsPage() {
 
   return (
     <div className="documents-page">
+      {tenantError && (
+        <div className="tenant-error">
+          <div className="tenant-error-icon">⚠️</div>
+          <h2>Aucune organisation</h2>
+          <p>{tenantError}</p>
+          <button onClick={() => router.push("/dashboard")} className="back-btn">← Retour au Dashboard</button>
+        </div>
+      )}
+
+      {!tenantError && (
+        <>
       <header className="page-header">
         <div className="header-left">
           <button onClick={() => router.push("/dashboard")} className="back-btn">← Dashboard</button>
@@ -191,9 +207,15 @@ export default function DocumentsPage() {
           </table>
         </div>
       )}
+      </>
+      )}
 
       <style jsx>{`
         .documents-page { min-height: 100vh; background: #0f172a; color: #e2e8f0; padding: 2rem; }
+        .tenant-error { text-align: center; padding: 4rem 2rem; max-width: 600px; margin: 0 auto; }
+        .tenant-error-icon { font-size: 3rem; margin-bottom: 1rem; }
+        .tenant-error h2 { color: #fbbf24; margin-bottom: 0.5rem; }
+        .tenant-error p { color: #94a3b8; margin-bottom: 1.5rem; font-size: 0.9rem; }
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; max-width: 1100px; margin-left: auto; margin-right: auto; }
         .header-left { display: flex; align-items: center; gap: 1rem; }
         .header-left h1 { font-size: 1.5rem; font-weight: 700; }

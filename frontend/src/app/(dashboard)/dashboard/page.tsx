@@ -120,7 +120,7 @@ export default function DashboardPage() {
             <div className="stat-label">Documents</div>
             <div className="stat-value">—</div>
           </div>
-          <div className="stat-card">
+          <div className="stat-card clickable" onClick={() => router.push("/chat")}>
             <div className="stat-icon">💬</div>
             <div className="stat-label">Conversations</div>
             <div className="stat-value">—</div>

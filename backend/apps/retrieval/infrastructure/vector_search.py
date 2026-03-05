@@ -39,7 +39,12 @@ def search_chunks(
     min_score = min_score or getattr(settings, "RAG_MIN_SIMILARITY_SCORE", 0.7)
 
     # Generate query embedding
-    embeddings = generate_embeddings([query])
+    try:
+        embeddings = generate_embeddings([query])
+    except Exception as e:
+        logger.error(f"Embedding generation failed: {e}", exc_info=True)
+        return []
+
     if not embeddings:
         logger.warning("Failed to generate query embedding")
         return []

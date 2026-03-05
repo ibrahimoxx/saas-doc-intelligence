@@ -314,8 +314,9 @@ RAG_LLM_MODEL = "gpt-4o-mini"
 RAG_TEMPERATURE = 0.1
 
 # ===========================
-# OpenAI
+# AI Providers (Gemini = free, OpenAI = paid)
 # ===========================
+GEMINI_API_KEY = config("GEMINI_API_KEY", default="")
 OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
 
 # ===========================
