@@ -64,8 +64,8 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-8 animate-fade-in-up">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Platform Overview</h1>
-        <p className="text-slate-500 mt-1">Superuser statistics and monitoring</p>
+        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">Platform Overview</h1>
+        <p className="text-indigo-200/60 mt-2">Superuser statistics and monitoring</p>
       </div>
 
       {stats && (
@@ -102,58 +102,58 @@ export default function AdminDashboardPage() {
       )}
 
       {/* Recent Queries Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-200">
-          <h2 className="text-lg font-semibold text-slate-900">Recent RAG Queries</h2>
+      <div className="bg-[rgba(30,27,75,0.4)] backdrop-blur-sm rounded-xl border border-indigo-500/15 shadow-[0_4px_20px_rgba(30,27,75,0.5)] overflow-hidden">
+        <div className="px-6 py-5 border-b border-indigo-500/15">
+          <h2 className="text-lg font-semibold text-[#e2e8f0]">Recent RAG Queries</h2>
         </div>
         
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200">
-            <thead className="bg-slate-50">
+          <table className="min-w-full divide-y divide-indigo-500/10">
+            <thead className="bg-[#0f172a]/50">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-indigo-300 uppercase tracking-wider">
                   Date
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-indigo-300 uppercase tracking-wider">
                   User
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-indigo-300 uppercase tracking-wider">
                   Tenant
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-indigo-300 uppercase tracking-wider">
                   Question
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-indigo-300 uppercase tracking-wider">
                   Model
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-slate-200">
+            <tbody className="divide-y divide-indigo-500/10">
               {recentQueries.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-sm text-slate-500">
+                  <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-500">
                     Aucune requête enregistrée.
                   </td>
                 </tr>
               ) : (
                 recentQueries.map((query) => (
-                  <tr key={query.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                  <tr key={query.id} className="hover:bg-indigo-500/5 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
                       {format(new Date(query.created_at), "dd MMM yyyy, HH:mm", { locale: fr })}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#e2e8f0]">
                       {query.user_email}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
                         {query.tenant_name}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-700 max-w-sm truncate" title={query.question}>
-                      {query.question}
+                    <td className="px-6 py-4 text-sm text-slate-300 max-w-sm" title={query.question}>
+                      <span className="line-clamp-2">{query.question}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
+                      <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-500/10 text-purple-300 border border-purple-500/20">
                         {query.model_used}
                       </span>
                     </td>
@@ -182,14 +182,17 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm flex items-start space-x-4">
-      <div className={`p-3 rounded-lg flex-shrink-0 ${color}`}>
-        <Icon className="w-6 h-6" />
+    <div className="bg-[rgba(30,27,75,0.4)] backdrop-blur-sm rounded-xl p-6 border border-indigo-500/15 shadow-[0_4px_20px_rgba(30,27,75,0.5)] flex items-start space-x-4 transition-all hover:border-indigo-500/30 hover:bg-[rgba(30,27,75,0.6)]">
+      <div className={`p-4 rounded-xl flex-shrink-0 ${color} bg-opacity-10 w-14 h-14 flex items-center justify-center`}>
+        <Icon className="w-7 h-7" />
       </div>
       <div>
-        <p className="text-sm font-medium text-slate-500">{title}</p>
-        <p className="text-2xl font-bold text-slate-900 mt-1">{value}</p>
-        <p className="text-xs font-medium text-slate-400 mt-1">{trend}</p>
+        <p className="text-sm font-medium text-indigo-200/60 uppercase tracking-wider">{title}</p>
+        <p className="text-3xl font-bold text-[#e2e8f0] mt-1">{value}</p>
+        <p className="text-xs font-medium text-emerald-400 mt-2 flex items-center">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span>
+          {trend}
+        </p>
       </div>
     </div>
   );
