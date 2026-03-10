@@ -31,6 +31,13 @@ class DocumentsListView(APIView):
 
     permission_classes = [permissions.IsAuthenticated, IsTenantMember]
 
+    def get_throttles(self):
+        from rest_framework.throttling import ScopedRateThrottle
+        if self.request.method == 'POST':
+            self.throttle_scope = 'upload'
+            return [ScopedRateThrottle()]
+        return []
+
     def get(self, request, tenant_id):
         """List documents for this tenant, optionally filtered by space."""
         space_id = request.query_params.get("space_id")

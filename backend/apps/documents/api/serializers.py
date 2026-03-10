@@ -43,25 +43,32 @@ class DocumentUploadSerializer(serializers.Serializer):
 
     def validate_file(self, value):
         from django.conf import settings
+        import filetype
+        import os
 
-        # Check file size
+        # 1. Check file size first (already enforced by Django partially, but strictly enforced here)
         if value.size > settings.MAX_UPLOAD_SIZE_BYTES:
             raise serializers.ValidationError(
                 f"Le fichier dépasse la taille maximale ({settings.MAX_UPLOAD_SIZE_MB} Mo)."
             )
 
-        # Check file type
-        if value.content_type not in settings.ALLOWED_UPLOAD_TYPES:
-            raise serializers.ValidationError(
-                f"Type de fichier non supporté. Types acceptés : {', '.join(settings.ALLOWED_UPLOAD_TYPES)}"
-            )
-
-        # Check extension
-        import os
+        # 2. Check extension
         ext = os.path.splitext(value.name)[1].lower()
         if ext not in settings.ALLOWED_UPLOAD_EXTENSIONS:
             raise serializers.ValidationError(
                 f"Extension non supportée. Extensions acceptées : {', '.join(settings.ALLOWED_UPLOAD_EXTENSIONS)}"
+            )
+
+        # 3. Read first 2048 bytes for Magic Number MIME type guess
+        header = value.read(2048)
+        value.seek(0)  # Reset file pointer for later reading
+
+        kind = filetype.guess(header)
+        
+        # Security: If filetype can't guess it, or it doesn't match allowed types
+        if kind is None or kind.mime not in settings.ALLOWED_UPLOAD_TYPES:
+            raise serializers.ValidationError(
+                f"Le contenu réel du fichier n'est pas supporté ou est potentiellement corrompu."
             )
 
         return value

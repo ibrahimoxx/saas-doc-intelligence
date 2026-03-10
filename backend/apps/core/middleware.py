@@ -38,11 +38,18 @@ class RequestIdMiddleware:
         from apps.audit_observability.services import set_request_context
         set_request_context(request)
 
+        import structlog
+        structlog.contextvars.clear_contextvars()
+        structlog.contextvars.bind_contextvars(request_id=request_id)
+        if hasattr(request, "user") and request.user.is_authenticated:
+            structlog.contextvars.bind_contextvars(user_id=str(request.user.id))
+
         response = self.get_response(request)
         response["X-Request-Id"] = request_id
 
         # Clean up thread-local
         _request_id.value = None
+        structlog.contextvars.clear_contextvars()
 
         return response
 

@@ -31,7 +31,7 @@ class LoginView(APIView):
     """
 
     permission_classes = [permissions.AllowAny]
-    # throttle_scope = "login"
+    throttle_scope = "login"
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data, context={"request": request})
@@ -61,6 +61,7 @@ class RegisterView(APIView):
     """
 
     permission_classes = [permissions.AllowAny]
+    throttle_scope = "register"
 
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)

@@ -28,6 +28,7 @@ class AskView(APIView):
     """
 
     permission_classes = [permissions.IsAuthenticated, IsTenantMember]
+    throttle_scope = "chat"
 
     def post(self, request, tenant_id):
         serializer = AskQuestionSerializer(data=request.data)
