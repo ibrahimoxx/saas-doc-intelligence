@@ -93,3 +93,4 @@ htmlcov/
 *.bak
 *.tmp
 *.temp
+docs/
