@@ -97,6 +97,11 @@ export default function DashboardPage() {
 
         <div className="topbar-right">
           <span className="user-email">{user?.email}</span>
+          {user?.is_superuser && (
+            <button onClick={() => router.push("/admin/dashboard")} className="admin-btn">
+              Admin Dashboard
+            </button>
+          )}
           <button onClick={handleLogout} className="logout-btn">
             Déconnexion
           </button>
@@ -209,6 +214,21 @@ export default function DashboardPage() {
 
         .logout-btn:hover {
           background: rgba(239, 68, 68, 0.1);
+        }
+
+        .admin-btn {
+          padding: 0.4rem 1rem;
+          background: rgba(99, 102, 241, 0.2);
+          border: 1px solid rgba(99, 102, 241, 0.5);
+          border-radius: 8px;
+          color: #c7d2fe;
+          font-size: 0.85rem;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+
+        .admin-btn:hover {
+          background: rgba(99, 102, 241, 0.4);
         }
 
         .main-content {

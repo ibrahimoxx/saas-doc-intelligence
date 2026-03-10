@@ -11,6 +11,7 @@ urlpatterns = [
 
     # API v1
     path("api/v1/auth/", include("apps.identity_access.api.urls")),
+    path("api/v1/admin/", include("apps.retrieval.api.admin_urls")),
     path("api/v1/tenants/", include("apps.tenancy.api.urls")),
     path("api/v1/tenants/<uuid:tenant_id>/documents/", include("apps.documents.api.urls")),
     path("api/v1/tenants/<uuid:tenant_id>/chat/", include("apps.retrieval.api.urls")),
