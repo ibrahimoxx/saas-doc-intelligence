@@ -12,6 +12,8 @@ from datetime import timedelta
 from apps.tenancy.models import Tenant
 from apps.documents.models import Document
 from apps.retrieval.models import QueryLog
+from apps.conversations.models import Message
+from apps.core.constants import MessageRole
 
 User = get_user_model()
 
@@ -36,7 +38,7 @@ class AdminStatsView(views.APIView):
         total_tenants = Tenant.objects.count()
         total_users = User.objects.count()
         total_documents = Document.objects.count()
-        total_queries = QueryLog.objects.count()
+        total_queries = QueryLog.objects.count() + Message.objects.filter(role=MessageRole.USER).count()
 
         # Calculate trends (last 7 days vs previous 7 days - simple version)
         now = timezone.now()
@@ -45,7 +47,10 @@ class AdminStatsView(views.APIView):
         new_tenants_last_7d = Tenant.objects.filter(created_at__gte=seven_days_ago).count()
         new_users_last_7d = User.objects.filter(created_at__gte=seven_days_ago).count()
         new_documents_last_7d = Document.objects.filter(created_at__gte=seven_days_ago).count()
-        queries_last_7d = QueryLog.objects.filter(created_at__gte=seven_days_ago).count()
+        queries_last_7d = (
+            QueryLog.objects.filter(created_at__gte=seven_days_ago).count() +
+            Message.objects.filter(role=MessageRole.USER, created_at__gte=seven_days_ago).count()
+        )
 
         return response.Response({
             "totals": {
@@ -71,7 +76,7 @@ class AdminRecentQueriesView(views.APIView):
     permission_classes = [permissions.IsAuthenticated, IsSuperUser]
 
     def get(self, request, *args, **kwargs):
-        # Fetch the 20 most recent queries
+        # Fetch the 20 most recent queries from QueryLog
         recent_queries = QueryLog.objects.select_related('user', 'tenant').order_by('-created_at')[:20]
         
         data = []
@@ -86,5 +91,25 @@ class AdminRecentQueriesView(views.APIView):
                 "total_tokens": query.total_tokens,
                 "created_at": query.created_at.isoformat(),
             })
+
+        # Also fetch recent messages from the new Phase 7 conversations
+        # We will fetch ASSISTANT messages to get token usage/model and pair them with the previous USER message conceptually,
+        # but for simplicity we can just fetch USER messages and show the question.
+        recent_messages = Message.objects.filter(role=MessageRole.USER).select_related('conversation__user', 'conversation__tenant').order_by('-created_at')[:20]
+        
+        for msg in recent_messages:
+            data.append({
+                "id": str(msg.id),
+                "tenant_name": msg.conversation.tenant.name if msg.conversation.tenant else "Unknown",
+                "user_email": msg.conversation.user.email if msg.conversation.user else "Anonymous",
+                "question": msg.content,
+                "answer_preview": "Voir la conversation pour la réponse complète.",
+                "model_used": "N/A",  # The user message doesn't have the model, it's on the assistant message
+                "total_tokens": 0,
+                "created_at": msg.created_at.isoformat(),
+            })
+            
+        # Sort combined data descending by created_at and limit back to 20
+        data = sorted(data, key=lambda x: x["created_at"], reverse=True)[:20]
 
         return response.Response(data)

@@ -91,7 +91,7 @@ export default function AdminLayout({
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none"></div>
         
-        <div className="flex-1 overflow-y-auto w-full max-w-7xl mx-auto p-4 md:p-8 z-10">
+        <div className="flex-1 overflow-y-auto w-full h-full max-w-7xl mx-auto px-6 py-10 md:px-12 md:py-12 z-10">
           {children}
         </div>
       </main>
