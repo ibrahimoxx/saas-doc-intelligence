@@ -62,99 +62,132 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="space-y-8 animate-fade-in-up">
-      <div>
-        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">Platform Overview</h1>
-        <p className="text-indigo-200/60 mt-2">Superuser statistics and monitoring</p>
+    <div className="space-y-12 animate-fade-in-up">
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-extrabold tracking-tight text-white mb-2">
+            Platform <span className="text-gradient">Overview</span>
+          </h1>
+          <p className="text-slate-400 font-medium flex items-center">
+            <span className="w-2 h-2 rounded-full bg-indigo-500 mr-2 shadow-[0_0_10px_rgba(99,102,241,0.5)]"></span>
+            Superuser statistics and real-time monitoring
+          </p>
+        </div>
+        <div className="flex items-center space-x-2 bg-slate-800/40 p-1 rounded-xl border border-slate-700/50 backdrop-blur-sm">
+          <button className="px-4 py-1.5 rounded-lg bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-500/20">7 Days</button>
+          <button className="px-4 py-1.5 rounded-lg text-slate-400 text-xs font-bold hover:text-white transition-colors">30 Days</button>
+        </div>
       </div>
 
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
             title="Total Tenants"
             value={stats.totals.tenants}
-            trend={`+${stats.recent_activity.new_tenants_7d} (7j)`}
+            trend={`+${stats.recent_activity.new_tenants_7d} this week`}
             icon={BuildingOffice2Icon}
-            color="bg-blue-100 text-blue-600"
+            color="from-blue-500 to-indigo-600 shadow-blue-500/10"
           />
           <StatCard
             title="Total Users"
             value={stats.totals.users}
-            trend={`+${stats.recent_activity.new_users_7d} (7j)`}
+            trend={`+${stats.recent_activity.new_users_7d} this week`}
             icon={UsersIcon}
-            color="bg-purple-100 text-purple-600"
+            color="from-purple-500 to-pink-600 shadow-purple-500/10"
           />
           <StatCard
             title="Total Documents"
             value={stats.totals.documents}
-            trend={`+${stats.recent_activity.new_documents_7d} (7j)`}
+            trend={`+${stats.recent_activity.new_documents_7d} this week`}
             icon={FolderOpenIcon}
-            color="bg-amber-100 text-amber-600"
+            color="from-amber-400 to-orange-600 shadow-amber-500/10"
           />
           <StatCard
             title="Total Queries"
             value={stats.totals.queries}
-            trend={`+${stats.recent_activity.queries_7d} (7j)`}
+            trend={`+${stats.recent_activity.queries_7d} this week`}
             icon={ChatBubbleBottomCenterTextIcon}
-            color="bg-emerald-100 text-emerald-600"
+            color="from-emerald-400 to-teal-600 shadow-emerald-500/10"
           />
         </div>
       )}
 
       {/* Recent Queries Table */}
-      <div className="bg-[rgba(30,27,75,0.4)] backdrop-blur-sm rounded-xl border border-indigo-500/15 shadow-[0_4px_20px_rgba(30,27,75,0.5)] overflow-hidden">
-        <div className="px-6 py-5 border-b border-indigo-500/15">
-          <h2 className="text-lg font-semibold text-[#e2e8f0]">Recent RAG Queries</h2>
+      <div className="glass-card rounded-3xl overflow-hidden border border-white/5 shadow-2xl">
+        <div className="px-8 py-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+          <div>
+            <h2 className="text-xl font-bold text-white">Recent RAG Queries</h2>
+            <p className="text-xs text-slate-500 mt-1 uppercase tracking-widest font-bold">Latest user interactions</p>
+          </div>
+          <button className="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors bg-indigo-500/10 px-4 py-2 rounded-xl border border-indigo-500/20 shadow-inner">
+            View All
+          </button>
         </div>
         
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-indigo-500/10">
-            <thead className="bg-[#0f172a]/50">
+          <table className="min-w-full divide-y divide-white/5">
+            <thead className="bg-white/[0.01]">
               <tr>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-indigo-300 uppercase tracking-wider">
-                  Date
+                <th scope="col" className="px-8 py-5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  Timestamp
                 </th>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-indigo-300 uppercase tracking-wider">
+                <th scope="col" className="px-8 py-5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                   User
                 </th>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-indigo-300 uppercase tracking-wider">
+                <th scope="col" className="px-8 py-5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                   Tenant
                 </th>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-indigo-300 uppercase tracking-wider">
+                <th scope="col" className="px-8 py-5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                   Question
                 </th>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-indigo-300 uppercase tracking-wider">
-                  Model
+                <th scope="col" className="px-8 py-5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  Engine
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-indigo-500/10">
+            <tbody className="divide-y divide-white/5 bg-transparent">
               {recentQueries.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-500">
-                    Aucune requête enregistrée.
+                  <td colSpan={5} className="px-8 py-20 text-center">
+                    <div className="flex flex-col items-center justify-center space-y-3">
+                      <div className="p-4 rounded-full bg-slate-800/50 text-slate-600">
+                        <ChatBubbleBottomCenterTextIcon className="w-8 h-8" />
+                      </div>
+                      <p className="text-slate-500 font-medium">No queries recorded yet.</p>
+                    </div>
                   </td>
                 </tr>
               ) : (
                 recentQueries.map((query) => (
-                  <tr key={query.id} className="hover:bg-indigo-500/5 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
-                      {format(new Date(query.created_at), "dd MMM yyyy, HH:mm", { locale: fr })}
+                  <tr key={query.id} className="group hover:bg-white/[0.02] transition-colors duration-200">
+                    <td className="px-8 py-5 whitespace-nowrap">
+                      <div className="text-sm font-medium text-slate-300">
+                        {format(new Date(query.created_at), "dd MMM, HH:mm", { locale: fr })}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#e2e8f0]">
-                      {query.user_email}
+                    <td className="px-8 py-5 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 text-xs font-bold mr-3">
+                          {query.user_email.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-sm font-semibold text-white truncate max-w-[120px]">
+                          {query.user_email.split("@")[0]}
+                        </span>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
+                    <td className="px-8 py-5 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700/50">
                         {query.tenant_name}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-300 max-w-sm" title={query.question}>
-                      <span className="line-clamp-2">{query.question}</span>
+                    <td className="px-8 py-5">
+                      <p className="text-sm text-slate-400 line-clamp-1 group-hover:text-slate-200 transition-colors" title={query.question}>
+                        {query.question}
+                      </p>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
-                      <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-500/10 text-purple-300 border border-purple-500/20">
-                        {query.model_used}
+                    <td className="px-8 py-5 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 shadow-sm">
+                        {query.model_used.split("/").pop()}
                       </span>
                     </td>
                   </tr>
@@ -182,17 +215,26 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div className="bg-[rgba(30,27,75,0.4)] backdrop-blur-sm rounded-xl p-6 border border-indigo-500/15 shadow-[0_4px_20px_rgba(30,27,75,0.5)] flex items-start space-x-4 transition-all hover:border-indigo-500/30 hover:bg-[rgba(30,27,75,0.6)]">
-      <div className={`p-4 rounded-xl flex-shrink-0 ${color} bg-opacity-10 w-14 h-14 flex items-center justify-center`}>
-        <Icon className="w-7 h-7" />
+    <div className="glass-card rounded-3xl p-7 flex flex-col justify-between transition-all duration-300 hover:translate-y-[-5px] hover:border-indigo-500/30 group">
+      <div className="flex items-center justify-between mb-8">
+        <div className={`p-3 rounded-2xl bg-gradient-to-br ${color} text-white shadow-lg`}>
+          <Icon className="w-6 h-6" />
+        </div>
+        <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 group-hover:text-indigo-400 transition-colors">
+          Realtime
+        </div>
       </div>
       <div>
-        <p className="text-sm font-medium text-indigo-200/60 uppercase tracking-wider">{title}</p>
-        <p className="text-3xl font-bold text-[#e2e8f0] mt-1">{value}</p>
-        <p className="text-xs font-medium text-emerald-400 mt-2 flex items-center">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span>
-          {trend}
-        </p>
+        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">{title}</p>
+        <div className="flex items-end space-x-2">
+          <p className="text-4xl font-black text-white tracking-tight leading-none">{value.toLocaleString()}</p>
+        </div>
+        <div className="mt-4 flex items-center space-x-2">
+          <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-500">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 10l7-7 7 7M5 19l7-7 7 7"></path></svg>
+          </span>
+          <p className="text-xs font-bold text-emerald-500 tracking-wide">{trend}</p>
+        </div>
       </div>
     </div>
   );
