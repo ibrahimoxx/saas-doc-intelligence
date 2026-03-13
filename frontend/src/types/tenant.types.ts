@@ -17,6 +17,19 @@ export interface TenantMembership {
   status: "active" | "invited" | "disabled";
 }
 
+export interface TenantMember {
+  id: string;
+  user: {
+    id: string;
+    email: string;
+    full_name: string;
+    is_superuser: boolean;
+  };
+  role: "owner" | "admin" | "manager" | "member";
+  status: "active" | "invited" | "disabled";
+  created_at: string;
+}
+
 export interface KnowledgeSpace {
   id: string;
   tenant_id: string;
@@ -24,6 +37,7 @@ export interface KnowledgeSpace {
   slug: string;
   description: string;
   is_active: boolean;
+  document_count?: number;
   created_at: string;
 }
 
