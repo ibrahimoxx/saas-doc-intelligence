@@ -1,46 +1,220 @@
 @import "tailwindcss";
 
+/* ============================================================
+   DocPilot AI — Design System v2 (Stitch Edition)
+   Phase 1: Global CSS Variables, Utilities & Animations
+   ============================================================ */
+
+/* ── 1. Design Tokens ─────────────────────────────────────── */
 :root {
-  --background: #0f172a;
-  --foreground: #f8fafc;
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  /* Backgrounds */
+  --bg-base:        #020617;
+  --bg-deep:        #0d111c;
+  --bg-surface:     #0f172a;
+  --bg-elevated:    #131722;
+  --bg-card:        rgba(19, 23, 34, 0.8);
+
+  /* Accents */
+  --accent-indigo:  #6366f1;
+  --accent-purple:  #8b5cf6;
+  --accent-cyan:    #22d3ee;
+  --accent-pink:    #ec4899;
+
+  /* Gradients */
+  --gradient-brand: linear-gradient(to right, #6366f1, #8b5cf6);
+  --gradient-deep:  linear-gradient(135deg, #4a5df1, #2b1676);
+  --gradient-card:  linear-gradient(145deg, rgba(255,255,255,0.07), rgba(0,0,0,0.4));
+
+  /* Text */
+  --text-primary:   #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted:     #475569;
+  --text-accent:    #a5b4fc;
+
+  /* Borders */
+  --border-subtle:  rgba(255, 255, 255, 0.05);
+  --border-default: rgba(255, 255, 255, 0.10);
+  --border-accent:  rgba(99, 102, 241, 0.40);
+
+  /* Shadows */
+  --shadow-sm:      0 4px 16px rgba(2, 6, 23, 0.6);
+  --shadow-md:      0 8px 32px rgba(2, 6, 23, 0.7);
+  --shadow-lg:      0 20px 60px rgba(2, 6, 23, 0.8);
+  --shadow-indigo:  0 4px 30px rgba(99, 102, 241, 0.25);
+  --shadow-glow:    0 0 20px rgba(255, 255, 255, 0.4);
+
+  /* Border Radius */
+  --radius-sm:  0.5rem;   /* 8px  */
+  --radius-md:  0.75rem;  /* 12px */
+  --radius-lg:  1rem;     /* 16px */
+  --radius-xl:  1.5rem;   /* 24px */
+  --radius-2xl: 2rem;     /* 32px */
+
+  /* Spacing */
+  --space-page: 2rem;
+  --topbar-h:   64px;
+  --sidebar-w:  260px;
+
+  /* Fonts */
+  --font-sans:    var(--font-inter),    ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-outfit),   ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+}
+
+/* ── 2. Base Reset & Typography ───────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
+  background-color: var(--bg-base);
+  color: var(--text-primary);
   font-family: var(--font-sans);
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
+  line-height: 1.25;
+  font-weight: 700;
 }
 
+/* ── 3. Scrollbar Styling ──────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-surface);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.4);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.7);
+}
+
+/* ── 4. Selection ──────────────────────────────────────────── */
+::selection {
+  background: rgba(99, 102, 241, 0.3);
+  color: #f8fafc;
+}
+
+/* ── 5. Glassmorphism Utilities ────────────────────────────── */
+
+/* Standard glass card — use on tiles, cards, sidebars */
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-default);
+}
+
+/* Stronger glass — modals, hero elements */
+.glass-strong {
+  background: rgba(13, 17, 28, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-default);
+}
+
+/* Subtle glass — nav, table rows */
+.glass-subtle {
+  background: rgba(255, 255, 255, 0.015);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Legacy alias used in admin dashboard */
 .glass-card {
-  @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] shadow-[0_8px_32px_0_rgba(2,6,23,0.8)];
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-md);
 }
 
 .glass-morphism {
-  @apply bg-white/[0.01] backdrop-blur-2xl border border-white/[0.05] shadow-2xl;
+  background: rgba(255, 255, 255, 0.01);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-lg);
 }
 
-.hover-lift {
-  @apply transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-2xl hover:shadow-indigo-500/10 hover:border-white/20;
-}
-
+/* ── 6. Gradient Utilities ─────────────────────────────────── */
 .text-gradient {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400;
+  background: var(--gradient-brand);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
+.text-gradient-cyan {
+  background: linear-gradient(to right, #22d3ee, #6366f1);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.bg-gradient-brand {
+  background: var(--gradient-brand);
+}
+
+/* ── 7. Hover & Interaction Effects ───────────────────────── */
+.hover-lift {
+  transition: transform 200ms ease-in-out, box-shadow 200ms ease-in-out,
+              border-color 200ms ease-in-out;
+}
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.20);
+  border-color: rgba(99, 102, 241, 0.25);
+}
+
+/* ── 8. Input Focus Ring ───────────────────────────────────── */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  border-color: var(--accent-indigo) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.20);
+}
+
+/* ── 9. Stat Card (Stitch design style) ───────────────────── */
+.stat-card {
+  background: var(--bg-elevated);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 30px -10px rgba(100, 100, 255, 0.25);
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+}
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -10px rgba(99, 102, 241, 0.30);
+  border-color: rgba(99, 102, 241, 0.25);
+}
+
+/* ── 10. Animations ────────────────────────────────────────── */
+
+/* Shimmer sweep — for loading states */
 .shimmer {
   position: relative;
   overflow: hidden;
 }
-
 .shimmer::after {
   content: "";
   position: absolute;
@@ -49,33 +223,71 @@ h1, h2, h3, h4, h5, h6 {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.04),
     transparent
   );
   animation: shimmer 2s infinite;
 }
-
 @keyframes shimmer {
-  100% {
-    transform: translateX(100%);
-  }
+  100% { transform: translateX(100%); }
 }
 
+/* Glowing card (login card) */
+.glowing-card {
+  animation: subtle-glow 4s infinite ease-in-out;
+}
+@keyframes subtle-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(255, 255, 255, 0.3), var(--shadow-md); }
+  50%       { box-shadow: 0 0 30px rgba(255, 255, 255, 0.5), var(--shadow-md); }
+}
+
+/* Glow on icon hover */
 .animate-glow {
   animation: glow 4s ease-in-out infinite alternate;
 }
-
 @keyframes glow {
-  from {
-    filter: drop-shadow(0 0 5px rgba(99, 102, 241, 0.2));
-  }
-  to {
-    filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.6));
-  }
+  from { filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.2)); }
+  to   { filter: drop-shadow(0 0 18px rgba(99, 102, 241, 0.6)); }
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+/* Pulse status dot */
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.6; transform: scale(0.85); }
+}
+.pulse-dot {
+  animation: status-pulse 2s ease-in-out infinite;
+}
+
+/* Spin for loaders */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin 1.5s linear infinite;
+}
+
+/* Bounce for typing dots */
+@keyframes bounce-dot {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40%           { transform: scale(1);   opacity: 1;   }
+}
+
+/* Fade-in from bottom */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.35s ease-out forwards;
+}
+
+/* ── 11. Diagonal background (login) ──────────────────────── */
+.diagonal-split-bg {
+  background: linear-gradient(135deg, #0f172a 50%, #020617 50%);
+}
+
+/* ── 12. Nav border helper ─────────────────────────────────── */
+.nav-border {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }

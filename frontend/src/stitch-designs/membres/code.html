@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DocPilot AI Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style data-purpose="custom-fonts">
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0b0f19; /* Very dark blue/black */
+      color: #e2e8f0; /* Light gray text */
+    }
+  </style>
+<style data-purpose="glassmorphism">
+    .glass-card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    .glass-gradient-bg {
+      /* Subtle colorful gradient behind the glass card */
+      background: radial-gradient(circle at top left, rgba(79, 70, 229, 0.15), transparent 40%),
+                  radial-gradient(circle at bottom right, rgba(236, 72, 153, 0.15), transparent 40%);
+    }
+    .modal-glass {
+      background: rgba(30, 35, 50, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+    }
+  </style>
+<style data-purpose="gradients">
+    .text-gradient {
+      background: linear-gradient(to right, #3b82f6, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      color: transparent;
+    }
+    .bg-gradient-avatar-1 { background: linear-gradient(135deg, #3b82f6, #8b5cf6); }
+    .bg-gradient-avatar-2 { background: linear-gradient(135deg, #f59e0b, #ec4899); }
+    .bg-gradient-avatar-3 { background: linear-gradient(135deg, #10b981, #3b82f6); }
+    .modal-header-gradient {
+      background: linear-gradient(to right, #8b5cf6, #ec4899);
+    }
+  </style>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            darkbg: '#0b0f19',
+            cardbg: '#1a1f2e',
+            borderdark: '#2d3748',
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="min-h-screen relative overflow-hidden text-sm">
+<!-- BEGIN: MainHeader -->
+<header class="flex items-center justify-between px-8 py-4 border-b border-white/10 bg-darkbg/80 backdrop-blur-md z-10 relative">
+<div class="flex items-center gap-2">
+<!-- Logo placeholder -->
+<div class="w-6 h-6 rounded bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-xs">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+<span class="text-white font-semibold text-lg">DocPilot <span class="text-blue-400">AI</span></span>
+</div>
+<nav class="flex items-center gap-8 text-gray-400">
+<a class="flex items-center gap-2 hover:text-white transition-colors" href="#">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+        Dashboard
+      </a>
+<a class="flex items-center gap-2 hover:text-white transition-colors" href="#">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+        Documents
+      </a>
+<a class="flex items-center gap-2 hover:text-white transition-colors" href="#">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+        AI Chat
+      </a>
+<div class="flex items-center gap-2 ml-4 pl-4 border-l border-white/10">
+<img alt="User Avatar" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAcIS_otSKLW-5RIjV0Og1pxZNiIsHGgFfpzW7iE91yQ_w3qZYTVkIAvZnx81J0XGfDKTHHhsSHDAqIBdU6hQbd6YU-DlFxITcGPYuWYIr-Bn1IPmk77V-m_nhqkAGdOS-Au3cTtDICJ6AfD2E52wfhkTIqMmRnacdJazTt1Ranmkmxg3UA1vqJu-fyo-dlD8boE-Qa4MVpPwmQa3fjQbEb9hocfmTddm6mlR2GNm7Bw9NnmJ6EbQYLtzUlEKDJ7ygmHA2ydUA5kMVo"/>
+<svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+</nav>
+</header>
+<!-- END: MainHeader -->
+<main class="p-8 max-w-7xl mx-auto relative z-0 glass-gradient-bg min-h-[calc(100vh-73px)]">
+<!-- BEGIN: PageTitle -->
+<div class="flex items-center gap-4 mb-8">
+<h1 class="text-3xl font-bold bg-gradient-to-r from-blue-500 to-fuchsia-500 bg-clip-text text-transparent">Acme Corp - DocPilot Team</h1>
+<span class="px-3 py-1 bg-white/10 rounded-full text-xs font-medium text-gray-300 border border-white/5">8 Members</span>
+</div>
+<!-- END: PageTitle -->
+<!-- BEGIN: MainContentCard -->
+<div class="glass-card rounded-2xl p-6 relative bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl">
+<h2 class="text-xl font-semibold text-white mb-6">Members</h2>
+<div class="w-full">
+<!-- Table Header -->
+<div class="grid grid-cols-12 gap-4 pb-4 border-b border-white/10 text-gray-400 font-medium text-xs uppercase tracking-wider">
+<div class="col-span-3">User</div>
+<div class="col-span-4">Email</div>
+<div class="col-span-2">Role</div>
+<div class="col-span-2">Status</div>
+<div class="col-span-1 text-right">Actions</div>
+</div>
+<!-- Table Body -->
+<div class="flex flex-col">
+<!-- Row 1 -->
+<div class="grid grid-cols-12 gap-4 py-4 border-b border-white/5 items-center relative z-20">
+<div class="col-span-3 flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-gradient-avatar-1 shadow-sm"></div>
+<span class="text-gray-200 font-medium">Sarah Chen</span>
+</div>
+<div class="col-span-4 text-gray-400">sarah.c@acme.com</div>
+<div class="col-span-2 relative">
+<!-- Dropdown trigger & menu (simulated open) -->
+<div class="bg-white/5 border border-white/10 rounded-md py-1.5 px-3 flex items-center justify-between cursor-pointer w-full max-w-[140px]">
+<span class="text-gray-300 text-sm">Admin</span>
+<svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+<!-- Dropdown Menu -->
+<div class="absolute top-full left-0 mt-1 w-full max-w-[140px] bg-gray-800 border border-white/10 rounded-md shadow-lg overflow-hidden z-30">
+<div class="px-3 py-2 text-gray-300 hover:bg-white/5 cursor-pointer text-sm bg-white/5">Admin</div>
+<div class="px-3 py-2 text-gray-300 hover:bg-white/5 cursor-pointer text-sm">Gestionnaire</div>
+<div class="px-3 py-2 text-gray-300 hover:bg-white/5 cursor-pointer text-sm">Membre</div>
+</div>
+</div>
+<div class="col-span-2 flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]"></span>
+<span class="text-emerald-400 text-sm">Active</span>
+</div>
+<div class="col-span-1 flex items-center justify-end gap-3 text-gray-400">
+<button class="hover:text-white"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></button>
+<button class="hover:text-white"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></button>
+</div>
+</div>
+<!-- Row 2 -->
+<div class="grid grid-cols-12 gap-4 py-4 border-b border-white/5 items-center relative z-10 opacity-50 blur-[1px]">
+<div class="col-span-3 flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-gradient-avatar-2 shadow-sm"></div>
+<span class="text-gray-200 font-medium">Michael O'Connell</span>
+</div>
+<div class="col-span-4 text-gray-400">michael.o@acme.com</div>
+<div class="col-span-2 text-gray-300 text-sm">Membre</div>
+<div class="col-span-2 flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+<span class="text-emerald-400 text-sm">Active</span>
+</div>
+<div class="col-span-1 flex items-center justify-end gap-3 text-gray-400">
+<button><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></button>
+<button><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></button>
+</div>
+</div>
+<!-- Row 3 -->
+<div class="grid grid-cols-12 gap-4 py-4 border-b border-white/5 items-center relative z-10 opacity-50 blur-[1px]">
+<div class="col-span-3 flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-gradient-avatar-3 shadow-sm"></div>
+<span class="text-gray-200 font-medium">Anya Sharma</span>
+</div>
+<div class="col-span-4 text-gray-400">anya.s@acme.com</div>
+<div class="col-span-2 text-gray-300 text-sm">Gestionnaire</div>
+<div class="col-span-2 flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+<span class="text-emerald-400 text-sm">Active</span>
+</div>
+<div class="col-span-1 flex items-center justify-end gap-3 text-gray-400">
+<button><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></button>
+<button><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></button>
+</div>
+</div>
+<!-- Row 4 -->
+<div class="grid grid-cols-12 gap-4 py-4 border-b border-white/5 items-center relative z-10 opacity-50 blur-[1px]">
+<div class="col-span-3 flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-gradient-avatar-1 shadow-sm"></div>
+<span class="text-gray-200 font-medium">Sarah Chen</span>
+</div>
+<div class="col-span-4 text-gray-400">sarah.c@acme.com</div>
+<div class="col-span-2 text-gray-300 text-sm">Admin</div>
+<div class="col-span-2 flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+<span class="text-emerald-400 text-sm">Active</span>
+</div>
+<div class="col-span-1 flex items-center justify-end gap-3 text-gray-400">
+<button><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></button>
+<button><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- END: MainContentCard -->
+</main>
+<!-- BEGIN: InviteModalOverlay -->
+<!-- Centered absolute overlay for the modal -->
+<div class="absolute inset-0 z-50 flex items-center justify-center p-4 pt-32 pointer-events-none">
+<div class="modal-glass w-full max-w-lg rounded-xl overflow-hidden pointer-events-auto flex flex-col">
+<!-- Modal Header Gradient Area -->
+<div class="px-6 py-4 bg-gradient-to-r from-purple-500 to-pink-500">
+<h3 class="text-xl font-bold text-white">Invite New Members</h3>
+</div>
+<!-- Modal Body -->
+<div class="p-6 flex flex-col gap-6">
+<!-- Email Input -->
+<div>
+<label class="block text-xs font-medium text-gray-300 mb-2">Email Address(es)</label>
+<input class="w-full bg-[#2a3042] border border-white/10 rounded-md py-2.5 px-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-shadow" placeholder="Enter email addresses, separated by commas." type="text"/>
+</div>
+<!-- Role Selection -->
+<div class="grid grid-cols-3 gap-3">
+<!-- Role: Admin -->
+<label class="relative flex flex-col p-3 border border-white/10 rounded-lg cursor-pointer hover:bg-white/5 transition-colors group h-full">
+<input class="sr-only" name="role" type="radio"/>
+<div class="flex items-center gap-2 mb-1">
+<div class="w-4 h-4 rounded-full border border-gray-500 flex items-center justify-center group-hover:border-purple-400">
+</div>
+<span class="font-medium text-gray-400 group-hover:text-gray-200">Admin</span>
+</div>
+<span class="text-xs text-gray-500 leading-tight">Full access to all settings &amp; users</span>
+</label>
+<!-- Role: Gestionnaire (Selected state) -->
+<label class="relative flex flex-col p-3 border border-white/50 bg-white/10 rounded-lg cursor-pointer transition-colors shadow-[0_0_15px_rgba(255,255,255,0.1)] h-full">
+<input checked="" class="sr-only" name="role" type="radio"/>
+<div class="flex items-center gap-2 mb-1">
+<div class="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center">
+<div class="w-2 h-2 rounded-full bg-white"></div>
+</div>
+<span class="font-medium text-white">Gestionnaire</span>
+</div>
+<span class="text-xs text-gray-300 leading-tight">Can manage documents &amp; members</span>
+</label>
+<!-- Role: Membre -->
+<label class="relative flex flex-col p-3 border border-white/10 rounded-lg cursor-pointer hover:bg-white/5 transition-colors group h-full">
+<input class="sr-only" name="role" type="radio"/>
+<div class="flex items-center gap-2 mb-1">
+<div class="w-4 h-4 rounded-full border border-gray-500 flex items-center justify-center group-hover:border-purple-400"></div>
+<span class="font-medium text-gray-400 group-hover:text-gray-200">Membre</span>
+</div>
+<span class="text-xs text-gray-500 leading-tight">View &amp; interact with documents only</span>
+</label>
+</div>
+</div>
+<!-- Modal Footer -->
+<div class="px-6 py-4 border-t border-white/10 flex justify-end gap-3 bg-black/20">
+<button class="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors border border-transparent hover:border-white/10 rounded-md">Cancel</button>
+<button class="px-4 py-2 text-sm font-medium text-black bg-white hover:bg-gray-100 rounded-lg shadow-sm transition-colors">Send Invite</button>
+</div>
+</div>
+</div>
+<!-- END: InviteModalOverlay -->
+</body></html>

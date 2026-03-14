@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DocPilot AI Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style data-purpose="custom-styles">
+    body {
+      background-color: #0d111c; /* Very dark blue/black background */
+      color: #ffffff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    .text-gradient {
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-image: linear-gradient(to right, #4a90e2, #9013fe);
+    }
+
+    .stat-card {
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 0.75rem;
+      position: relative;
+      box-shadow: 0 10px 30px -10px rgba(100, 100, 255, 0.5);
+    }
+
+    .nav-border {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased">
+<!-- BEGIN: Top Navigation -->
+<header class="nav-border py-4 px-8 flex justify-between items-center bg-[#131722]" data-purpose="main-header">
+<!-- Logo area -->
+<div class="flex items-center">
+<h1 class="text-3xl font-extrabold tracking-tight text-gradient">DocPilot AI</h1>
+</div>
+<!-- Right side controls -->
+<div class="flex items-center space-x-6">
+<!-- Tenant Selector -->
+<div class="relative">
+<select class="appearance-none bg-[#1e2330] border border-gray-600 text-gray-300 text-sm rounded-md py-2 pl-4 pr-8 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors" data-purpose="tenant-selector">
+<option>Tenant: Acme Corp</option>
+<option>Tenant: Globex</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+<svg class="fill-current h-4 w-4" viewbox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"></path></svg>
+</div>
+</div>
+<!-- User Email -->
+<span class="text-gray-300 text-sm font-medium" data-purpose="user-email">john.doe@acmecorp.com</span>
+<!-- Logout Button -->
+<button class="transition-colors text-sm font-medium py-2 px-6 rounded-md" data-purpose="logout-button" style="border: 1px solid #5a2e37; background-color: rgba(255, 0, 0, 0.1); color: #d66571;">
+        Logout
+</button>
+</div>
+</header>
+<!-- END: Top Navigation -->
+<!-- BEGIN: Main Content Area -->
+<main class="flex-grow p-8 max-w-7xl mx-auto w-full" data-purpose="dashboard-content">
+<!-- Welcome Banner -->
+<section class="rounded-[24px] p-10 mb-8" data-purpose="welcome-banner" style="border: 1px solid rgba(255, 255, 255, 0.2); background: linear-gradient(145deg, rgba(255,255,255,0.1), rgba(0,0,0,0.5)); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);">
+<h2 class="text-3xl font-semibold mb-2 text-white">Welcome back, John!</h2>
+<p class="text-gray-400 text-base">You are logged in as an Admin for Acme Corp.</p>
+</section>
+<!-- Stat Cards Grid -->
+<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-purpose="stat-cards-grid">
+<!-- Card 1: Documents -->
+<div class="stat-card p-6 flex flex-col" data-purpose="stat-card-documents">
+<div class="mb-4">
+<svg fill="none" height="40" stroke="#7b61ff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewbox="0 0 24 24" width="40"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" x2="8" y1="13" y2="13"></line><line x1="16" x2="8" y1="17" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+</div>
+<p class="text-gray-400 text-sm font-medium mb-1">Documents</p>
+<p class="text-[2.5rem] font-semibold text-white">1,245</p>
+</div>
+<!-- Card 2: Conversations -->
+<div class="stat-card p-6 flex flex-col" data-purpose="stat-card-conversations">
+<div class="mb-4">
+<svg fill="none" height="40" stroke="#7b61ff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewbox="0 0 24 24" width="40"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+</div>
+<p class="text-gray-400 text-sm font-medium mb-1">Conversations</p>
+<p class="text-[2.5rem] font-semibold text-white">873</p>
+</div>
+<!-- Card 3: Membres -->
+<div class="stat-card p-6 flex flex-col" data-purpose="stat-card-membres">
+<div class="mb-4">
+<svg fill="none" height="40" stroke="#7b61ff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewbox="0 0 24 24" width="40"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+</div>
+<p class="text-gray-400 text-sm font-medium mb-1">Membres</p>
+<p class="text-[2.5rem] font-semibold text-white">52</p>
+</div>
+<!-- Card 4: Espaces -->
+<div class="stat-card p-6 flex flex-col" data-purpose="stat-card-espaces">
+<div class="mb-4">
+<svg fill="none" height="40" stroke="#7b61ff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewbox="0 0 24 24" width="40"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" x2="12" y1="22.08" y2="12"></line></svg>
+</div>
+<p class="text-gray-400 text-sm font-medium mb-1">Espaces</p>
+<p class="text-[2.5rem] font-semibold text-white">18</p>
+</div>
+</section>
+</main>
+<!-- END: Main Content Area -->
+</body></html>

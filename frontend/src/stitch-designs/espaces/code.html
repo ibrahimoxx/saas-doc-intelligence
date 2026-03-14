@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DocPilot AI Knowledge Spaces</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style data-purpose="custom-styles">
+    body {
+      background-color: #0b0f19;
+      color: #ffffff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    .glass-card {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.01));
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.05), 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    }
+
+    .gradient-btn {
+      background: linear-gradient(to right, #7b61ff, #df58d1);
+      border: none;
+      border-radius: 9999px;
+    }
+
+    .gradient-icon {
+      fill: url(#folder-gradient-1);
+    }
+    
+    .status-badge {
+      background-color: #22c55e;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8"><div class="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
+<div class="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[100px]"></div>
+<div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-[100px]"></div>
+</div>
+<!-- BEGIN: Header Section -->
+<header class="w-full max-w-6xl flex justify-between items-center mb-10">
+<h1 class="text-3xl font-extrabold tracking-tighter">DocPilot AI Knowledge Spaces</h1>
+<button class="gradient-btn text-white px-5 py-2.5 rounded-full font-medium hover:opacity-90 transition-opacity flex items-center gap-2">
+      Nouvel espace +
+    </button>
+</header>
+<!-- END: Header Section -->
+<!-- BEGIN: Main Content Grid -->
+<main class="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Card 1 -->
+<article class="glass-card rounded-2xl p-6 flex flex-col relative overflow-hidden group">
+<!-- Background glow effect -->
+<div class="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-50 pointer-events-none"></div>
+<div class="mb-4">
+<svg class="text-purple-400 drop-shadow-lg" height="72" viewbox="0 0 24 24" width="88">
+<defs>
+<lineargradient id="folder-gradient-1" x1="0%" x2="100%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#8B5CF6"></stop>
+<stop offset="100%" stop-color="#EC4899"></stop>
+</lineargradient>
+</defs>
+<path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" fill="url(#folder-gradient-1)"></path>
+</svg>
+</div>
+<div class="mb-3">
+<span class="status-badge text-white text-xs font-semibold px-2.5 py-1 rounded-full inline-block px-2 py-0.5">Prêt</span>
+</div>
+<h2 class="text-lg font-bold mb-1 uppercase tracking-wider">FINANCE Q3 REPORTS</h2>
+<p class="text-sm italic mb-6 flex-grow text-gray-400">All financial documents and quarterly analysis.</p>
+<div class="text-xs text-gray-400 flex items-center justify-between border-t pt-4 mt-auto border-white/10">
+<span>124 Documents | Created 24/10/2023</span>
+</div>
+</article>
+<!-- Card 2 -->
+<article class="glass-card rounded-2xl p-6 flex flex-col relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-50 pointer-events-none"></div>
+<div class="mb-4">
+<svg class="text-purple-400 drop-shadow-lg" height="72" viewbox="0 0 24 24" width="88">
+<path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" fill="url(#folder-gradient-1)"></path>
+</svg>
+</div>
+<div class="mb-3">
+<span class="status-badge text-white text-xs font-semibold px-2.5 py-1 rounded-full inline-block px-2 py-0.5">Prêt</span>
+</div>
+<h2 class="text-lg font-bold mb-1 uppercase tracking-wider">HR POLICIES &amp; PROCEDURES</h2>
+<p class="text-sm italic mb-6 flex-grow text-gray-400">Company-wide HR documentation and employee handbooks.</p>
+<div class="text-xs text-gray-400 flex items-center justify-between border-t pt-4 mt-auto border-white/10">
+<span>124 Documents | Created 24/10/2023</span>
+</div>
+</article>
+<!-- Card 3 -->
+<article class="glass-card rounded-2xl p-6 flex flex-col relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-br to-transparent opacity-50 pointer-events-none from-purple-500/20"></div>
+<!-- Decorative larger folder in background -->
+<div class="mb-4 relative z-10">
+<svg class="text-purple-400 drop-shadow-lg" height="72" viewbox="0 0 24 24" width="88">
+<path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" fill="url(#folder-gradient-1)"></path>
+</svg>
+</div>
+<div class="mb-3 relative z-10">
+<span class="status-badge text-white text-xs font-semibold px-2.5 py-1 rounded-full inline-block px-2 py-0.5">Prêt</span>
+</div>
+<h2 class="text-lg font-bold mb-1 uppercase tracking-wider relative z-10">FINANCE Q3 REPORTS</h2>
+<p class="text-sm italic mb-6 flex-grow relative z-10 text-gray-400">All financial documents and quarterly analysis.</p>
+<div class="text-xs text-gray-400 flex items-center justify-between border-t pt-4 mt-auto relative z-10 border-white/10">
+<span>124 Documents | Created 24/10/2023</span>
+<!-- Arrow Icon -->
+<svg class="w-6 h-6 text-white drop-shadow-md" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+</article>
+<!-- Card 4 -->
+<article class="glass-card rounded-2xl p-6 flex flex-col relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-50 pointer-events-none"></div>
+<div class="mb-4">
+<svg class="text-purple-400 drop-shadow-lg" height="72" viewbox="0 0 24 24" width="88">
+<path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" fill="url(#folder-gradient-1)"></path>
+</svg>
+</div>
+<div class="mb-3">
+<span class="status-badge text-white text-xs font-semibold px-2.5 py-1 rounded-full inline-block px-2 py-0.5">Prêt</span>
+</div>
+<h2 class="text-lg font-bold mb-1 uppercase tracking-wider">HR POLICIES &amp;</h2>
+<p class="text-sm italic mb-6 flex-grow text-gray-400">Company-wide HR documentation and employee handbooks.</p>
+<div class="text-xs text-gray-400 flex items-center justify-between border-t pt-4 mt-auto border-white/10">
+<span>65 Documents | Created 24/10/2023</span>
+</div>
+</article>
+</main>
+<!-- END: Main Content Grid -->
+</body></html>
