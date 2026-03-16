@@ -237,13 +237,15 @@ export default function EspacesPage() {
                                      <span>Ouvrir</span>
                                   </button>
 
-                                  <button 
-                                    onClick={() => handleDeleteSpace(space.id)}
-                                    className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-red-500/5 text-red-400 hover:text-red-300 transition-all duration-500 text-[9px] font-black uppercase tracking-widest text-left hover:scale-[1.02]"
-                                  >
-                                     <Trash2 className="w-4 h-4" />
-                                     <span>Supprimer</span>
-                                  </button>
+                                  {(permissions?.role === 'admin' || permissions?.role === 'owner') && (
+                                    <button 
+                                      onClick={() => handleDeleteSpace(space.id)}
+                                      className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-red-500/5 text-red-400 hover:text-red-300 transition-all duration-500 text-[9px] font-black uppercase tracking-widest text-left hover:scale-[1.02]"
+                                    >
+                                       <Trash2 className="w-4 h-4" />
+                                       <span>Supprimer</span>
+                                    </button>
+                                  )}
                                </div>
                             </div>
                           )}

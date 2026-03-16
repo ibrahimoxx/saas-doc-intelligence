@@ -1,11 +1,11 @@
 // src/app/(dashboard)/documents/page.tsx
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { tenantService } from "@/services/tenant.service";
-import type { TenantMembership, KnowledgeSpace, Document } from "@/types/tenant.types";
+import type { TenantMembership, KnowledgeSpace, Document, TenantPermissions } from "@/types/tenant.types";
 import { TopBar } from "@/components/layout/TopBar";
 import {
   FileText,
@@ -48,6 +48,7 @@ function DocumentsContent() {
   const [spaces, setSpaces] = useState<KnowledgeSpace[]>([]);
   const [currentSpaceId, setCurrentSpaceId] = useState<string | null>(searchParams.get("space"));
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [permissions, setPermissions] = useState<TenantPermissions | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -68,17 +69,21 @@ function DocumentsContent() {
     }
   }, [isAuthenticated]);
 
-  const loadData = async (tid: string) => {
-    const res = await tenantService.knowledgeSpaces(tid);
-    if (res.data) {
-      setSpaces(res.data);
-      if (!currentSpaceId && res.data.length) setCurrentSpaceId(res.data[0].id);
+  const loadData = useCallback(async (tid: string) => {
+    const [spacesRes, permsRes] = await Promise.all([
+      tenantService.knowledgeSpaces(tid),
+      tenantService.myPermissions(tid),
+    ]);
+    if (spacesRes.data) {
+      setSpaces(spacesRes.data);
+      if (!currentSpaceId && spacesRes.data.length) setCurrentSpaceId(spacesRes.data[0].id);
     }
-  };
+    if (permsRes.data) setPermissions(permsRes.data);
+  }, [currentSpaceId]);
 
   useEffect(() => {
     if (selectedTenant) loadData(selectedTenant);
-  }, [selectedTenant]);
+  }, [selectedTenant, loadData]);
 
   const loadDocs = async () => {
     if (!selectedTenant || !currentSpaceId) return;
@@ -164,19 +169,21 @@ function DocumentsContent() {
             </div>
           </div>
 
-          <div className="relative group animate-fluid-in" style={{ animationDelay: '200ms' }}>
-             <input
-               type="file"
-               onChange={handleUpload}
-               disabled={uploading}
-               className="absolute inset-0 opacity-0 cursor-pointer z-10"
-               accept=".pdf,.txt,.docx"
-             />
-             <div className={`btn-magnetic interactive-premium flex items-center gap-4 px-12 py-6 min-w-[280px] justify-center ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
-                {uploading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Upload className="w-6 h-6" />}
-                <span>{uploading ? "TRAITEMENT..." : "Uploader un Fichier"}</span>
-             </div>
-          </div>
+          {permissions?.can_upload && (
+            <div className="relative group animate-fluid-in" style={{ animationDelay: '200ms' }}>
+               <input
+                 type="file"
+                 onChange={handleUpload}
+                 disabled={uploading}
+                 className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                 accept=".pdf,.txt,.docx"
+               />
+               <div className={`btn-magnetic interactive-premium flex items-center gap-4 px-12 py-6 min-w-[280px] justify-center ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
+                  {uploading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Upload className="w-6 h-6" />}
+                  <span>{uploading ? "TRAITEMENT..." : "Uploader un Fichier"}</span>
+               </div>
+            </div>
+          )}
         </header>
 
         {/* Spacious Data View */}
@@ -271,13 +278,15 @@ function DocumentsContent() {
                                       <span>Télécharger</span>
                                    </button>
                                    
-                                   <button 
-                                     onClick={() => handleDelete(doc.id)}
-                                     className="w-full flex items-center gap-4 px-6 py-4 rounded-[20px] hover:bg-red-500/5 text-red-400 hover:text-red-300 transition-all duration-500 text-[10px] font-black uppercase tracking-widest text-left hover:scale-[1.02]"
-                                   >
-                                      <Trash2 className="w-4 h-4" />
-                                      <span>Supprimer</span>
-                                   </button>
+                                   {permissions?.can_delete_documents && (
+                                     <button 
+                                       onClick={() => handleDelete(doc.id)}
+                                       className="w-full flex items-center gap-4 px-6 py-4 rounded-[20px] hover:bg-red-500/5 text-red-400 hover:text-red-300 transition-all duration-500 text-[10px] font-black uppercase tracking-widest text-left hover:scale-[1.02]"
+                                     >
+                                        <Trash2 className="w-4 h-4" />
+                                        <span>Supprimer</span>
+                                     </button>
+                                   )}
                                 </div>
                              </div>
                            )}

@@ -73,6 +73,11 @@ export const tenantService = {
     return apiClient.post(`/tenants/${tenantId}/spaces/`, data);
   },
 
+  /** Delete a knowledge space. */
+  async deleteSpace(tenantId: string, spaceId: string): Promise<ApiResponse<null>> {
+    return apiClient.delete(`/tenants/${tenantId}/spaces/${spaceId}/`);
+  },
+
   // DOCUMENTS
 
   /** List documents for a tenant, optionally filtered by space. */
@@ -88,6 +93,11 @@ export const tenantService = {
     formData.append("knowledge_space_id", spaceId);
     
     return apiClient.uploadFile(`/tenants/${tenantId}/documents/`, formData);
+  },
+
+  /** Delete a document. */
+  async deleteDocument(tenantId: string, spaceId: string, docId: string): Promise<ApiResponse<null>> {
+    return apiClient.delete(`/tenants/${tenantId}/documents/${docId}/?space_id=${spaceId}`);
   },
 
   /** Get tenant summary statistics. */
