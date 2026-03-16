@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { tenantService } from "@/services/tenant.service";
-import type { TenantMembership } from "@/types/tenant.types";
+import type { TenantMembership, TenantSummary } from "@/types/tenant.types";
 import { TopBar } from "@/components/layout/TopBar";
 import {
   FileText,
@@ -15,47 +15,14 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 
-const TILES = [
-  {
-    key: "documents",
-    label: "Documents",
-    icon: FileText,
-    href: "/documents",
-    color: "#8b5cf6",
-    count: "42",
-  },
-  {
-    key: "chat",
-    label: "Conversations",
-    icon: MessageSquare,
-    href: "/chat",
-    color: "#3b82f6",
-    count: "128",
-  },
-  {
-    key: "membres",
-    label: "Membres",
-    icon: Users,
-    href: "/membres",
-    color: "#ec4899",
-    count: "12",
-  },
-  {
-    key: "espaces",
-    label: "Espaces",
-    icon: Database,
-    href: "/espaces",
-    color: "#10b981",
-    count: "5",
-  },
-];
-
 export default function DashboardPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [tenants, setTenants] = useState<TenantMembership[]>([]);
   const [selectedTenant, setSelectedTenant] = useState<string | null>(null);
   const [loadingTenants, setLoadingTenants] = useState(true);
+  const [summary, setSummary] = useState<TenantSummary | null>(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push("/login");
@@ -73,6 +40,18 @@ export default function DashboardPage() {
       });
     }
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (selectedTenant) {
+      setLoadingSummary(true);
+      tenantService.getTenantSummary(selectedTenant).then((res) => {
+        if (res.data) {
+          setSummary(res.data);
+        }
+        setLoadingSummary(false);
+      });
+    }
+  }, [selectedTenant]);
 
   const handleLogout = async () => {
     await logout();
@@ -92,6 +71,41 @@ export default function DashboardPage() {
   }
 
   const currentTenant = tenants.find((m) => m.tenant.id === selectedTenant);
+
+  const tiles = [
+    {
+      key: "documents",
+      label: "Documents",
+      icon: FileText,
+      href: "/documents",
+      color: "#8b5cf6",
+      count: summary?.documents ?? "...",
+    },
+    {
+      key: "chat",
+      label: "Conversations",
+      icon: MessageSquare,
+      href: "/chat",
+      color: "#3b82f6",
+      count: summary?.conversations ?? "...",
+    },
+    {
+      key: "membres",
+      label: "Membres",
+      icon: Users,
+      href: "/membres",
+      color: "#ec4899",
+      count: summary?.members ?? "...",
+    },
+    {
+      key: "espaces",
+      label: "Espaces",
+      icon: Database,
+      href: "/espaces",
+      color: "#10b981",
+      count: summary?.spaces ?? "...",
+    },
+  ];
 
   return (
     <div className="min-h-screen">
@@ -126,11 +140,11 @@ export default function DashboardPage() {
 
         {/* Fluid Metrics Grid */}
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 animate-fluid-in" style={{ animationDelay: '200ms' }}>
-          {TILES.map((tile, i) => (
+          {tiles.map((tile, i) => (
             <div
               key={tile.key}
               onClick={() => router.push(tile.href)}
-              className="fluid-card group"
+              className="fluid-card group cursor-pointer"
               style={{ animationDelay: `${(i+2)*100}ms` }}
             >
               <div 
@@ -147,7 +161,7 @@ export default function DashboardPage() {
                   <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 group-hover:text-white transition-colors">
                     {tile.label}
                   </p>
-                  <div className="text-6xl font-black text-white tracking-tighter tabular-nums leading-none">
+                  <div className={`text-6xl font-black text-white tracking-tighter tabular-nums leading-none ${loadingSummary ? 'animate-pulse opacity-50' : ''}`}>
                     {tile.count}
                   </div>
                 </div>

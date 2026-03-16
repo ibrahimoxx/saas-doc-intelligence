@@ -17,13 +17,21 @@ export default function AdminDashboardPage() {
     total_users: 0,
     total_tenants: 0,
     total_documents: 0,
-    active_conversations: 0,
+    total_queries: 0,
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    adminService.getStats().then((res) => {
-      if (res.data) setStats(res.data);
+    // Note: service uses getAdminStats, UI was using getStats
+    adminService.getAdminStats().then((res) => {
+      if (res.data && res.data.totals) {
+        setStats({
+          total_users: res.data.totals.users,
+          total_tenants: res.data.totals.tenants,
+          total_documents: res.data.totals.documents,
+          total_queries: res.data.totals.queries,
+        });
+      }
       setLoading(false);
     });
   }, []);
@@ -32,7 +40,7 @@ export default function AdminDashboardPage() {
     { label: "Utilisateurs Globaux", val: stats.total_users, icon: Users, color: "#6366f1" },
     { label: "Organisations", val: stats.total_tenants, icon: Shield, color: "#a855f7" },
     { label: "Index Global (Docs)", val: stats.total_documents, icon: Database, color: "#06b6d4" },
-    { label: "Sessions IA Actives", val: stats.active_conversations, icon: Activity, color: "#ec4899" },
+    { label: "Requêtes Système", val: stats.total_queries, icon: Activity, color: "#ec4899" },
   ];
 
   if (loading) {
@@ -106,13 +114,13 @@ export default function AdminDashboardPage() {
                        <Activity className="w-5 h-5 text-indigo-400" />
                     </div>
                     <div>
-                       <p className="text-base font-black text-white">Nouveau compte utilisateur créé</p>
-                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Il y a 14 minutes • Système Automatisé</p>
+                       <p className="text-base font-black text-white">Activité système détectée</p>
+                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">En temps réel • Supervision globale</p>
                     </div>
                  </div>
                  <div className="flex items-center gap-4">
                     <div className="px-4 py-1.5 rounded-full bg-white/5 border border-white/5 text-[9px] font-black text-slate-500 uppercase">
-                       LOG-GLOBAL
+                       LOG-CORE
                     </div>
                  </div>
               </div>

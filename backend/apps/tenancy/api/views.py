@@ -23,6 +23,8 @@ from apps.tenancy.api.serializers import (
     UpdateMemberRoleSerializer,
 )
 from apps.tenancy.models import KnowledgeSpace, Tenant, TenantMembership
+from apps.documents.models import Document
+from apps.conversations.models import Conversation
 
 logger = logging.getLogger("apps.tenancy")
 
@@ -342,3 +344,25 @@ class KnowledgeSpacesListView(APIView):
         )
 
         return Response(KnowledgeSpaceSerializer(space).data, status=status.HTTP_201_CREATED)
+
+
+# ===========================
+# Tenant Summary (Dashboard Stats)
+# ===========================
+
+class TenantSummaryView(APIView):
+    """
+    GET /api/v1/tenants/{tenant_id}/summary/
+    
+    Returns real counts for Documents, Conversations, Membres, and Espaces.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsTenantMember]
+
+    def get(self, request, tenant_id):
+        stats = {
+            "documents": Document.objects.filter(tenant_id=tenant_id).count(),
+            "conversations": Conversation.objects.filter(tenant_id=tenant_id).count(),
+            "members": TenantMembership.objects.filter(tenant_id=tenant_id, status="active").count(),
+            "spaces": KnowledgeSpace.objects.filter(tenant_id=tenant_id, is_active=True).count(),
+        }
+        return Response(stats)

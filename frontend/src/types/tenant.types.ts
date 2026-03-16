@@ -80,3 +80,10 @@ export interface DocumentProcessingJob {
   error_message: string | null;
   created_at: string;
 }
+
+export interface TenantSummary {
+  documents: number;
+  conversations: number;
+  members: number;
+  spaces: number;
+}

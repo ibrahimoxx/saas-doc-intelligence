@@ -11,6 +11,7 @@ from apps.tenancy.api.views import (
     MyPermissionsView,
     MyTenantsView,
     TenantDetailView,
+    TenantSummaryView,
 )
 
 urlpatterns = [
@@ -19,6 +20,7 @@ urlpatterns = [
 
     # Tenant detail
     path("<uuid:tenant_id>/", TenantDetailView.as_view(), name="tenant-detail"),
+    path("<uuid:tenant_id>/summary/", TenantSummaryView.as_view(), name="tenant-summary"),
 
     # My permissions in tenant
     path("<uuid:tenant_id>/me/permissions/", MyPermissionsView.as_view(), name="tenant-permissions"),

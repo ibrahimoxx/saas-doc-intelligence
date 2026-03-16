@@ -9,7 +9,8 @@ import type {
   TenantPermissions, 
   KnowledgeSpace, 
   TenantMember,
-  Document 
+  Document,
+  TenantSummary
 } from "@/types/tenant.types";
 
 export const tenantService = {
@@ -87,5 +88,10 @@ export const tenantService = {
     formData.append("knowledge_space_id", spaceId);
     
     return apiClient.uploadFile(`/tenants/${tenantId}/documents/`, formData);
+  },
+
+  /** Get tenant summary statistics. */
+  async getTenantSummary(tenantId: string): Promise<ApiResponse<TenantSummary>> {
+    return apiClient.get(`/tenants/${tenantId}/summary/`);
   },
 };
