@@ -16,14 +16,17 @@
 
   /* Accents */
   --accent-indigo:  #6366f1;
-  --accent-purple:  #8b5cf6;
+  --accent-purple:  #7b61ff; /* Updated from Stitch folder gradients */
   --accent-cyan:    #22d3ee;
-  --accent-pink:    #ec4899;
+  --accent-pink:    #df58d1; /* Updated from Stitch folder gradients */
 
   /* Gradients */
-  --gradient-brand: linear-gradient(to right, #6366f1, #8b5cf6);
-  --gradient-deep:  linear-gradient(135deg, #4a5df1, #2b1676);
-  --gradient-card:  linear-gradient(145deg, rgba(255,255,255,0.07), rgba(0,0,0,0.4));
+  --gradient-brand:  linear-gradient(to right, #6366f1, #8b5cf6);
+  --gradient-header: linear-gradient(to right, #4a90e2, #9013fe); /* Stitch Dashboard Header */
+  --gradient-folder: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
+  --gradient-button: linear-gradient(90deg, #5B42F3 0%, #00D09C 100%); /* Stitch Documents button */
+  --gradient-deep:   linear-gradient(135deg, #4a5df1, #2b1676);
+  --gradient-card:   linear-gradient(145deg, rgba(255,255,255,0.07), rgba(0,0,0,0.4));
 
   /* Text */
   --text-primary:   #f8fafc;
@@ -151,6 +154,27 @@ h1, h2, h3, h4, h5, h6 {
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-lg);
+}
+
+/* ── 5a. Atmosphere & Background Blobs ───────────────────── */
+.bg-blob {
+  position: fixed;
+  width: 50vw;
+  height: 50vw;
+  max-width: 600px;
+  max-height: 600px;
+  border-radius: 9999px;
+  filter: blur(120px);
+  opacity: 0.15;
+  z-index: -1;
+  pointer-events: none;
+  animation: blob-float 20s infinite alternate ease-in-out;
+}
+
+@keyframes blob-float {
+  0%   { transform: translate(0, 0) scale(1); }
+  33%  { transform: translate(10%, 10%) scale(1.1); }
+  100% { transform: translate(-5%, 5%) scale(0.95); }
 }
 
 /* ── 6. Gradient Utilities ─────────────────────────────────── */

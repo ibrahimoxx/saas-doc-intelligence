@@ -27,7 +27,14 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`${inter.variable} ${outfit.variable}`}>
       <body className="font-sans">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {/* Global Background Atmosphere */}
+          <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
+            <div className="bg-blob top-[-10%] left-[-10%] bg-purple-600/15" />
+            <div className="bg-blob bottom-[-10%] right-[-10%] bg-indigo-600/15" />
+          </div>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

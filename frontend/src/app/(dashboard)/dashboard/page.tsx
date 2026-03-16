@@ -1,3 +1,4 @@
+// src/app/(dashboard)/dashboard/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -5,58 +6,59 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { tenantService } from "@/services/tenant.service";
 import type { TenantMembership } from "@/types/tenant.types";
+import { TopBar } from "@/components/layout/TopBar";
 import {
   FileText,
   MessageSquare,
   Users,
   Database,
-  ChevronDown,
-  LogOut,
-  Shield,
-  Zap,
   ArrowRight,
 } from "lucide-react";
 
 const TILES = [
   {
     key: "documents",
-    label: "Documents",
+    label: "DOCUMENTS",
     icon: FileText,
     href: "/documents",
     iconColor: "text-violet-400",
     bgColor: "bg-violet-500/10",
     borderColor: "border-violet-500/20",
-    shadowColor: "shadow-violet-500/10",
+    glow: "rgba(139, 92, 246, 0.15)",
+    count: "42",
   },
   {
     key: "chat",
-    label: "Conversations",
+    label: "CONVERSATIONS",
     icon: MessageSquare,
     href: "/chat",
     iconColor: "text-blue-400",
     bgColor: "bg-blue-500/10",
     borderColor: "border-blue-500/20",
-    shadowColor: "shadow-blue-500/10",
+    glow: "rgba(59, 130, 246, 0.15)",
+    count: "128",
   },
   {
     key: "membres",
-    label: "Membres",
+    label: "MEMBRES",
     icon: Users,
     href: "/membres",
     iconColor: "text-pink-400",
     bgColor: "bg-pink-500/10",
     borderColor: "border-pink-500/20",
-    shadowColor: "shadow-pink-500/10",
+    glow: "rgba(236, 72, 153, 0.15)",
+    count: "12",
   },
   {
     key: "espaces",
-    label: "Espaces",
+    label: "ESPACES",
     icon: Database,
     href: "/espaces",
     iconColor: "text-emerald-400",
     bgColor: "bg-emerald-500/10",
     borderColor: "border-emerald-500/20",
-    shadowColor: "shadow-emerald-500/10",
+    glow: "rgba(16, 185, 129, 0.15)",
+    count: "5",
   },
 ];
 
@@ -89,6 +91,10 @@ export default function DashboardPage() {
     router.push("/login");
   };
 
+  const handleTenantChange = (id: string) => {
+    setSelectedTenant(id);
+  };
+
   if (isLoading || (!isAuthenticated && !isLoading)) {
     return (
       <div className="min-h-screen bg-[#020617] flex items-center justify-center">
@@ -100,98 +106,88 @@ export default function DashboardPage() {
   const currentTenant = tenants.find((m) => m.tenant.id === selectedTenant);
 
   return (
-    <div className="min-h-screen bg-[#0d111c] text-slate-200 antialiased">
-      {/* ── Top Navigation ─────────────────────── */}
-      <header className="nav-border py-4 px-8 flex justify-between items-center bg-[#131722]">
-        {/* Left */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-              <Zap className="w-4 h-4 text-white" />
-            </div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-gradient font-heading">
-              DocPilot AI
-            </h1>
-          </div>
+    <div className="min-h-screen text-slate-200 antialiased overflow-x-hidden">
+      <TopBar
+        userEmail={user?.email}
+        isSuperuser={user?.is_superuser}
+        tenants={tenants}
+        selectedTenantId={selectedTenant}
+        onTenantChange={handleTenantChange}
+        onLogout={handleLogout}
+        onAdminDashboard={() => router.push("/admin/dashboard")}
+      />
 
-          {tenants.length > 0 && (
-            <div className="relative">
-              <select
-                value={selectedTenant || ""}
-                onChange={(e) => setSelectedTenant(e.target.value)}
-                className="appearance-none bg-[#1e2330] border border-white/10 text-slate-300 text-sm rounded-xl py-2 pl-3 pr-8 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors cursor-pointer"
-              >
-                {tenants.map((m) => (
-                  <option key={m.tenant.id} value={m.tenant.id} className="bg-slate-900">
-                    {m.tenant.name} · {m.role}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-            </div>
-          )}
-        </div>
-
-        {/* Right */}
-        <div className="flex items-center gap-3">
-          <span className="hidden sm:block text-sm text-slate-400">{user?.email}</span>
-          {user?.is_superuser && (
-            <button
-              onClick={() => router.push("/admin/dashboard")}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors"
-            >
-              <Shield className="w-3.5 h-3.5" />
-              Admin
-            </button>
-          )}
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Déconnexion</span>
-          </button>
-        </div>
-      </header>
-
-      {/* ── Main Content ───────────────────────── */}
-      <main className="flex-grow p-8 max-w-5xl mx-auto w-full">
+      <main className="flex-grow p-8 md:p-12 max-w-7xl mx-auto w-full space-y-12">
         {/* Welcome Banner */}
         <section
-          className="rounded-2xl p-10 mb-8"
+          className="rounded-[24px] p-12 relative overflow-hidden group"
           style={{
-            border: "1px solid rgba(255,255,255,0.2)",
-            background: "linear-gradient(145deg, rgba(255,255,255,0.08), rgba(0,0,0,0.4))",
-            boxShadow: "0 4px 30px rgba(0,0,0,0.4)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            background: "linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0.5) 100%)",
+            boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
           }}
         >
-          <h2 className="text-3xl font-semibold mb-2 text-white font-heading">
-            Bienvenue, {user?.full_name || user?.email} 👋
-          </h2>
-          <p className="text-slate-400 text-base">
-            {currentTenant
-              ? `Organisation : ${currentTenant.tenant.name} — Rôle : ${currentTenant.role}`
-              : loadingTenants
-              ? "Chargement de l'organisation…"
-              : "Aucune organisation trouvée."}
-          </p>
+          {/* Subtle accent light */}
+          <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-indigo-500/5 to-transparent pointer-events-none" />
+          
+          <div className="relative z-10">
+            <h2 className="text-4xl font-bold mb-3 text-white font-heading tracking-tight">
+              Bienvenue, {user?.full_name || user?.email} 👋
+            </h2>
+            <p className="text-slate-400 text-lg max-w-2xl leading-relaxed">
+              {currentTenant
+                ? `Vous travaillez actuellement dans l'organisation ` 
+                : loadingTenants
+                ? "Chargement de l'organisation…"
+                : "Aucune organisation trouvée."}
+              {currentTenant && (
+                <span className="text-indigo-400 font-semibold">{currentTenant.tenant.name}</span>
+              )}
+              {currentTenant && ` avec le rôle de `}
+              {currentTenant && (
+                <span className="text-slate-200">{currentTenant.role}</span>
+              )}
+              . Prêt à extraire de la valeur de vos documents ?
+            </p>
+          </div>
         </section>
 
-        {/* Stat Cards Grid */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {TILES.map(({ key, label, icon: Icon, href, iconColor, bgColor, borderColor }) => (
+        {/* Stat Cards Grid — Stitch High Precision 1:1 */}
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {TILES.map(({ key, label, icon: Icon, href, iconColor, bgColor, borderColor, glow, count }) => (
             <div
               key={key}
               onClick={() => router.push(href)}
-              className={`stat-card p-6 flex flex-col cursor-pointer group`}
+              className="group relative bg-[#131722] border border-white/5 rounded-[24px] p-10 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:border-white/10"
+              style={{
+                boxShadow: `0 15px 35px -5px rgba(0,0,0,0.5), 0 0 0 0 transparent`,
+              }}
             >
-              <div className={`mb-4 w-12 h-12 rounded-xl ${bgColor} border ${borderColor} flex items-center justify-center transition-transform duration-200 group-hover:scale-110`}>
-                <Icon className={`w-6 h-6 ${iconColor}`} />
-              </div>
-              <p className="text-slate-400 text-sm font-medium mb-1">{label}</p>
-              <div className="flex items-center justify-between mt-auto pt-2">
-                <p className="text-3xl font-bold text-white">—</p>
-                <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-slate-300 group-hover:translate-x-1 transition-all" />
+              {/* Internal Glow Effect from bottom */}
+              <div 
+                className="absolute inset-0 rounded-[24px] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                style={{
+                  background: `radial-gradient(circle at bottom, ${glow} 0%, transparent 70%)`
+                }}
+              />
+
+              <div className="relative z-10">
+                <div className={`mb-8 w-14 h-14 rounded-[18px] ${bgColor} border ${borderColor} flex items-center justify-center transition-transform duration-300 group-hover:-translate-y-1`}>
+                  <Icon className={`w-7 h-7 ${iconColor}`} />
+                </div>
+                
+                <h3 className="text-slate-400 text-xs font-bold tracking-[0.2em] mb-2 uppercase">
+                  {label}
+                </h3>
+                
+                <div className="flex items-end justify-between">
+                  <span className="text-6xl font-bold text-white tracking-tighter">
+                    {count}
+                  </span>
+                  <div className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-slate-500 group-hover:text-white group-hover:border-white/30 group-hover:translate-x-1 transition-all">
+                    <ArrowRight className="w-5 h-5" />
+                  </div>
+                </div>
               </div>
             </div>
           ))}
