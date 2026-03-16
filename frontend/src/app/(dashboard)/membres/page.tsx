@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { tenantService } from "@/services/tenant.service";
-import type { TenantMembership } from "@/types/tenant.types";
+import type { TenantMembership, TenantMember } from "@/types/tenant.types";
 import { TopBar } from "@/components/layout/TopBar";
 import {
   Users,
@@ -17,6 +17,8 @@ import {
   Mail,
   Loader2,
   AlertCircle,
+  Trash2,
+  Edit,
 } from "lucide-react";
 
 const ROLE_COLORS = {
@@ -31,13 +33,15 @@ export default function MembresPage() {
 
   const [tenants, setTenants] = useState<TenantMembership[]>([]);
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
-  const [members, setMembers] = useState<TenantMembership[]>([]);
+  const [members, setMembers] = useState<TenantMember[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
 
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteForm, setInviteForm] = useState({ email: "", role: "member" });
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
+
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push("/login");
@@ -80,6 +84,26 @@ export default function MembresPage() {
     }
     setInviting(false);
   };
+
+  const handleRemoveMember = async (memberId: string) => {
+    if (!selectedTenantId || !confirm("Êtes-vous sûr de vouloir retirer ce membre ?")) return;
+    await tenantService.removeMember(selectedTenantId, memberId);
+    loadMembers(selectedTenantId);
+    setOpenMenuId(null);
+  };
+
+  const handleUpdateRole = async (memberId: string, newRole: string) => {
+    if (!selectedTenantId) return;
+    await tenantService.updateMemberRole(selectedTenantId, memberId, newRole);
+    loadMembers(selectedTenantId);
+    setOpenMenuId(null);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = () => setOpenMenuId(null);
+    window.addEventListener("click", handleClickOutside);
+    return () => window.removeEventListener("click", handleClickOutside);
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -125,7 +149,7 @@ export default function MembresPage() {
             style={{ animationDelay: '200ms' }}
           >
             <UserPlus className="w-5 h-5" />
-            <span>Inviter un Collaborateer</span>
+            <span>Inviter un Contributeur</span>
           </button>
         </header>
 
@@ -178,10 +202,50 @@ export default function MembresPage() {
                            </div>
                         </div>
 
-                        <div className="col-span-1 flex justify-end">
-                           <button className="p-3 rounded-2xl hover:bg-white/5 text-slate-500 hover:text-white transition-all">
+                        <div className="col-span-1 flex justify-end relative">
+                           <button 
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               setOpenMenuId(openMenuId === m.id ? null : m.id);
+                             }}
+                             className="p-3 rounded-2xl hover:bg-white/5 text-slate-500 hover:text-white transition-all focus:outline-none"
+                           >
                               <MoreVertical className="w-5 h-5" />
                            </button>
+
+                           {openMenuId === m.id && (
+                             <div 
+                               className="absolute right-0 top-full mt-4 w-64 bg-[#0f172a] border border-white/10 rounded-[40px] p-6 shadow-2xl z-50 animate-fluid-in backdrop-blur-3xl"
+                               onClick={(e) => e.stopPropagation()}
+                             >
+                                <div className="space-y-3">
+                                   <p className="px-2 pb-3 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 border-b border-white/5 mb-2 text-center">Gestion Membre</p>
+                                   
+                                   {m.role !== 'owner' && (
+                                      <>
+                                         <button 
+                                           onClick={() => handleUpdateRole(m.id, m.role === 'admin' ? 'member' : 'admin')}
+                                           className="w-full flex items-center gap-4 px-6 py-4 rounded-[20px] hover:bg-white/5 text-slate-300 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest text-left"
+                                         >
+                                            <Edit className="w-4 h-4 text-indigo-400" />
+                                            <span>Passer en {m.role === 'admin' ? 'Membre' : 'Admin'}</span>
+                                         </button>
+                                         
+                                         <button 
+                                           onClick={() => handleRemoveMember(m.id)}
+                                           className="w-full flex items-center gap-4 px-6 py-4 rounded-[20px] hover:bg-red-500/5 text-red-400 hover:text-red-300 transition-all text-[10px] font-black uppercase tracking-widest text-left"
+                                         >
+                                            <Trash2 className="w-4 h-4" />
+                                            <span>Retirer de l'organisation</span>
+                                         </button>
+                                      </>
+                                   )}
+                                   {m.role === 'owner' && (
+                                     <p className="px-4 py-4 text-[10px] font-bold text-slate-500 italic text-center">Accès Propriétaire (Fixe)</p>
+                                   )}
+                                </div>
+                             </div>
+                           )}
                         </div>
                      </div>
                    ))}

@@ -17,6 +17,9 @@ import {
   ArrowUpRight as ArrowUpRightIcon,
   Shield as ShieldIcon,
   FileIcon,
+  MoreVertical,
+  Trash2,
+  Edit,
 } from "lucide-react";
 
 function slugify(str: string): string {
@@ -42,6 +45,8 @@ export default function EspacesPage() {
   const [form, setForm] = useState({ name: "", slug: "", description: "" });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push("/login");
@@ -92,6 +97,19 @@ export default function EspacesPage() {
     }
     setCreating(false);
   };
+
+  const handleDeleteSpace = async (spaceId: string) => {
+    if (!selectedTenantId || !confirm("Supprimer cet espace et tous ses documents ?")) return;
+    await tenantService.deleteSpace(selectedTenantId, spaceId);
+    loadData(selectedTenantId);
+    setOpenMenuId(null);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = () => setOpenMenuId(null);
+    window.addEventListener("click", handleClickOutside);
+    return () => window.removeEventListener("click", handleClickOutside);
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -174,7 +192,7 @@ export default function EspacesPage() {
               <div
                 key={space.id}
                 onClick={() => router.push(`/documents?space=${space.id}`)}
-                className="fluid-card group"
+                className="fluid-card group relative cursor-pointer"
                 style={{ animationDelay: `${(i+1)*100}ms` }}
               >
                 <div className="flex flex-col gap-10">
@@ -182,12 +200,54 @@ export default function EspacesPage() {
                     <div className="w-20 h-20 rounded-[28px] bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 group-hover:bg-indigo-500/10 group-hover:border-indigo-500/20 transition-all duration-700">
                       <FolderIcon className="w-10 h-10 text-indigo-400" />
                     </div>
-                    <div className={`px-4 py-1.5 rounded-full text-[9px] font-black tracking-widest uppercase border ${
-                      space.is_active 
-                      ? "bg-emerald-500/5 text-emerald-400 border-emerald-500/10" 
-                      : "bg-slate-500/5 text-slate-500 border-white/5"
-                    }`}>
-                      {space.is_active ? "PRÊT" : "OFFLINE"}
+                    
+                    <div className="flex items-center gap-4">
+                       <div className={`px-4 py-1.5 rounded-full text-[9px] font-black tracking-widest uppercase border ${
+                         space.is_active 
+                         ? "bg-emerald-500/5 text-emerald-400 border-emerald-500/10" 
+                         : "bg-slate-500/5 text-slate-500 border-white/5"
+                       }`}>
+                         {space.is_active ? "PRÊT" : "OFFLINE"}
+                       </div>
+
+                       <div className="relative">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuId(openMenuId === space.id ? null : space.id);
+                            }}
+                            className="p-2 rounded-xl hover:bg-white/5 text-slate-500 hover:text-white transition-all focus:outline-none"
+                          >
+                             <MoreVertical className="w-4 h-4" />
+                          </button>
+
+                          {openMenuId === space.id && (
+                            <div 
+                              className="absolute right-0 top-full mt-2 w-56 bg-[#0f172a] border border-white/10 rounded-[32px] p-4 shadow-2xl z-50 animate-fluid-in backdrop-blur-3xl"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                               <div className="space-y-2">
+                                  <p className="px-2 pb-2 text-[8px] font-black uppercase tracking-widest text-slate-600 border-b border-white/5 mb-1 text-center">Options Espace</p>
+                                  
+                                  <button 
+                                    onClick={() => router.push(`/documents?space=${space.id}`)}
+                                    className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/5 text-slate-300 hover:text-white transition-all text-[9px] font-black uppercase tracking-widest text-left"
+                                  >
+                                     <ArrowUpRightIcon className="w-4 h-4 text-indigo-400" />
+                                     <span>Ouvrir</span>
+                                  </button>
+
+                                  <button 
+                                    onClick={() => handleDeleteSpace(space.id)}
+                                    className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-red-500/5 text-red-400 hover:text-red-300 transition-all text-[9px] font-black uppercase tracking-widest text-left"
+                                  >
+                                     <Trash2 className="w-4 h-4" />
+                                     <span>Supprimer</span>
+                                  </button>
+                               </div>
+                            </div>
+                          )}
+                       </div>
                     </div>
                   </div>
 

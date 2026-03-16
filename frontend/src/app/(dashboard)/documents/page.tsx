@@ -17,6 +17,9 @@ import {
   Clock,
   AlertCircle,
   FileIcon,
+  MoreVertical,
+  Trash2,
+  Download,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -47,6 +50,7 @@ function DocumentsContent() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push("/login");
@@ -96,6 +100,19 @@ function DocumentsContent() {
     await loadDocs();
     setUploading(false);
   };
+
+  const handleDelete = async (docId: string) => {
+    if (!selectedTenant || !currentSpaceId || !confirm("Supprimer ce document ?")) return;
+    await tenantService.deleteDocument(selectedTenant, currentSpaceId, docId);
+    loadDocs();
+    setOpenMenuId(null);
+  };
+
+  useEffect(() => {
+    const onClick = () => setOpenMenuId(null);
+    window.addEventListener("click", onClick);
+    return () => window.removeEventListener("click", onClick);
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -184,10 +201,11 @@ function DocumentsContent() {
           ) : (
             <div className="space-y-6">
                <div className="grid grid-cols-12 px-10 text-[9px] font-black uppercase tracking-[0.4em] text-slate-600 mb-4">
-                  <div className="col-span-6">Document</div>
+                  <div className="col-span-5">Document</div>
                   <div className="col-span-2 text-center">Taille</div>
                   <div className="col-span-2 text-center">État</div>
-                  <div className="col-span-2 text-right">Date</div>
+                  <div className="col-span-2 text-center">Date</div>
+                  <div className="col-span-1 text-right">Action</div>
                </div>
                
                <div className="space-y-4">
@@ -199,7 +217,7 @@ function DocumentsContent() {
                         className="fluid-card grid grid-cols-12 items-center py-8 hover:-translate-x-1 group"
                         style={{ animationDelay: `${(i+1)*50}ms`, padding: '1.5rem 2.5rem' }}
                       >
-                        <div className="col-span-6 flex items-center gap-6">
+                        <div className="col-span-5 flex items-center gap-6">
                            <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-indigo-500/10 group-hover:border-indigo-500/20 transition-all">
                               <FileText className="w-6 h-6 text-indigo-400" />
                            </div>
@@ -222,8 +240,47 @@ function DocumentsContent() {
                            </div>
                         </div>
 
-                        <div className="col-span-2 text-right font-bold text-slate-500 tabular-nums text-xs">
+                        <div className="col-span-2 text-center font-bold text-slate-500 tabular-nums text-xs">
                            {format(new Date(doc.created_at), "dd/MM/yyyy")}
+                        </div>
+
+                        <div className="col-span-1 flex justify-end relative">
+                           <button 
+                             onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuId(openMenuId === doc.id ? null : doc.id);
+                             }}
+                             className="p-3 rounded-2xl hover:bg-white/5 text-slate-500 hover:text-white transition-all focus:outline-none"
+                           >
+                              <MoreVertical className="w-5 h-5" />
+                           </button>
+
+                           {openMenuId === doc.id && (
+                             <div 
+                               className="absolute right-0 top-full mt-4 w-64 bg-[#0f172a] border border-white/10 rounded-[40px] p-6 shadow-2xl z-50 animate-fluid-in backdrop-blur-3xl"
+                               onClick={(e) => e.stopPropagation()}
+                             >
+                                <div className="space-y-3">
+                                   <p className="px-2 pb-3 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 border-b border-white/5 mb-2 text-center">Actions Doc</p>
+                                   
+                                   <button 
+                                     onClick={() => window.open(`/api/v1/tenants/${selectedTenant}/knowledge-spaces/${currentSpaceId}/documents/${doc.id}/download/`, '_blank')}
+                                     className="w-full flex items-center gap-4 px-6 py-4 rounded-[20px] hover:bg-white/5 text-slate-300 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest text-left"
+                                   >
+                                      <Download className="w-4 h-4 text-indigo-400" />
+                                      <span>Télécharger</span>
+                                   </button>
+                                   
+                                   <button 
+                                     onClick={() => handleDelete(doc.id)}
+                                     className="w-full flex items-center gap-4 px-6 py-4 rounded-[20px] hover:bg-red-500/5 text-red-400 hover:text-red-300 transition-all text-[10px] font-black uppercase tracking-widest text-left"
+                                   >
+                                      <Trash2 className="w-4 h-4" />
+                                      <span>Supprimer</span>
+                                   </button>
+                                </div>
+                             </div>
+                           )}
                         </div>
                       </div>
                     );
