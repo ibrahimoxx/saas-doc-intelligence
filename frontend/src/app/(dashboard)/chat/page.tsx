@@ -176,10 +176,17 @@ function ChatContent() {
         {/* Conversation list */}
         <div className="flex-1 overflow-y-auto space-y-1 pr-1">
           {conversations.map((c) => (
-            <button
+            <div
               key={c.id}
               onClick={() => openConversation(c.id)}
-              className={`w-full text-left flex items-start gap-3 p-3 rounded-xl transition-colors group ${
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  openConversation(c.id);
+                }
+              }}
+              className={`w-full text-left flex items-start gap-3 p-3 rounded-xl transition-colors group cursor-pointer ${
                 activeConversation?.id === c.id
                   ? "text-white"
                   : "text-slate-400 hover:bg-slate-800/30"
@@ -202,13 +209,16 @@ function ChatContent() {
                 </div>
               </div>
               <button
-                onClick={(e) => deleteConversation(c.id, e)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteConversation(c.id, e);
+                }}
                 className="opacity-0 group-hover:opacity-70 hover:!opacity-100 hover:text-red-400 p-1 rounded transition-all"
                 title="Supprimer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
-            </button>
+            </div>
           ))}
           {conversations.length === 0 && !loadingConversations && (
             <p className="text-center text-slate-500 text-xs py-8 px-2">
