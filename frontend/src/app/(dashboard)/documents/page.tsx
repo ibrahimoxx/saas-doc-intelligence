@@ -205,12 +205,14 @@ function DocumentsContent() {
                            </div>
                            <div className="min-w-0">
                               <p className="text-lg font-black tracking-tight text-white line-clamp-1">{doc.title}</p>
-                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{doc.file_type.replace('.', '')}</p>
+                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                {doc.current_version?.file_name.split('.').pop() || "PDF"}
+                              </p>
                            </div>
                         </div>
 
                         <div className="col-span-2 text-center font-bold text-slate-400 tabular-nums">
-                           {formatSize(doc.file_size)}
+                           {formatSize(doc.current_version?.file_size_bytes || 0)}
                         </div>
 
                         <div className="col-span-2 flex justify-center">
