@@ -12,52 +12,40 @@ import {
   MessageSquare,
   Users,
   Database,
-  ArrowRight,
+  ArrowUpRight,
 } from "lucide-react";
 
 const TILES = [
   {
     key: "documents",
-    label: "DOCUMENTS",
+    label: "Documents",
     icon: FileText,
     href: "/documents",
-    iconColor: "text-violet-400",
-    bgColor: "bg-violet-500/10",
-    borderColor: "border-violet-500/20",
-    glow: "rgba(139, 92, 246, 0.15)",
+    color: "#8b5cf6",
     count: "42",
   },
   {
     key: "chat",
-    label: "CONVERSATIONS",
+    label: "Conversations",
     icon: MessageSquare,
     href: "/chat",
-    iconColor: "text-blue-400",
-    bgColor: "bg-blue-500/10",
-    borderColor: "border-blue-500/20",
-    glow: "rgba(59, 130, 246, 0.15)",
+    color: "#3b82f6",
     count: "128",
   },
   {
     key: "membres",
-    label: "MEMBRES",
+    label: "Membres",
     icon: Users,
     href: "/membres",
-    iconColor: "text-pink-400",
-    bgColor: "bg-pink-500/10",
-    borderColor: "border-pink-500/20",
-    glow: "rgba(236, 72, 153, 0.15)",
+    color: "#ec4899",
     count: "12",
   },
   {
     key: "espaces",
-    label: "ESPACES",
+    label: "Espaces",
     icon: Database,
     href: "/espaces",
-    iconColor: "text-emerald-400",
-    bgColor: "bg-emerald-500/10",
-    borderColor: "border-emerald-500/20",
-    glow: "rgba(16, 185, 129, 0.15)",
+    color: "#10b981",
     count: "5",
   },
 ];
@@ -106,7 +94,7 @@ export default function DashboardPage() {
   const currentTenant = tenants.find((m) => m.tenant.id === selectedTenant);
 
   return (
-    <div className="min-h-screen text-slate-200 antialiased overflow-x-hidden">
+    <div className="min-h-screen">
       <TopBar
         userEmail={user?.email}
         isSuperuser={user?.is_superuser}
@@ -117,76 +105,55 @@ export default function DashboardPage() {
         onAdminDashboard={() => router.push("/admin/dashboard")}
       />
 
-      <main className="flex-grow p-8 md:p-12 max-w-7xl mx-auto w-full space-y-12">
-        {/* Welcome Banner */}
-        <section
-          className="rounded-[24px] p-12 relative overflow-hidden group"
-          style={{
-            border: "1px solid rgba(255,255,255,0.1)",
-            background: "linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0.5) 100%)",
-            boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
-          }}
-        >
-          {/* Subtle accent light */}
-          <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-indigo-500/5 to-transparent pointer-events-none" />
-          
-          <div className="relative z-10">
-            <h2 className="text-4xl font-bold mb-3 text-white font-heading tracking-tight">
-              Bienvenue, {user?.full_name || user?.email} 👋
-            </h2>
-            <p className="text-slate-400 text-lg max-w-2xl leading-relaxed">
-              {currentTenant
-                ? `Vous travaillez actuellement dans l'organisation ` 
-                : loadingTenants
-                ? "Chargement de l'organisation…"
-                : "Aucune organisation trouvée."}
+      <main className="max-w-[1400px] mx-auto px-8 py-32 md:py-48 lg:py-56 space-y-24">
+        {/* Subtle Hero Header */}
+        <section className="text-center space-y-6 animate-fluid-in">
+           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/5 text-[10px] uppercase font-black tracking-[0.3em] text-indigo-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+              Intelligence Documentaire
+           </div>
+           <h2 className="text-hero">
+              Bienvenue, <br />
+              <span className="text-gradient">{user?.full_name?.split(' ')[0] || user?.email?.split('@')[0]}</span>
+           </h2>
+           <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed font-medium">
+              Explorez vos documents avec la précision de l'intelligence artificielle générative. 
               {currentTenant && (
-                <span className="text-indigo-400 font-semibold">{currentTenant.tenant.name}</span>
+                <> Organisation active : <span className="text-white font-bold">{currentTenant.tenant.name}</span></>
               )}
-              {currentTenant && ` avec le rôle de `}
-              {currentTenant && (
-                <span className="text-slate-200">{currentTenant.role}</span>
-              )}
-              . Prêt à extraire de la valeur de vos documents ?
-            </p>
-          </div>
+           </p>
         </section>
 
-        {/* Stat Cards Grid — Stitch High Precision 1:1 */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {TILES.map(({ key, label, icon: Icon, href, iconColor, bgColor, borderColor, glow, count }) => (
+        {/* Fluid Metrics Grid */}
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 animate-fluid-in" style={{ animationDelay: '200ms' }}>
+          {TILES.map((tile, i) => (
             <div
-              key={key}
-              onClick={() => router.push(href)}
-              className="group relative bg-[#131722] border border-white/5 rounded-[24px] p-10 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:border-white/10"
-              style={{
-                boxShadow: `0 15px 35px -5px rgba(0,0,0,0.5), 0 0 0 0 transparent`,
-              }}
+              key={tile.key}
+              onClick={() => router.push(tile.href)}
+              className="fluid-card group"
+              style={{ animationDelay: `${(i+2)*100}ms` }}
             >
-              {/* Internal Glow Effect from bottom */}
               <div 
-                className="absolute inset-0 rounded-[24px] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                style={{
-                  background: `radial-gradient(circle at bottom, ${glow} 0%, transparent 70%)`
-                }}
+                className="absolute inset-0 rounded-[48px] opacity-0 group-hover:opacity-10 transition-opacity duration-700 pointer-events-none"
+                style={{ background: `radial-gradient(circle at center, ${tile.color}, transparent 70%)` }}
               />
 
-              <div className="relative z-10">
-                <div className={`mb-8 w-14 h-14 rounded-[18px] ${bgColor} border ${borderColor} flex items-center justify-center transition-transform duration-300 group-hover:-translate-y-1`}>
-                  <Icon className={`w-7 h-7 ${iconColor}`} />
+              <div className="relative z-10 flex flex-col items-center text-center gap-8">
+                <div className="w-16 h-16 rounded-[24px] bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+                  <tile.icon className="w-8 h-8" style={{ color: tile.color }} />
                 </div>
                 
-                <h3 className="text-slate-400 text-xs font-bold tracking-[0.2em] mb-2 uppercase">
-                  {label}
-                </h3>
-                
-                <div className="flex items-end justify-between">
-                  <span className="text-6xl font-bold text-white tracking-tighter">
-                    {count}
-                  </span>
-                  <div className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-slate-500 group-hover:text-white group-hover:border-white/30 group-hover:translate-x-1 transition-all">
-                    <ArrowRight className="w-5 h-5" />
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 group-hover:text-white transition-colors">
+                    {tile.label}
+                  </p>
+                  <div className="text-6xl font-black text-white tracking-tighter tabular-nums leading-none">
+                    {tile.count}
                   </div>
+                </div>
+
+                <div className="w-12 h-12 rounded-full border border-white/5 flex items-center justify-center text-slate-600 group-hover:text-white group-hover:border-white/20 group-hover:bg-white/5 transition-all">
+                   <ArrowUpRight className="w-5 h-5" />
                 </div>
               </div>
             </div>

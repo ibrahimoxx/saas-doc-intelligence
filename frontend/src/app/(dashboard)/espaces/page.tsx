@@ -16,7 +16,7 @@ import {
   Info as InfoIcon,
   ArrowUpRight as ArrowUpRightIcon,
   Shield as ShieldIcon,
-  FileText as FileIcon,
+  FileIcon,
 } from "lucide-react";
 
 function slugify(str: string): string {
@@ -107,109 +107,106 @@ export default function EspacesPage() {
   }
 
   return (
-    <div className="min-h-screen text-white antialiased">
+    <div className="min-h-screen">
       <TopBar
         userEmail={user?.email}
         isSuperuser={user?.is_superuser}
         tenants={tenants}
         selectedTenantId={selectedTenantId}
-        onTenantChange={(id) => setSelectedTenantId(id)}
+        onTenantChange={setSelectedTenantId}
         onLogout={handleLogout}
         onAdminDashboard={() => router.push("/admin/dashboard")}
       />
 
-      <main className="max-w-7xl mx-auto px-8 md:px-12 py-16 space-y-16 relative z-10">
-        {/* Hero Section */}
-        <section className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-          <div className="space-y-4 max-w-2xl">
-            <h2 className="text-5xl font-extrabold tracking-tight font-heading leading-tight">
-              Organisez votre <br />
-              <span className="text-gradient">savoir collectif</span>
+      <main className="max-w-[1400px] mx-auto px-12 py-48 space-y-24">
+        {/* Section Header */}
+        <section className="flex flex-col md:flex-row items-center justify-between gap-12 text-center md:text-left animate-fluid-in">
+          <div className="space-y-6 max-w-2xl">
+            <h2 className="text-hero leading-tight">
+               Espaces de <br />
+               <span className="text-gradient">Connaissance</span>
             </h2>
-            <p className="text-slate-400 text-lg leading-relaxed">
-              Les espaces permettent de segmenter vos documents et de personnaliser les réponses de l'IA pour chaque département ou projet.
+            <p className="text-slate-400 text-lg md:text-xl font-medium leading-relaxed">
+              Compartimentez vos données pour une analyse chirurgicale par département ou projet.
             </p>
           </div>
           
           {permissions?.can_upload && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="group flex items-center gap-3 px-8 py-4 rounded-[18px] text-white font-bold transition-all shadow-xl hover:shadow-indigo-500/20 active:scale-95 bg-gradient-brand"
+              className="btn-magnetic flex items-center gap-4 group"
             >
-              <PlusIcon className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-              <span>Nouvel espace</span>
+              <PlusIcon className="w-5 h-5 group-hover:rotate-90 transition-transform duration-500" />
+              <span>Initialiser un Espace</span>
             </button>
           )}
         </section>
 
-        {/* Spaces Grid */}
+        {/* Dynamic Grid */}
         {loadingSpaces ? (
-          <div className="py-32 flex flex-col items-center justify-center space-y-4">
-            <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-            <p className="text-slate-500 font-bold uppercase tracking-widest text-xs animate-pulse">Indexation des espaces...</p>
+          <div className="py-48 flex flex-col items-center justify-center gap-6 animate-fluid-in">
+             <div className="w-16 h-16 border-4 border-indigo-500/10 border-t-indigo-500 rounded-full animate-spin" />
+             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 animate-pulse">Synchronisation...</p>
           </div>
         ) : spaces.length === 0 ? (
-          <div className="bg-white/5 border border-white/10 rounded-[40px] p-24 text-center max-w-4xl mx-auto backdrop-blur-xl">
-             <div className="w-24 h-24 rounded-[32px] bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-8 shadow-2xl">
-                <FolderPlusIcon className="w-12 h-12 text-indigo-400" />
-             </div>
-             <h3 className="text-3xl font-bold mb-4">Prêt à uploader ?</h3>
-             <p className="text-slate-400 text-lg mb-10 max-w-md mx-auto line-clamp-2">
-                Aucun espace de connaissance actif. Créez-en un pour commencer à importer vos PDF et interroger l'IA.
-             </p>
-             {permissions?.can_upload && (
-               <button
-                 onClick={() => setShowCreateModal(true)}
-                 className="bg-white text-indigo-950 px-10 py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-200 transition-all hover:scale-105"
-               >
-                 Démarrer le premier espace
-               </button>
-             )}
+          <div className="fluid-card max-w-3xl mx-auto text-center space-y-12 animate-fluid-in">
+              <div className="w-32 h-32 rounded-[40px] bg-indigo-500/5 flex items-center justify-center mx-auto shadow-2xl">
+                 <FolderPlusIcon className="w-16 h-16 text-indigo-400" />
+              </div>
+              <div className="space-y-4">
+                 <h3 className="text-4xl font-black tracking-tighter text-white">Prêt à uploader ?</h3>
+                 <p className="text-slate-400 text-lg font-medium max-w-md mx-auto">
+                    Créez votre premier espace de travail pour indexer vos documents PDF.
+                 </p>
+              </div>
+              {permissions?.can_upload && (
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="btn-magnetic"
+                >
+                  Démarrer l'aventure
+                </button>
+              )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {spaces.map((space) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 animate-fluid-in">
+            {spaces.map((space, i) => (
               <div
                 key={space.id}
                 onClick={() => router.push(`/documents?space=${space.id}`)}
-                className="group relative bg-[#131722] border border-white/5 rounded-[40px] p-10 cursor-pointer overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:border-white/10"
+                className="fluid-card group"
+                style={{ animationDelay: `${(i+1)*100}ms` }}
               >
-                {/* Visual Accent */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                <div className="relative z-10 space-y-10">
-                  {/* Icon Area */}
+                <div className="flex flex-col gap-10">
                   <div className="flex items-start justify-between">
-                    <div className="w-20 h-20 rounded-[28px] bg-gradient-folder flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform duration-500">
-                      <FolderIcon className="w-10 h-10 text-white" />
+                    <div className="w-20 h-20 rounded-[28px] bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 group-hover:bg-indigo-500/10 group-hover:border-indigo-500/20 transition-all duration-700">
+                      <FolderIcon className="w-10 h-10 text-indigo-400" />
                     </div>
-                    <div className={`px-3 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase border ${
+                    <div className={`px-4 py-1.5 rounded-full text-[9px] font-black tracking-widest uppercase border ${
                       space.is_active 
-                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
-                      : "bg-slate-500/10 text-slate-500 border-white/10"
+                      ? "bg-emerald-500/5 text-emerald-400 border-emerald-500/10" 
+                      : "bg-slate-500/5 text-slate-500 border-white/5"
                     }`}>
-                      {space.is_active ? "PRÊT" : "INACTIF"}
+                      {space.is_active ? "PRÊT" : "OFFLINE"}
                     </div>
                   </div>
 
-                  {/* Text Content */}
                   <div className="space-y-3">
-                    <h3 className="text-3xl font-bold font-heading tracking-tight leading-none group-hover:text-indigo-400 transition-colors">
+                    <h3 className="text-3xl font-black tracking-tighter text-white group-hover:text-indigo-400 transition-colors">
                       {space.name}
                     </h3>
-                    <p className="text-slate-500 text-sm font-medium line-clamp-2 leading-relaxed italic">
-                      {space.description || "Aucune description fournie pour cet espace."}
+                    <p className="text-slate-500 text-sm font-medium line-clamp-2 leading-relaxed">
+                      {space.description || "Aucune description analytique fournie."}
                     </p>
                   </div>
 
-                  {/* Metadata Footer */}
                   <div className="flex items-center justify-between pt-8 border-t border-white/5 uppercase text-[10px] font-black tracking-widest text-slate-500">
                     <div className="flex items-center gap-2">
-                       <FileIcon className="w-4 h-4 text-indigo-400/50" />
+                       <FileIcon className="w-4 h-4 text-indigo-500/30" />
                        <span>{space.document_count ?? 0} Documents</span>
                     </div>
-                    <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center opacity-0 group-hover:opacity-100 group-hover:translate-x-0 -translate-x-4 transition-all duration-300">
-                       <ArrowUpRightIcon className="w-5 h-5 text-white" />
+                    <div className="w-12 h-12 rounded-full border border-white/5 flex items-center justify-center group-hover:bg-white group-hover:text-indigo-950 transition-all">
+                       <ArrowUpRightIcon className="w-5 h-5" />
                     </div>
                   </div>
                 </div>
@@ -219,74 +216,71 @@ export default function EspacesPage() {
         )}
       </main>
 
-      {/* Create Modal */}
+      {/* Modern Modal Overhaul */}
       {showCreateModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-          <div className="absolute inset-0 bg-[#020617]/95 backdrop-blur-xl animate-fade-in" onClick={() => !creating && setShowCreateModal(false)} />
+          <div className="absolute inset-0 bg-[#020617]/95 backdrop-blur-3xl" onClick={() => !creating && setShowCreateModal(false)} />
           
-          <div className="relative w-full max-w-2xl bg-[#0f172a] border border-white/10 rounded-[40px] p-12 overflow-hidden shadow-2xl animate-fade-in-up">
-            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-brand" />
-            
-            <header className="flex justify-between items-start mb-10">
-              <div className="space-y-2">
-                <h3 className="text-3xl font-bold font-heading uppercase tracking-tight text-white">Initialiser un Espace</h3>
-                <p className="text-slate-400 font-medium">Configurez votre base de connaissances.</p>
+          <div className="relative w-full max-w-2xl bg-white/[0.02] border border-white/10 rounded-[64px] p-16 overflow-hidden shadow-2xl animate-fluid-in">
+            <header className="flex justify-between items-start mb-12">
+              <div className="space-y-4">
+                <h3 className="text-4xl font-black tracking-tighter text-white uppercase">Initialisation</h3>
+                <p className="text-slate-400 font-medium">Configurez les paramètres de l'espace.</p>
               </div>
               <button 
                 onClick={() => setShowCreateModal(false)}
-                className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+                className="w-14 h-14 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all shadow-xl"
               >
                 <XMarkIcon className="w-6 h-6" />
               </button>
             </header>
 
-            <div className="space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+            <div className="space-y-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div className="space-y-4">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-2 flex items-center gap-2">
                     <TagIcon className="w-3 h-3" />
-                    <span>NOM DE L'ESPACE</span>
+                    <span>Identité</span>
                   </label>
                   <input
                     type="text"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value, slug: slugify(e.target.value) })}
-                    placeholder="Espace de Vente..."
-                    className="w-full bg-[#131722] border border-white/5 rounded-2xl px-6 py-4 font-bold text-white focus:outline-none focus:border-indigo-500/50 transition-all placeholder:text-slate-700"
+                    placeholder="Ventes France..."
+                    className="w-full bg-white/5 border border-white/5 rounded-[24px] px-8 py-5 font-bold text-white focus:outline-none focus:border-indigo-500/50 transition-all placeholder:text-slate-700"
                   />
                 </div>
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                <div className="space-y-4">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-2 flex items-center gap-2">
                     <ShieldIcon className="w-3 h-3" />
-                    <span>ID PERMANENT</span>
+                    <span>Unique Slug</span>
                   </label>
                   <input
                     type="text"
                     value={form.slug}
                     onChange={(e) => setForm({ ...form, slug: slugify(e.target.value) })}
-                    placeholder="espace-vente"
-                    className="w-full bg-[#131722] border border-white/5 rounded-2xl px-6 py-4 font-mono font-bold text-indigo-400 focus:outline-none focus:border-indigo-500/50 transition-all"
+                    placeholder="ventes-fr"
+                    className="w-full bg-white/5 border border-white/5 rounded-[24px] px-8 py-5 font-mono font-bold text-indigo-400 focus:outline-none focus:border-indigo-500/50 transition-all"
                   />
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+              <div className="space-y-4">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-2 flex items-center gap-2">
                   <InfoIcon className="w-3 h-3" />
-                  <span>DESCRIPTION</span>
+                  <span>Metadata</span>
                 </label>
                 <textarea
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="Décrivez cet espace..."
+                  placeholder="Décrivez l'usage de cet espace..."
                   rows={4}
-                  className="w-full bg-[#131722] border border-white/5 rounded-2xl px-6 py-4 text-white resize-none focus:outline-none focus:border-indigo-500/50 transition-all placeholder:text-slate-700 font-medium"
+                  className="w-full bg-white/5 border border-white/5 rounded-[32px] px-8 py-6 text-white resize-none focus:outline-none focus:border-indigo-500/50 transition-all placeholder:text-slate-700 font-medium"
                 />
               </div>
 
               {createError && (
-                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-sm font-bold flex items-center gap-3">
-                  <XMarkIcon className="w-5 h-5" />
+                <div className="p-5 bg-red-500/5 border border-red-500/10 rounded-[28px] text-red-400 text-sm font-bold animate-pulse">
                   {createError}
                 </div>
               )}
@@ -294,19 +288,14 @@ export default function EspacesPage() {
               <button
                 onClick={handleCreate}
                 disabled={creating || !form.name.trim() || !form.slug.trim()}
-                className="w-full bg-gradient-brand text-white font-black uppercase text-xs tracking-widest py-5 rounded-[20px] shadow-2xl shadow-indigo-500/30 hover:shadow-indigo-500/50 active:scale-95 transition-all disabled:opacity-50"
+                className="btn-magnetic w-full py-6 text-xs"
               >
-                {creating ? "Initialisation..." : "Confirmer la création"}
+                {creating ? "Phase d'Initialisation..." : "Confirmer l'Initialisation"}
               </button>
             </div>
           </div>
         </div>
       )}
-
-      <style jsx global>{`
-        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-        .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
-      `}</style>
     </div>
   );
 }

@@ -28,11 +28,8 @@ export default function RootLayout({
     <html lang="fr" className={`${inter.variable} ${outfit.variable}`}>
       <body className="font-sans">
         <AuthProvider>
-          {/* Global Background Atmosphere */}
-          <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
-            <div className="bg-blob top-[-10%] left-[-10%] bg-purple-600/15" />
-            <div className="bg-blob bottom-[-10%] right-[-10%] bg-indigo-600/15" />
-          </div>
+          {/* Dynamic Mesh Atmosphere */}
+          <div className="bg-mesh-dynamic" />
           {children}
         </AuthProvider>
       </body>

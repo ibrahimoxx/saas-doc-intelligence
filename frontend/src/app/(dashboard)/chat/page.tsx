@@ -20,6 +20,7 @@ import {
   User,
   Send,
   Paperclip,
+  ChevronLeft,
 } from "lucide-react";
 
 function ChatContent() {
@@ -35,6 +36,7 @@ function ChatContent() {
   const [sending, setSending] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [error, setError] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push("/login");
@@ -83,8 +85,8 @@ function ChatContent() {
   const handleSend = async () => {
     if (!input.trim() || sending || !selectedTenant) return;
     const question = input;
-    setInput("");
     setSending(true);
+    setInput("");
     setError("");
 
     if (activeConversation) {
@@ -110,7 +112,7 @@ function ChatContent() {
           return { ...prev, messages: [...msgs, res.data!.user_message, res.data!.assistant_message] };
         });
       } else {
-        setError(res.error?.message || "Erreur lors de l'envoi du message.");
+        setError(res.error?.message || "Erreur lors de l'envoi.");
       }
     } else {
       const res = await conversationService.create(selectedTenant, { first_message: question });
@@ -118,7 +120,7 @@ function ChatContent() {
         setActiveConversation(res.data);
         setConversations((prev) => [res.data!, ...prev]);
       } else {
-        setError(res.error?.message || "Erreur lors de la création de la conversation.");
+        setError(res.error?.message || "Erreur fatale.");
       }
     }
     setSending(false);
@@ -128,12 +130,9 @@ function ChatContent() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
-  const startNewChat = () => { setActiveConversation(null); setInput(""); setError(""); };
-
   const deleteConversation = async (convId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!selectedTenant) return;
-    if (!confirm("Supprimer cette conversation ?")) return;
+    if (!selectedTenant || !confirm("Supprimer l'historique ?")) return;
     await conversationService.archive(selectedTenant, convId);
     setConversations((prev) => prev.filter((c) => c.id !== convId));
     if (activeConversation?.id === convId) setActiveConversation(null);
@@ -147,192 +146,166 @@ function ChatContent() {
     );
   }
 
-  const messages = activeConversation?.messages || [];
-
   return (
-    <div className="h-screen flex flex-col text-slate-200 antialiased overflow-hidden">
+    <div className="h-screen flex flex-col bg-transparent overflow-hidden">
       <TopBar
         userEmail={user?.email}
         isSuperuser={user?.is_superuser}
         tenants={tenants}
         selectedTenantId={selectedTenant}
-        onTenantChange={(id) => setSelectedTenant(id)}
+        onTenantChange={setSelectedTenant}
         onLogout={handleLogout}
         onAdminDashboard={() => router.push("/admin/dashboard")}
       />
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* ── Sidebar ──────────────────────────── */}
-        <aside className="w-[320px] h-full flex flex-col bg-[#131722]/50 border-r border-white/5 backdrop-blur-xl shrink-0 p-6 space-y-8">
-          {/* New conversation button */}
-          <button
-            onClick={startNewChat}
-            className="group w-full flex items-center justify-center gap-3 py-4 px-6 rounded-[20px] font-bold text-white transition-all shadow-2xl hover:shadow-indigo-500/20 active:scale-95 bg-gradient-brand"
-          >
-            <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-            <span>Nouveau Chat</span>
-          </button>
-
-          {/* Conversation list */}
-          <div className="flex-1 overflow-y-auto space-y-2 pr-2 scrollbar-hide">
-            {conversations.map((c) => (
-              <div
-                key={c.id}
-                onClick={() => openConversation(c.id)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") { openConversation(c.id); }
-                }}
-                className={`w-full group flex items-start gap-4 p-4 rounded-[20px] transition-all duration-300 cursor-pointer ${
-                  activeConversation?.id === c.id
-                    ? "bg-white/[0.08] border border-white/10 shadow-lg"
-                    : "hover:bg-white/[0.03] border border-transparent"
-                }`}
+      <div className="flex-1 flex overflow-hidden pt-28 px-6 pb-6 gap-6">
+        {/* ── Sidebar (Glass Island) ──────────────────────────── */}
+        <aside className={`flex flex-col bg-white/[0.03] backdrop-blur-3xl border border-white/5 rounded-[40px] transition-all duration-700 overflow-hidden ${sidebarOpen ? "w-80" : "w-0 p-0 opacity-0"}`}>
+           <div className="p-8 space-y-8 flex flex-col h-full">
+              <button
+                onClick={() => { setActiveConversation(null); setInput(""); }}
+                className="btn-magnetic w-full py-4 flex items-center justify-center gap-2"
               >
-                <div className={`mt-1 p-2 rounded-[12px] flex-shrink-0 transition-colors ${
-                  activeConversation?.id === c.id ? "bg-indigo-500/10 text-indigo-400" : "bg-white/5 text-slate-500"
-                }`}>
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1 space-y-0.5">
-                  <div className={`font-bold truncate text-[13px] ${activeConversation?.id === c.id ? "text-white" : "text-slate-300"}`}>
-                    {c.title || "Sans titre"}
-                  </div>
-                  <div className="text-[10px] font-black tracking-widest text-slate-500 uppercase">
-                    {c.message_count || 0} MESSAGES
-                  </div>
-                </div>
-                <button
-                  onClick={(e) => deleteConversation(c.id, e)}
-                  className="opacity-0 group-hover:opacity-50 hover:!opacity-100 hover:text-red-400 p-1.5 rounded-lg transition-all"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <Plus className="w-4 h-4" />
+                <span>Nouveau Chat</span>
+              </button>
+
+              <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hidden">
+                 {conversations.map((c) => (
+                   <div
+                     key={c.id}
+                     onClick={() => openConversation(c.id)}
+                     className={`w-full group flex items-start gap-4 p-5 rounded-[28px] transition-all duration-500 cursor-pointer ${
+                       activeConversation?.id === c.id
+                         ? "bg-white/10 border-white/10 shadow-xl"
+                         : "hover:bg-white/[0.05] border border-transparent"
+                     }`}
+                   >
+                     <div className={`p-2 rounded-[14px] ${activeConversation?.id === c.id ? "bg-indigo-500/20 text-indigo-400" : "bg-white/5 text-slate-500"}`}>
+                       <FileText className="w-4 h-4" />
+                     </div>
+                     <div className="min-w-0 flex-1">
+                        <p className={`font-bold truncate text-[13px] ${activeConversation?.id === c.id ? "text-white" : "text-slate-400"}`}>
+                          {c.title || "Discussion"}
+                        </p>
+                        <p className="text-[9px] font-black tracking-widest text-slate-600 uppercase mt-1">
+                          {c.message_count || 0} MESSAGES
+                        </p>
+                     </div>
+                     <button onClick={(e) => deleteConversation(c.id, e)} className="opacity-0 group-hover:opacity-50 hover:!opacity-100 hover:text-red-400 transition-all">
+                       <Trash2 className="w-4 h-4" />
+                     </button>
+                   </div>
+                 ))}
               </div>
-            ))}
-            {conversations.length === 0 && !loadingConversations && (
-              <div className="text-center py-20 px-8">
-                <p className="text-slate-600 text-[10px] font-black tracking-widest uppercase">Aucune discussion</p>
-              </div>
-            )}
-          </div>
+           </div>
         </aside>
 
-        {/* ── Main Chat Area ───────────────────── */}
-        <main className="flex-1 flex flex-col h-full relative overflow-hidden">
-          {/* Scrollable Message Container */}
-          <div className="flex-1 overflow-y-auto px-6 py-10 space-y-10">
-            {!activeConversation && messages.length === 0 && (
-              <div className="h-full flex flex-col items-center justify-center text-center max-w-lg mx-auto space-y-8 animate-fade-in">
-                <div className="w-24 h-24 rounded-[32px] bg-gradient-brand flex items-center justify-center shadow-2xl shadow-indigo-500/30">
-                  <Bot className="w-12 h-12 text-white" />
-                </div>
-                <div className="space-y-3">
-                  <h2 className="text-4xl font-bold font-heading tracking-tight">DocPilot AI Engine</h2>
-                  <p className="text-slate-400 text-lg leading-relaxed">
-                    Posez vos questions techniques ou demandez une analyse documentaire. L'IA extrait les réponses directement de votre base de connaissances.
-                  </p>
-                </div>
-              </div>
-            )}
+        {/* ── Main Chat Area (Fluid) ───────────────────── */}
+        <main className="flex-1 flex flex-col relative bg-white/[0.01] border border-white/5 backdrop-blur-3xl rounded-[40px] overflow-hidden">
+           {/* Sidebar Toggle */}
+           <button 
+             onClick={() => setSidebarOpen(!sidebarOpen)}
+             className="absolute top-6 left-6 z-20 p-3 rounded-full bg-white/5 border border-white/5 text-slate-400 hover:text-white transition-all shadow-xl"
+           >
+              <ChevronLeft className={`w-4 h-4 transition-transform duration-500 ${sidebarOpen ? "" : "rotate-180"}`} />
+           </button>
 
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex gap-4 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"} animate-fade-in`}
-              >
-                <div className={`w-12 h-12 rounded-[18px] flex items-center justify-center shrink-0 border shadow-lg ${
-                  msg.role === "user" 
-                  ? "bg-white/5 border-white/10 text-indigo-400" 
-                  : "bg-indigo-500/10 border-indigo-500/20 text-fuchsia-400"
-                }`}>
-                  {msg.role === "user" ? <User className="w-6 h-6" /> : <Bot className="w-6 h-6" />}
+           <div className="flex-1 overflow-y-auto px-10 py-20 space-y-12 scrollbar-hidden">
+              {!activeConversation && (
+                <div className="h-full flex flex-col items-center justify-center text-center max-w-xl mx-auto space-y-10 animate-fluid-in">
+                   <div className="w-24 h-24 rounded-[36px] bg-gradient-brand flex items-center justify-center shadow-2xl shadow-indigo-500/20">
+                      <Bot className="w-12 h-12 text-white" />
+                   </div>
+                   <div className="space-y-4">
+                      <h2 className="text-4xl font-black tracking-tighter text-white">Interface Cognitive</h2>
+                      <p className="text-slate-500 text-lg font-medium leading-relaxed">
+                        Exploration documentaire assistée par RAG. <br /> Posez votre question pour commencer l'analyse.
+                      </p>
+                   </div>
                 </div>
+              )}
 
-                <div className={`flex flex-col gap-4 max-w-[70%] ${msg.role === "user" ? "items-end text-right" : "items-start"}`}>
-                  <div
-                    className={`p-6 rounded-[24px] text-base leading-relaxed shadow-2xl ${
-                      msg.role === "user"
-                        ? "bg-gradient-brand text-white rounded-tr-[4px]"
-                        : "bg-[#131722]/80 backdrop-blur-md border border-white/5 text-slate-200 rounded-tl-[4px]"
-                    }`}
-                  >
-                    {msg.content}
-                  </div>
+              {(activeConversation?.messages || []).map((msg) => (
+                <div key={msg.id} className={`flex gap-6 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"} animate-fluid-in`}>
+                   <div className={`w-12 h-12 rounded-[18px] flex items-center justify-center shrink-0 border shadow-2xl ${
+                     msg.role === "user" ? "bg-white/5 border-white/10 text-indigo-400" : "bg-gradient-brand text-white border-transparent"
+                   }`}>
+                      {msg.role === "user" ? <User className="w-6 h-6" /> : <Bot className="w-6 h-6" />}
+                   </div>
 
-                  {/* Citations View 1:1 Stitch */}
-                  {msg.citations && msg.citations.length > 0 && (
-                    <div className="w-full bg-white/[0.03] border border-white/5 rounded-[20px] p-5 space-y-3">
-                      <div className="flex items-center gap-2 text-[10px] font-black tracking-widest text-indigo-400 uppercase">
-                        <Paperclip className="w-4 h-4" />
-                        <span>Sources Documentaires</span>
+                   <div className={`flex flex-col gap-6 max-w-[75%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                      <div className={`p-8 rounded-[36px] text-base leading-relaxed font-medium shadow-2xl ${
+                        msg.role === "user" 
+                        ? "bg-white/5 text-white border border-white/10 rounded-tr-lg" 
+                        : "bg-indigo-500/10 border border-indigo-500/10 text-slate-200 rounded-tl-lg"
+                      }`}>
+                         {msg.content}
                       </div>
-                      <div className="grid grid-cols-1 gap-2">
-                        {msg.citations.map((cit, i) => (
-                          <div key={cit.id || i} className="flex items-center gap-3 p-3 rounded-[12px] bg-white/[0.02] border border-white/5 text-xs text-slate-300">
-                            <span className="font-black text-indigo-500">[{i + 1}]</span>
-                            <span className="truncate flex-1 font-medium">{cit.document_title}</span>
-                            <span className="text-emerald-500 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md text-[9px] tracking-widest uppercase">
-                              {Math.round(cit.similarity * 100)}% Match
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
 
-            {sending && (
-              <div className="flex gap-4 animate-fade-in">
-                <div className="w-12 h-12 rounded-[18px] bg-indigo-500/10 border border-indigo-500/20 text-fuchsia-400 flex items-center justify-center">
-                  <Bot className="w-6 h-6" />
+                      {msg.citations && msg.citations.length > 0 && (
+                        <div className="w-full bg-white/[0.02] border border-white/5 rounded-[28px] p-6 space-y-4">
+                           <div className="flex items-center gap-2 text-[9px] font-black tracking-widest text-indigo-400 uppercase">
+                              <Paperclip className="w-4 h-4" />
+                              <span>Sources vérifiées</span>
+                           </div>
+                           <div className="grid grid-cols-1 gap-2">
+                             {msg.citations.map((cit, i) => (
+                               <div key={cit.id || i} className="flex items-center gap-4 p-4 rounded-[18px] bg-white/[0.01] border border-white/5 text-xs">
+                                  <span className="font-black text-indigo-500/50">0{i + 1}</span>
+                                  <span className="flex-1 font-bold text-slate-300 truncate">{cit.document_title}</span>
+                                  <span className="text-[9px] font-black uppercase text-emerald-400 bg-emerald-500/5 px-2 py-1 rounded-lg">
+                                    {(cit.similarity * 100).toFixed(0)}% Precise
+                                  </span>
+                               </div>
+                             ))}
+                           </div>
+                        </div>
+                      )}
+                   </div>
                 </div>
-                <div className="p-6 rounded-[24px] rounded-tl-[4px] bg-[#131722]/80 border border-white/5 flex gap-2 items-center">
-                   {[0, 2, 4].map(i => (
-                     <div key={i} className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" style={{ animationDelay: `${i*200}ms` }} />
-                   ))}
+              ))}
+              
+              {sending && (
+                <div className="flex gap-6 animate-pulse">
+                   <div className="w-12 h-12 rounded-[18px] bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                      <Bot className="w-6 h-6" />
+                   </div>
+                   <div className="p-8 rounded-[36px] rounded-tl-lg bg-indigo-500/5 border border-white/5 space-x-2 flex items-center">
+                      <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" />
+                      <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:0.2s]" />
+                      <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:0.4s]" />
+                   </div>
                 </div>
-              </div>
-            )}
-            
-            <div ref={messagesEndRef} className="h-4" />
-          </div>
+              )}
+              <div ref={messagesEndRef} className="h-4" />
+           </div>
 
-          {/* Input Area Stitch Precision */}
-          <div className="p-8 border-t border-white/5 bg-[#131722]/40 backdrop-blur-xl">
-             <div className="max-w-4xl mx-auto relative group">
-                <div className="absolute -inset-0.5 bg-gradient-brand opacity-10 group-focus-within:opacity-30 blur-xl transition-opacity pointer-events-none rounded-[24px]" />
-                <div className="relative flex items-center">
-                  <textarea
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Posez votre question à DocPilot AI..."
-                    rows={1}
-                    className="w-full bg-[#1e2330]/80 border border-white/10 rounded-[24px] py-6 pl-8 pr-20 text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50 shadow-2xl transition-all resize-none min-h-[72px] max-h-48 overflow-y-auto"
-                  />
-                  <button
-                    onClick={handleSend}
-                    disabled={!input.trim() || sending}
-                    className="absolute right-4 p-4 rounded-[18px] text-white bg-gradient-brand shadow-xl opacity-90 hover:opacity-100 disabled:opacity-30 active:scale-95 transition-all"
-                  >
-                    <Send className="w-5 h-5 flex-shrink-0" />
-                  </button>
-                </div>
-             </div>
-          </div>
+           {/* Input Pill */}
+           <div className="p-10 bg-gradient-to-t from-[#131722]/80 to-transparent">
+              <div className="max-w-4xl mx-auto relative group">
+                 <div className="absolute -inset-1 bg-gradient-brand opacity-0 group-focus-within:opacity-20 blur-2xl transition-all duration-700 pointer-events-none rounded-[36px]" />
+                 <div className="relative flex items-center">
+                    <textarea
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Analyse documentaire..."
+                      rows={1}
+                      className="w-full bg-[#1e2330]/60 border border-white/5 rounded-[36px] py-6 pl-10 pr-24 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/30 shadow-2xl transition-all resize-none min-h-[84px] max-h-64 font-medium"
+                    />
+                    <button
+                      onClick={handleSend}
+                      disabled={!input.trim() || sending}
+                      className="absolute right-4 p-5 rounded-[28px] text-white bg-gradient-brand shadow-2xl disabled:opacity-30 hover:shadow-indigo-500/40 active:scale-90 transition-all"
+                    >
+                       <Send className="w-5 h-5" />
+                    </button>
+                 </div>
+              </div>
+           </div>
         </main>
       </div>
-
-      <style jsx global>{`
-        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-        .animate-fade-in { animation: fade-in 0.4s ease-out forwards; }
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-      `}</style>
     </div>
   );
 }
@@ -341,7 +314,7 @@ export default function ChatPage() {
   return (
     <Suspense fallback={
       <div className="h-screen bg-[#020617] flex items-center justify-center">
-        <div className="w-10 h-10 border-[3px] border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+        <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
       </div>
     }>
       <ChatContent />

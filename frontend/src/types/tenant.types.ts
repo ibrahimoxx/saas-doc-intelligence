@@ -48,3 +48,35 @@ export interface TenantPermissions {
   can_manage_members: boolean;
   can_view_admin: boolean;
 }
+
+export interface DocumentVersion {
+  id: string;
+  version_number: number;
+  file_name: string;
+  mime_type: string;
+  file_size_bytes: number;
+  page_count: number | null;
+  indexing_status: string;
+  created_at: string;
+}
+
+export interface Document {
+  id: string;
+  title: string;
+  status: string;
+  knowledge_space_id: string;
+  created_by_email: string | null;
+  current_version: DocumentVersion | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DocumentProcessingJob {
+  id: string;
+  job_type: string;
+  status: string;
+  started_at: string | null;
+  completed_at: string | null;
+  error_message: string | null;
+  created_at: string;
+}

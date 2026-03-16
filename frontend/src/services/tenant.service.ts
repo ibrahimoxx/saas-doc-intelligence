@@ -3,7 +3,14 @@
  */
 
 import { apiClient, type ApiResponse } from "@/lib/api-client";
-import type { Tenant, TenantMembership, TenantPermissions, KnowledgeSpace, TenantMember } from "@/types/tenant.types";
+import type { 
+  Tenant, 
+  TenantMembership, 
+  TenantPermissions, 
+  KnowledgeSpace, 
+  TenantMember,
+  Document 
+} from "@/types/tenant.types";
 
 export const tenantService = {
   /** List my tenants. */
@@ -33,6 +40,11 @@ export const tenantService = {
     return apiClient.get(`/tenants/${tenantId}/members/`);
   },
 
+  /** Alias for members to support modern UI. */
+  async listMembers(tenantId: string): Promise<ApiResponse<TenantMember[]>> {
+    return this.members(tenantId);
+  },
+
   /** Invite a member to a tenant by email. */
   async inviteMember(tenantId: string, email: string, role: string = "member"): Promise<ApiResponse<TenantMember>> {
     return apiClient.post(`/tenants/${tenantId}/members/`, { email, role });
@@ -58,5 +70,22 @@ export const tenantService = {
   /** Create a new knowledge space. */
   async createSpace(tenantId: string, data: { name: string; slug: string; description?: string }): Promise<ApiResponse<KnowledgeSpace>> {
     return apiClient.post(`/tenants/${tenantId}/spaces/`, data);
+  },
+
+  // DOCUMENTS
+
+  /** List documents for a tenant, optionally filtered by space. */
+  async listDocuments(tenantId: string, spaceId?: string): Promise<ApiResponse<Document[]>> {
+    const url = `/tenants/${tenantId}/documents/${spaceId ? `?space_id=${spaceId}` : ""}`;
+    return apiClient.get(url);
+  },
+
+  /** Upload a document to a workspace. */
+  async uploadDocument(tenantId: string, spaceId: string, file: File): Promise<ApiResponse<Document>> {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("knowledge_space_id", spaceId);
+    
+    return apiClient.uploadFile(`/tenants/${tenantId}/documents/`, formData);
   },
 };

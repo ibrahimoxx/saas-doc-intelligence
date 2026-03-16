@@ -1,317 +1,111 @@
 @import "tailwindcss";
 
-/* ============================================================
-   DocPilot AI — Design System v2 (Stitch Edition)
-   Phase 1: Global CSS Variables, Utilities & Animations
-   ============================================================ */
-
-/* ── 1. Design Tokens ─────────────────────────────────────── */
 :root {
-  /* Backgrounds */
-  --bg-base:        #020617;
-  --bg-deep:        #0d111c;
-  --bg-surface:     #0f172a;
-  --bg-elevated:    #131722;
-  --bg-card:        rgba(19, 23, 34, 0.8);
-
-  /* Accents */
-  --accent-indigo:  #6366f1;
-  --accent-purple:  #7b61ff; /* Updated from Stitch folder gradients */
-  --accent-cyan:    #22d3ee;
-  --accent-pink:    #df58d1; /* Updated from Stitch folder gradients */
+  /* Ultra-Premium Mesh Colors */
+  --mesh-indigo: #4338ca;
+  --mesh-purple: #7e22ce;
+  --mesh-slate: #020617;
+  --mesh-cyan: #0891b2;
+  
+  --foreground: #f8fafc;
+  --accent-brand: #6366f1;
+  --accent-secondary: #a855f7;
+  
+  /* Fluid Spacing Grid */
+  --space-card: clamp(1.5rem, 4vw, 3rem);
+  --space-section: clamp(3rem, 8vw, 6rem);
+  
+  /* Smooth Glass */
+  --glass-bg: rgba(15, 23, 42, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.05);
+  --glass-blur: blur(40px);
 
   /* Gradients */
-  --gradient-brand:  linear-gradient(to right, #6366f1, #8b5cf6);
-  --gradient-header: linear-gradient(to right, #4a90e2, #9013fe); /* Stitch Dashboard Header */
-  --gradient-folder: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
-  --gradient-button: linear-gradient(90deg, #5B42F3 0%, #00D09C 100%); /* Stitch Documents button */
-  --gradient-deep:   linear-gradient(135deg, #4a5df1, #2b1676);
-  --gradient-card:   linear-gradient(145deg, rgba(255,255,255,0.07), rgba(0,0,0,0.4));
-
-  /* Text */
-  --text-primary:   #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted:     #475569;
-  --text-accent:    #a5b4fc;
-
-  /* Borders */
-  --border-subtle:  rgba(255, 255, 255, 0.05);
-  --border-default: rgba(255, 255, 255, 0.10);
-  --border-accent:  rgba(99, 102, 241, 0.40);
-
-  /* Shadows */
-  --shadow-sm:      0 4px 16px rgba(2, 6, 23, 0.6);
-  --shadow-md:      0 8px 32px rgba(2, 6, 23, 0.7);
-  --shadow-lg:      0 20px 60px rgba(2, 6, 23, 0.8);
-  --shadow-indigo:  0 4px 30px rgba(99, 102, 241, 0.25);
-  --shadow-glow:    0 0 20px rgba(255, 255, 255, 0.4);
-
-  /* Border Radius */
-  --radius-sm:  0.5rem;   /* 8px  */
-  --radius-md:  0.75rem;  /* 12px */
-  --radius-lg:  1rem;     /* 16px */
-  --radius-xl:  1.5rem;   /* 24px */
-  --radius-2xl: 2rem;     /* 32px */
-
-  /* Spacing */
-  --space-page: 2rem;
-  --topbar-h:   64px;
-  --sidebar-w:  260px;
-
-  /* Fonts */
-  --font-sans:    var(--font-inter),    ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-outfit),   ui-sans-serif, system-ui, sans-serif;
-  --font-mono:    ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+  --gradient-brand: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
 }
 
-/* ── 2. Base Reset & Typography ───────────────────────────── */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+@layer base {
+  body {
+    @apply bg-[#020617] text-slate-200 selection:bg-indigo-500/30 overflow-x-hidden;
+    background-attachment: fixed;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  h1, h2, h3, h4, .font-heading {
+    letter-spacing: -0.05em;
+    @apply font-black;
+    font-family: 'Outfit', sans-serif;
+  }
 }
 
-html {
-  scroll-behavior: smooth;
-  -webkit-text-size-adjust: 100%;
+@layer components {
+  /* Advanced Mesh Gradient System */
+  .bg-mesh-dynamic {
+    position: fixed;
+    inset: -50%;
+    z-index: -1;
+    background: radial-gradient(at 0% 0%, var(--mesh-indigo) 0%, transparent 50%),
+                radial-gradient(at 100% 0%, var(--mesh-purple) 0%, transparent 50%),
+                radial-gradient(at 100% 100%, var(--mesh-cyan) 0%, transparent 50%),
+                radial-gradient(at 0% 100%, var(--mesh-slate) 0%, transparent 50%);
+    background-size: 200% 200%;
+    animation: mesh-flow 30s ease infinite;
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  /* Smooth Floating Pill Nav */
+  .nav-pill {
+    @apply fixed top-8 left-1/2 -translate-x-1/2 w-[min(90%,1200px)] px-10 py-4 
+           bg-white/[0.03] backdrop-blur-3xl border border-white/5 
+           rounded-[32px] transition-all duration-700 z-[100] shadow-2xl;
+  }
+
+  /* Organic Fluid Card */
+  .fluid-card {
+    @apply relative bg-white/[0.02] border border-white/5 backdrop-blur-3xl 
+           rounded-[48px] p-[var(--space-card)] transition-all duration-700
+           hover:bg-white/[0.04] hover:border-white/10 hover:translate-y-[-8px]
+           shadow-[0_40px_80px_-20px_rgba(0,0,0,0.6)];
+  }
+
+  /* Ultra-Premium Header Text */
+  .text-hero {
+    @apply text-5xl md:text-8xl font-black tracking-tighter leading-[1] text-white;
+  }
+
+  /* Magnetic Button */
+  .btn-magnetic {
+    @apply relative px-10 py-5 rounded-full font-black uppercase tracking-[0.25em] text-[11px]
+           text-white overflow-hidden transition-all duration-500 active:scale-90;
+    background: var(--gradient-brand);
+    box-shadow: 0 20px 40px -10px rgba(99, 102, 241, 0.4);
+  }
+  
+  .btn-magnetic:hover {
+    @apply shadow-indigo-500/60 -translate-y-1;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 font-black;
+  }
 }
 
-body {
-  background-color: var(--bg-base);
-  color: var(--text-primary);
-  font-family: var(--font-sans);
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@keyframes mesh-flow {
+  0% { transform: translate(0, 0) rotate(0deg) scale(1.5); }
+  50% { transform: translate(10%, 10%) rotate(10deg) scale(1.6); }
+  100% { transform: translate(0, 0) rotate(0deg) scale(1.5); }
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-heading);
-  line-height: 1.25;
-  font-weight: 700;
-}
-
-/* ── 3. Scrollbar Styling ──────────────────────────────────── */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: var(--bg-surface);
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(99, 102, 241, 0.4);
-  border-radius: 99px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.7);
-}
-
-/* ── 4. Selection ──────────────────────────────────────────── */
-::selection {
-  background: rgba(99, 102, 241, 0.3);
-  color: #f8fafc;
-}
-
-/* ── 5. Glassmorphism Utilities ────────────────────────────── */
-
-/* Standard glass card — use on tiles, cards, sidebars */
-.glass {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--border-default);
-}
-
-/* Stronger glass — modals, hero elements */
-.glass-strong {
-  background: rgba(13, 17, 28, 0.85);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid var(--border-default);
-}
-
-/* Subtle glass — nav, table rows */
-.glass-subtle {
-  background: rgba(255, 255, 255, 0.015);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid var(--border-subtle);
-}
-
-/* Legacy alias used in admin dashboard */
-.glass-card {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--border-default);
-  box-shadow: var(--shadow-md);
-}
-
-.glass-morphism {
-  background: rgba(255, 255, 255, 0.01);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-lg);
-}
-
-/* ── 5a. Atmosphere & Background Blobs ───────────────────── */
-.bg-blob {
-  position: fixed;
-  width: 50vw;
-  height: 50vw;
-  max-width: 600px;
-  max-height: 600px;
-  border-radius: 9999px;
-  filter: blur(120px);
-  opacity: 0.15;
-  z-index: -1;
-  pointer-events: none;
-  animation: blob-float 20s infinite alternate ease-in-out;
-}
-
-@keyframes blob-float {
-  0%   { transform: translate(0, 0) scale(1); }
-  33%  { transform: translate(10%, 10%) scale(1.1); }
-  100% { transform: translate(-5%, 5%) scale(0.95); }
-}
-
-/* ── 6. Gradient Utilities ─────────────────────────────────── */
-.text-gradient {
-  background: var(--gradient-brand);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-}
-
-.text-gradient-cyan {
-  background: linear-gradient(to right, #22d3ee, #6366f1);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-}
-
-.bg-gradient-brand {
-  background: var(--gradient-brand);
-}
-
-/* ── 7. Hover & Interaction Effects ───────────────────────── */
-.hover-lift {
-  transition: transform 200ms ease-in-out, box-shadow 200ms ease-in-out,
-              border-color 200ms ease-in-out;
-}
-.hover-lift:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.20);
-  border-color: rgba(99, 102, 241, 0.25);
-}
-
-/* ── 8. Input Focus Ring ───────────────────────────────────── */
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible {
-  outline: none;
-  border-color: var(--accent-indigo) !important;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.20);
-}
-
-/* ── 9. Stat Card (Stitch design style) ───────────────────── */
-.stat-card {
-  background: var(--bg-elevated);
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 10px 30px -10px rgba(100, 100, 255, 0.25);
-  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
-}
-.stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 40px -10px rgba(99, 102, 241, 0.30);
-  border-color: rgba(99, 102, 241, 0.25);
-}
-
-/* ── 10. Animations ────────────────────────────────────────── */
-
-/* Shimmer sweep — for loading states */
-.shimmer {
-  position: relative;
-  overflow: hidden;
-}
-.shimmer::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  transform: translateX(-100%);
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.04),
-    transparent
-  );
-  animation: shimmer 2s infinite;
-}
-@keyframes shimmer {
-  100% { transform: translateX(100%); }
-}
-
-/* Glowing card (login card) */
-.glowing-card {
-  animation: subtle-glow 4s infinite ease-in-out;
-}
-@keyframes subtle-glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(255, 255, 255, 0.3), var(--shadow-md); }
-  50%       { box-shadow: 0 0 30px rgba(255, 255, 255, 0.5), var(--shadow-md); }
-}
-
-/* Glow on icon hover */
-.animate-glow {
-  animation: glow 4s ease-in-out infinite alternate;
-}
-@keyframes glow {
-  from { filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.2)); }
-  to   { filter: drop-shadow(0 0 18px rgba(99, 102, 241, 0.6)); }
-}
-
-/* Pulse status dot */
-@keyframes status-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.6; transform: scale(0.85); }
-}
-.pulse-dot {
-  animation: status-pulse 2s ease-in-out infinite;
-}
-
-/* Spin for loaders */
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-.animate-spin-slow {
-  animation: spin 1.5s linear infinite;
-}
-
-/* Bounce for typing dots */
-@keyframes bounce-dot {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-  40%           { transform: scale(1);   opacity: 1;   }
-}
-
-/* Fade-in from bottom */
 @keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0);    }
-}
-.animate-fade-in-up {
-  animation: fade-in-up 0.35s ease-out forwards;
+  from { opacity: 0; transform: translateY(30px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* ── 11. Diagonal background (login) ──────────────────────── */
-.diagonal-split-bg {
-  background: linear-gradient(135deg, #0f172a 50%, #020617 50%);
+.animate-fluid-in {
+  animation: fade-in-up 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* ── 12. Nav border helper ─────────────────────────────────── */
-.nav-border {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
+/* Custom Utilities */
+.scrollbar-hidden::-webkit-scrollbar { display: none; }
+.scrollbar-hidden { -ms-overflow-style: none; scrollbar-width: none; }
