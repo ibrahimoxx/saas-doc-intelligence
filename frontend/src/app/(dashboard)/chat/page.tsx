@@ -1,6 +1,7 @@
+// src/app/(dashboard)/chat/page.tsx
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { tenantService } from "@/services/tenant.service";
@@ -10,9 +11,8 @@ import {
   type Message,
 } from "@/services/conversation.service";
 import type { TenantMembership } from "@/types/tenant.types";
-import { Suspense } from "react";
+import { TopBar } from "@/components/layout/TopBar";
 import {
-  ArrowLeft,
   Plus,
   Trash2,
   FileText,
@@ -24,7 +24,7 @@ import {
 
 function ChatContent() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [tenants, setTenants] = useState<TenantMembership[]>([]);
@@ -40,36 +40,39 @@ function ChatContent() {
     if (!isLoading && !isAuthenticated) router.push("/login");
   }, [isLoading, isAuthenticated, router]);
 
-  useEffect(() => {
-    if (isAuthenticated) loadTenants();
-  }, [isAuthenticated]);
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
+  };
 
   useEffect(() => {
-    if (selectedTenant) loadConversations();
+    if (isAuthenticated) {
+      tenantService.myTenants().then((res) => {
+        if (res.data?.length) {
+          const memberships = res.data as unknown as TenantMembership[];
+          setTenants(memberships);
+          setSelectedTenant(memberships[0].tenant.id);
+        } else {
+          setLoadingConversations(false);
+        }
+      });
+    }
+  }, [isAuthenticated]);
+
+  const loadConversations = async (tid: string) => {
+    setLoadingConversations(true);
+    const res = await conversationService.list(tid);
+    if (res.data) setConversations(res.data);
+    setLoadingConversations(false);
+  };
+
+  useEffect(() => {
+    if (selectedTenant) loadConversations(selectedTenant);
   }, [selectedTenant]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [activeConversation?.messages]);
-
-  const loadTenants = async () => {
-    const res = await tenantService.myTenants();
-    if (res.data && Array.isArray(res.data) && res.data.length > 0) {
-      const memberships = res.data as unknown as TenantMembership[];
-      setTenants(memberships);
-      setSelectedTenant(memberships[0].tenant.id);
-    } else {
-      setLoadingConversations(false);
-    }
-  };
-
-  const loadConversations = async () => {
-    if (!selectedTenant) return;
-    setLoadingConversations(true);
-    const res = await conversationService.list(selectedTenant);
-    if (res.data) setConversations(res.data);
-    setLoadingConversations(false);
-  };
 
   const openConversation = async (convId: string) => {
     if (!selectedTenant) return;
@@ -136,261 +139,199 @@ function ChatContent() {
     if (activeConversation?.id === convId) setActiveConversation(null);
   };
 
-  if (isLoading) {
+  if (isLoading || (!isAuthenticated && !isLoading)) {
     return (
-      <div className="h-screen bg-[#0a0a0f] flex items-center justify-center">
-        <div className="w-8 h-8 border-[3px] border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+      <div className="h-screen bg-[#020617] flex items-center justify-center">
+        <div className="w-10 h-10 border-[3px] border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
       </div>
     );
   }
 
-  if (!isAuthenticated) return null;
   const messages = activeConversation?.messages || [];
 
   return (
-    <div
-      className="h-screen w-screen overflow-hidden flex text-sm"
-      style={{ background: "radial-gradient(circle at center, #151623 0%, #0a0a0f 100%)" }}
-    >
-      {/* ── Sidebar ──────────────────────────── */}
-      <aside className="w-[280px] h-full flex flex-col border-r border-slate-800 bg-[#0c0f1a]/80 p-4 shrink-0">
-        {/* Back link */}
-        <button
-          onClick={() => router.push("/dashboard")}
-          className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors mb-6 group"
-        >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          Retour au dashboard
-        </button>
+    <div className="h-screen flex flex-col text-slate-200 antialiased overflow-hidden">
+      <TopBar
+        userEmail={user?.email}
+        isSuperuser={user?.is_superuser}
+        tenants={tenants}
+        selectedTenantId={selectedTenant}
+        onTenantChange={(id) => setSelectedTenant(id)}
+        onLogout={handleLogout}
+        onAdminDashboard={() => router.push("/admin/dashboard")}
+      />
 
-        {/* New conversation button */}
-        <button
-          onClick={startNewChat}
-          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-semibold text-white mb-6 hover:opacity-90 transition-opacity shadow-lg shadow-indigo-500/20"
-          style={{ background: "linear-gradient(135deg, #6366f1, #a855f7)" }}
-        >
-          <Plus className="w-4 h-4" />
-          Nouveau
-        </button>
+      <div className="flex-1 flex overflow-hidden">
+        {/* ── Sidebar ──────────────────────────── */}
+        <aside className="w-[320px] h-full flex flex-col bg-[#131722]/50 border-r border-white/5 backdrop-blur-xl shrink-0 p-6 space-y-8">
+          {/* New conversation button */}
+          <button
+            onClick={startNewChat}
+            className="group w-full flex items-center justify-center gap-3 py-4 px-6 rounded-[20px] font-bold text-white transition-all shadow-2xl hover:shadow-indigo-500/20 active:scale-95 bg-gradient-brand"
+          >
+            <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+            <span>Nouveau Chat</span>
+          </button>
 
-        {/* Conversation list */}
-        <div className="flex-1 overflow-y-auto space-y-1 pr-1">
-          {conversations.map((c) => (
-            <div
-              key={c.id}
-              onClick={() => openConversation(c.id)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  openConversation(c.id);
-                }
-              }}
-              className={`w-full text-left flex items-start gap-3 p-3 rounded-xl transition-colors group cursor-pointer ${
-                activeConversation?.id === c.id
-                  ? "text-white"
-                  : "text-slate-400 hover:bg-slate-800/30"
-              }`}
-              style={
-                activeConversation?.id === c.id
-                  ? { background: "rgba(255,255,255,0.08)" }
-                  : {}
-              }
-            >
-              <div className={`mt-0.5 p-1.5 rounded-lg flex-shrink-0 ${
-                activeConversation?.id === c.id ? "bg-slate-700/50 text-indigo-400" : "bg-slate-800/50 text-slate-400"
-              }`}>
-                <FileText className="w-4 h-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="font-medium truncate text-sm">{c.title || "Sans titre"}</div>
-                <div className="text-xs text-slate-500 mt-0.5">
-                  {c.message_count || 0} msg · {new Date(c.updated_at).toLocaleDateString("fr-FR")}
-                </div>
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteConversation(c.id, e);
+          {/* Conversation list */}
+          <div className="flex-1 overflow-y-auto space-y-2 pr-2 scrollbar-hide">
+            {conversations.map((c) => (
+              <div
+                key={c.id}
+                onClick={() => openConversation(c.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") { openConversation(c.id); }
                 }}
-                className="opacity-0 group-hover:opacity-70 hover:!opacity-100 hover:text-red-400 p-1 rounded transition-all"
-                title="Supprimer"
+                className={`w-full group flex items-start gap-4 p-4 rounded-[20px] transition-all duration-300 cursor-pointer ${
+                  activeConversation?.id === c.id
+                    ? "bg-white/[0.08] border border-white/10 shadow-lg"
+                    : "hover:bg-white/[0.03] border border-transparent"
+                }`}
               >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ))}
-          {conversations.length === 0 && !loadingConversations && (
-            <p className="text-center text-slate-500 text-xs py-8 px-2">
-              Aucune conversation. Posez une question !
-            </p>
-          )}
-        </div>
-      </aside>
-
-      {/* ── Main Chat Area ───────────────────── */}
-      <main className="flex-1 flex flex-col h-full p-6">
-        <header className="mb-6 shrink-0">
-          <h1 className="text-2xl font-extrabold text-white tracking-tight font-heading">
-            DocPilot AI Chat
-          </h1>
-        </header>
-
-        {/* Chat container */}
-        <section
-          className="flex-1 flex flex-col rounded-2xl overflow-hidden shadow-2xl"
-          style={{
-            background: "rgba(30, 32, 45, 0.4)",
-            backdropFilter: "blur(10px)",
-            border: "1px solid rgba(255,255,255,0.08)",
-          }}
-        >
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col">
-            {messages.length === 0 && !activeConversation && (
-              <div className="flex flex-col items-center justify-center flex-1 text-center py-16">
-                <div className="w-16 h-16 rounded-2xl bg-fuchsia-500/10 border border-fuchsia-500/20 flex items-center justify-center mb-4">
-                  <Bot className="w-8 h-8 text-fuchsia-400" />
+                <div className={`mt-1 p-2 rounded-[12px] flex-shrink-0 transition-colors ${
+                  activeConversation?.id === c.id ? "bg-indigo-500/10 text-indigo-400" : "bg-white/5 text-slate-500"
+                }`}>
+                  <FileText className="w-4 h-4" />
                 </div>
-                <h2 className="text-xl font-bold text-white mb-2 font-heading">DocPilot AI</h2>
-                <p className="text-slate-400 text-sm max-w-sm">
-                  Posez une question sur vos documents. L&apos;IA répondra avec des citations sourcées.
-                </p>
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <div className={`font-bold truncate text-[13px] ${activeConversation?.id === c.id ? "text-white" : "text-slate-300"}`}>
+                    {c.title || "Sans titre"}
+                  </div>
+                  <div className="text-[10px] font-black tracking-widest text-slate-500 uppercase">
+                    {c.message_count || 0} MESSAGES
+                  </div>
+                </div>
+                <button
+                  onClick={(e) => deleteConversation(c.id, e)}
+                  className="opacity-0 group-hover:opacity-50 hover:!opacity-100 hover:text-red-400 p-1.5 rounded-lg transition-all"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+            {conversations.length === 0 && !loadingConversations && (
+              <div className="text-center py-20 px-8">
+                <p className="text-slate-600 text-[10px] font-black tracking-widest uppercase">Aucune discussion</p>
+              </div>
+            )}
+          </div>
+        </aside>
+
+        {/* ── Main Chat Area ───────────────────── */}
+        <main className="flex-1 flex flex-col h-full relative overflow-hidden">
+          {/* Scrollable Message Container */}
+          <div className="flex-1 overflow-y-auto px-6 py-10 space-y-10">
+            {!activeConversation && messages.length === 0 && (
+              <div className="h-full flex flex-col items-center justify-center text-center max-w-lg mx-auto space-y-8 animate-fade-in">
+                <div className="w-24 h-24 rounded-[32px] bg-gradient-brand flex items-center justify-center shadow-2xl shadow-indigo-500/30">
+                  <Bot className="w-12 h-12 text-white" />
+                </div>
+                <div className="space-y-3">
+                  <h2 className="text-4xl font-bold font-heading tracking-tight">DocPilot AI Engine</h2>
+                  <p className="text-slate-400 text-lg leading-relaxed">
+                    Posez vos questions techniques ou demandez une analyse documentaire. L'IA extrait les réponses directement de votre base de connaissances.
+                  </p>
+                </div>
               </div>
             )}
 
             {messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`flex items-start gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"} max-w-[85%] ${msg.role === "user" ? "self-end" : "self-start"}`}
+                className={`flex gap-4 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"} animate-fade-in`}
               >
-                {msg.role === "assistant" && (
-                  <div className="w-10 h-10 rounded-full bg-fuchsia-500/20 border border-fuchsia-500/30 flex items-center justify-center shrink-0 mt-1">
-                    <Bot className="w-5 h-5 text-fuchsia-400" />
-                  </div>
-                )}
-                <div className="flex flex-col gap-2">
+                <div className={`w-12 h-12 rounded-[18px] flex items-center justify-center shrink-0 border shadow-lg ${
+                  msg.role === "user" 
+                  ? "bg-white/5 border-white/10 text-indigo-400" 
+                  : "bg-indigo-500/10 border-indigo-500/20 text-fuchsia-400"
+                }`}>
+                  {msg.role === "user" ? <User className="w-6 h-6" /> : <Bot className="w-6 h-6" />}
+                </div>
+
+                <div className={`flex flex-col gap-4 max-w-[70%] ${msg.role === "user" ? "items-end text-right" : "items-start"}`}>
                   <div
-                    className={`px-5 py-3.5 rounded-2xl text-sm leading-relaxed ${
+                    className={`p-6 rounded-[24px] text-base leading-relaxed shadow-2xl ${
                       msg.role === "user"
-                        ? "text-white rounded-br-sm shadow-md"
-                        : "text-slate-200 rounded-bl-sm shadow-md border border-slate-700/50"
+                        ? "bg-gradient-brand text-white rounded-tr-[4px]"
+                        : "bg-[#131722]/80 backdrop-blur-md border border-white/5 text-slate-200 rounded-tl-[4px]"
                     }`}
-                    style={
-                      msg.role === "user"
-                        ? { background: "linear-gradient(135deg, #6366f1, #a855f7)" }
-                        : { background: "rgba(30,41,59,0.8)" }
-                    }
                   >
                     {msg.content}
                   </div>
 
-                  {/* Citations */}
+                  {/* Citations View 1:1 Stitch */}
                   {msg.citations && msg.citations.length > 0 && (
-                    <div
-                      className="rounded-xl p-4"
-                      style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.08)" }}
-                    >
-                      <div className="flex items-center gap-2 mb-2 text-white text-xs font-semibold">
-                        <Paperclip className="w-3.5 h-3.5 text-slate-400" />
-                        Citations
+                    <div className="w-full bg-white/[0.03] border border-white/5 rounded-[20px] p-5 space-y-3">
+                      <div className="flex items-center gap-2 text-[10px] font-black tracking-widest text-indigo-400 uppercase">
+                        <Paperclip className="w-4 h-4" />
+                        <span>Sources Documentaires</span>
                       </div>
-                      <ul className="space-y-1">
+                      <div className="grid grid-cols-1 gap-2">
                         {msg.citations.map((cit, i) => (
-                          <li key={cit.id || i} className="text-xs text-indigo-300 flex items-center gap-2">
-                            <span className="text-indigo-500 font-bold">[{i + 1}]</span>
-                            <span className="truncate">{cit.document_title}</span>
-                            {cit.page_number && <span className="text-slate-500">p.{cit.page_number}</span>}
-                            <span className="text-emerald-400 font-semibold ml-auto">
-                              {Math.round(cit.similarity * 100)}%
+                          <div key={cit.id || i} className="flex items-center gap-3 p-3 rounded-[12px] bg-white/[0.02] border border-white/5 text-xs text-slate-300">
+                            <span className="font-black text-indigo-500">[{i + 1}]</span>
+                            <span className="truncate flex-1 font-medium">{cit.document_title}</span>
+                            <span className="text-emerald-500 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md text-[9px] tracking-widest uppercase">
+                              {Math.round(cit.similarity * 100)}% Match
                             </span>
-                          </li>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                   )}
-
-                  {msg.latency_ms > 0 && (
-                    <p className="text-[10px] text-slate-600 px-1">
-                      {msg.model_name} · {msg.total_tokens} tokens · {msg.latency_ms}ms
-                    </p>
-                  )}
                 </div>
-                {msg.role === "user" && (
-                  <div className="w-10 h-10 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
-                    <User className="w-5 h-5 text-indigo-300" />
-                  </div>
-                )}
               </div>
             ))}
 
-            {/* Typing indicator */}
             {sending && (
-              <div className="flex items-start gap-3 self-start">
-                <div className="w-10 h-10 rounded-full bg-fuchsia-500/20 border border-fuchsia-500/30 flex items-center justify-center shrink-0">
-                  <Bot className="w-5 h-5 text-fuchsia-400" />
+              <div className="flex gap-4 animate-fade-in">
+                <div className="w-12 h-12 rounded-[18px] bg-indigo-500/10 border border-indigo-500/20 text-fuchsia-400 flex items-center justify-center">
+                  <Bot className="w-6 h-6" />
                 </div>
-                <div
-                  className="px-5 py-4 rounded-2xl rounded-bl-sm flex gap-1.5 items-center"
-                  style={{ background: "rgba(30,41,59,0.8)", border: "1px solid rgba(71,85,105,0.5)" }}
-                >
-                  {[0, 200, 400].map((delay) => (
-                    <span
-                      key={delay}
-                      className="w-2 h-2 rounded-full bg-indigo-500"
-                      style={{ animation: `bounce-dot 1.4s ${delay}ms infinite ease-in-out` }}
-                    />
-                  ))}
+                <div className="p-6 rounded-[24px] rounded-tl-[4px] bg-[#131722]/80 border border-white/5 flex gap-2 items-center">
+                   {[0, 2, 4].map(i => (
+                     <div key={i} className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" style={{ animationDelay: `${i*200}ms` }} />
+                   ))}
                 </div>
               </div>
             )}
-
-            {error && (
-              <div className="px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm">
-                ⚠️ {error}
-              </div>
-            )}
-            <div ref={messagesEndRef} />
+            
+            <div ref={messagesEndRef} className="h-4" />
           </div>
 
-          {/* Input */}
-          <div
-            className="p-4 border-t border-slate-800/50 shrink-0"
-            style={{ background: "rgba(22,27,44,0.8)", backdropFilter: "blur(8px)" }}
-          >
-            <div className="relative max-w-5xl mx-auto">
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Posez votre question sur vos documents…"
-                rows={1}
-                disabled={sending}
-                className="w-full py-3.5 pl-4 pr-14 text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 resize-none overflow-hidden text-sm transition-all"
-                style={{
-                  background: "rgba(0,0,0,0.2)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  borderRadius: "12px",
-                }}
-              />
-              <button
-                onClick={handleSend}
-                disabled={!input.trim() || sending}
-                className="absolute right-2 bottom-2 p-2 rounded-lg text-white hover:opacity-90 transition-opacity shadow-sm disabled:opacity-30"
-                style={{ background: "linear-gradient(135deg, #6366f1, #a855f7)" }}
-              >
-                <Send className="w-4 h-4 translate-x-[1px]" />
-              </button>
-            </div>
+          {/* Input Area Stitch Precision */}
+          <div className="p-8 border-t border-white/5 bg-[#131722]/40 backdrop-blur-xl">
+             <div className="max-w-4xl mx-auto relative group">
+                <div className="absolute -inset-0.5 bg-gradient-brand opacity-10 group-focus-within:opacity-30 blur-xl transition-opacity pointer-events-none rounded-[24px]" />
+                <div className="relative flex items-center">
+                  <textarea
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Posez votre question à DocPilot AI..."
+                    rows={1}
+                    className="w-full bg-[#1e2330]/80 border border-white/10 rounded-[24px] py-6 pl-8 pr-20 text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50 shadow-2xl transition-all resize-none min-h-[72px] max-h-48 overflow-y-auto"
+                  />
+                  <button
+                    onClick={handleSend}
+                    disabled={!input.trim() || sending}
+                    className="absolute right-4 p-4 rounded-[18px] text-white bg-gradient-brand shadow-xl opacity-90 hover:opacity-100 disabled:opacity-30 active:scale-95 transition-all"
+                  >
+                    <Send className="w-5 h-5 flex-shrink-0" />
+                  </button>
+                </div>
+             </div>
           </div>
-        </section>
-      </main>
+        </main>
+      </div>
 
-      <style>{`
-        @keyframes bounce-dot {
-          0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-          40% { transform: scale(1); opacity: 1; }
-        }
+      <style jsx global>{`
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fade-in { animation: fade-in 0.4s ease-out forwards; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
     </div>
   );
@@ -399,8 +340,8 @@ function ChatContent() {
 export default function ChatPage() {
   return (
     <Suspense fallback={
-      <div className="h-screen bg-[#0a0a0f] flex items-center justify-center">
-        <div className="w-8 h-8 border-[3px] border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+      <div className="h-screen bg-[#020617] flex items-center justify-center">
+        <div className="w-10 h-10 border-[3px] border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
       </div>
     }>
       <ChatContent />
