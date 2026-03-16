@@ -145,7 +145,7 @@ export default function MembresPage() {
 
           <button
             onClick={() => setShowInviteModal(true)}
-            className="btn-magnetic flex items-center gap-4 animate-fluid-in"
+            className="btn-magnetic flex items-center gap-4 animate-fluid-in interactive-premium"
             style={{ animationDelay: '200ms' }}
           >
             <UserPlus className="w-5 h-5" />
@@ -173,11 +173,11 @@ export default function MembresPage() {
                    {members.map((m, i) => (
                      <div 
                        key={m.id}
-                       className="fluid-card grid grid-cols-12 items-center py-8 group"
+                       className={`fluid-card grid grid-cols-12 items-center py-8 group ${openMenuId === m.id ? 'z-top-layer overflow-visible' : ''}`}
                        style={{ animationDelay: `${(i+1)*50}ms`, padding: '1.5rem 2.5rem' }}
                      >
                         <div className="col-span-6 flex items-center gap-6">
-                           <div className="w-14 h-14 rounded-2xl bg-gradient-brand flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform">
+                           <div className="w-14 h-14 rounded-2xl bg-gradient-brand flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform duration-500">
                               <span className="text-lg font-black text-white">{m.user.email[0].toUpperCase()}</span>
                            </div>
                            <div className="min-w-0">
@@ -208,7 +208,7 @@ export default function MembresPage() {
                                e.stopPropagation();
                                setOpenMenuId(openMenuId === m.id ? null : m.id);
                              }}
-                             className="p-3 rounded-2xl hover:bg-white/5 text-slate-500 hover:text-white transition-all focus:outline-none"
+                             className={`glass-trigger ${openMenuId === m.id ? 'glass-trigger-active' : ''}`}
                            >
                               <MoreVertical className="w-5 h-5" />
                            </button>
@@ -225,7 +225,7 @@ export default function MembresPage() {
                                       <>
                                          <button 
                                            onClick={() => handleUpdateRole(m.id, m.role === 'admin' ? 'member' : 'admin')}
-                                           className="w-full flex items-center gap-4 px-6 py-4 rounded-[20px] hover:bg-white/5 text-slate-300 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest text-left"
+                                           className="w-full flex items-center gap-4 px-6 py-4 rounded-[20px] hover:bg-white/5 text-slate-300 hover:text-white transition-all duration-500 text-[10px] font-black uppercase tracking-widest text-left hover:scale-[1.02]"
                                          >
                                             <Edit className="w-4 h-4 text-indigo-400" />
                                             <span>Passer en {m.role === 'admin' ? 'Membre' : 'Admin'}</span>
@@ -233,7 +233,7 @@ export default function MembresPage() {
                                          
                                          <button 
                                            onClick={() => handleRemoveMember(m.id)}
-                                           className="w-full flex items-center gap-4 px-6 py-4 rounded-[20px] hover:bg-red-500/5 text-red-400 hover:text-red-300 transition-all text-[10px] font-black uppercase tracking-widest text-left"
+                                           className="w-full flex items-center gap-4 px-6 py-4 rounded-[20px] hover:bg-red-500/5 text-red-400 hover:text-red-300 transition-all duration-500 text-[10px] font-black uppercase tracking-widest text-left hover:scale-[1.02]"
                                          >
                                             <Trash2 className="w-4 h-4" />
                                             <span>Retirer de l'organisation</span>
@@ -263,12 +263,12 @@ export default function MembresPage() {
           <div className="relative w-full max-w-xl bg-white/[0.02] border border-white/10 rounded-[64px] p-16 shadow-2xl animate-fluid-in">
              <header className="flex justify-between items-start mb-12">
                 <div className="space-y-4">
-                   <h3 className="text-4xl font-black tracking-tighter text-white uppercase">Invitation</h3>
+                   <h3 className="text-4xl font-black tracking-tighter text-white uppercase text-gradient">Invitation</h3>
                    <p className="text-slate-400 font-medium">Ajoutez un collaborateur à l'organisation.</p>
                 </div>
                 <button 
                   onClick={() => setShowInviteModal(false)}
-                  className="w-14 h-14 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all"
+                  className="w-14 h-14 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all interactive-premium"
                 >
                   <X className="w-6 h-6" />
                 </button>
@@ -299,9 +299,9 @@ export default function MembresPage() {
                       <button
                         key={r}
                         onClick={() => setInviteForm({ ...inviteForm, role: r })}
-                        className={`py-4 rounded-[20px] text-[10px] font-black uppercase tracking-widest border transition-all ${
+                        className={`py-4 rounded-[20px] text-[10px] font-black uppercase tracking-widest border transition-all interactive-premium ${
                           inviteForm.role === r 
-                          ? "bg-white text-indigo-950 border-white" 
+                          ? "bg-white text-indigo-950 border-white shadow-xl shadow-white/10" 
                           : "bg-white/5 text-slate-500 border-white/5 hover:bg-white/10"
                         }`}
                       >
@@ -320,7 +320,7 @@ export default function MembresPage() {
                 <button
                   onClick={handleInvite}
                   disabled={inviting || !inviteForm.email.trim()}
-                  className="btn-magnetic w-full py-6"
+                  className="btn-magnetic w-full py-6 interactive-premium"
                 >
                   {inviting ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : "Envoyer l'Invitation"}
                 </button>

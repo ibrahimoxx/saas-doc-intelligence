@@ -152,7 +152,7 @@ export default function EspacesPage() {
           {permissions?.can_upload && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="btn-magnetic flex items-center gap-4 group"
+              className="btn-magnetic flex items-center gap-4 group interactive-premium"
             >
               <PlusIcon className="w-5 h-5 group-hover:rotate-90 transition-transform duration-500" />
               <span>Initialiser un Espace</span>
@@ -172,7 +172,7 @@ export default function EspacesPage() {
                  <FolderPlusIcon className="w-16 h-16 text-indigo-400" />
               </div>
               <div className="space-y-4">
-                 <h3 className="text-4xl font-black tracking-tighter text-white">Prêt à uploader ?</h3>
+                 <h3 className="text-4xl font-black tracking-tighter text-white uppercase text-gradient">Prêt à uploader ?</h3>
                  <p className="text-slate-400 text-lg font-medium max-w-md mx-auto">
                     Créez votre premier espace de travail pour indexer vos documents PDF.
                  </p>
@@ -180,7 +180,7 @@ export default function EspacesPage() {
               {permissions?.can_upload && (
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="btn-magnetic"
+                  className="btn-magnetic interactive-premium"
                 >
                   Démarrer l'aventure
                 </button>
@@ -192,7 +192,7 @@ export default function EspacesPage() {
               <div
                 key={space.id}
                 onClick={() => router.push(`/documents?space=${space.id}`)}
-                className="fluid-card group relative cursor-pointer"
+                className={`fluid-card group relative cursor-pointer ${openMenuId === space.id ? 'z-top-layer overflow-visible' : ''}`}
                 style={{ animationDelay: `${(i+1)*100}ms` }}
               >
                 <div className="flex flex-col gap-10">
@@ -216,7 +216,7 @@ export default function EspacesPage() {
                               e.stopPropagation();
                               setOpenMenuId(openMenuId === space.id ? null : space.id);
                             }}
-                            className="p-2 rounded-xl hover:bg-white/5 text-slate-500 hover:text-white transition-all focus:outline-none"
+                            className={`glass-trigger ${openMenuId === space.id ? 'glass-trigger-active' : ''}`}
                           >
                              <MoreVertical className="w-4 h-4" />
                           </button>
@@ -231,7 +231,7 @@ export default function EspacesPage() {
                                   
                                   <button 
                                     onClick={() => router.push(`/documents?space=${space.id}`)}
-                                    className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/5 text-slate-300 hover:text-white transition-all text-[9px] font-black uppercase tracking-widest text-left"
+                                    className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/5 text-slate-300 hover:text-white transition-all duration-500 text-[9px] font-black uppercase tracking-widest text-left hover:scale-[1.02]"
                                   >
                                      <ArrowUpRightIcon className="w-4 h-4 text-indigo-400" />
                                      <span>Ouvrir</span>
@@ -239,7 +239,7 @@ export default function EspacesPage() {
 
                                   <button 
                                     onClick={() => handleDeleteSpace(space.id)}
-                                    className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-red-500/5 text-red-400 hover:text-red-300 transition-all text-[9px] font-black uppercase tracking-widest text-left"
+                                    className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-red-500/5 text-red-400 hover:text-red-300 transition-all duration-500 text-[9px] font-black uppercase tracking-widest text-left hover:scale-[1.02]"
                                   >
                                      <Trash2 className="w-4 h-4" />
                                      <span>Supprimer</span>
@@ -265,7 +265,7 @@ export default function EspacesPage() {
                        <FileIcon className="w-4 h-4 text-indigo-500/30" />
                        <span>{space.document_count ?? 0} Documents</span>
                     </div>
-                    <div className="w-12 h-12 rounded-full border border-white/5 flex items-center justify-center group-hover:bg-white group-hover:text-indigo-950 transition-all">
+                    <div className="w-12 h-12 rounded-full border border-white/5 flex items-center justify-center group-hover:bg-white group-hover:text-indigo-950 transition-all duration-500">
                        <ArrowUpRightIcon className="w-5 h-5" />
                     </div>
                   </div>
@@ -284,12 +284,12 @@ export default function EspacesPage() {
           <div className="relative w-full max-w-2xl bg-white/[0.02] border border-white/10 rounded-[64px] p-16 overflow-hidden shadow-2xl animate-fluid-in">
             <header className="flex justify-between items-start mb-12">
               <div className="space-y-4">
-                <h3 className="text-4xl font-black tracking-tighter text-white uppercase">Initialisation</h3>
+                <h3 className="text-4xl font-black tracking-tighter text-white uppercase text-gradient">Initialisation</h3>
                 <p className="text-slate-400 font-medium">Configurez les paramètres de l'espace.</p>
               </div>
               <button 
                 onClick={() => setShowCreateModal(false)}
-                className="w-14 h-14 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all shadow-xl"
+                className="w-14 h-14 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all interactive-premium shadow-xl"
               >
                 <XMarkIcon className="w-6 h-6" />
               </button>
@@ -348,7 +348,7 @@ export default function EspacesPage() {
               <button
                 onClick={handleCreate}
                 disabled={creating || !form.name.trim() || !form.slug.trim()}
-                className="btn-magnetic w-full py-6 text-xs"
+                className="btn-magnetic w-full py-6 text-xs interactive-premium"
               >
                 {creating ? "Phase d'Initialisation..." : "Confirmer l'Initialisation"}
               </button>

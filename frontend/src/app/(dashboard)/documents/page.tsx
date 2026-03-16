@@ -152,7 +152,7 @@ function DocumentsContent() {
                  <button
                    key={s.id}
                    onClick={() => setCurrentSpaceId(s.id)}
-                   className={`px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                   className={`px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all interactive-premium ${
                      currentSpaceId === s.id 
                      ? "bg-white text-indigo-950 shadow-2xl" 
                      : "bg-white/5 text-slate-500 border border-white/5 hover:bg-white/10"
@@ -172,7 +172,7 @@ function DocumentsContent() {
                className="absolute inset-0 opacity-0 cursor-pointer z-10"
                accept=".pdf,.txt,.docx"
              />
-             <div className={`btn-magnetic flex items-center gap-4 px-12 py-6 min-w-[280px] justify-center ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
+             <div className={`btn-magnetic interactive-premium flex items-center gap-4 px-12 py-6 min-w-[280px] justify-center ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
                 {uploading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Upload className="w-6 h-6" />}
                 <span>{uploading ? "TRAITEMENT..." : "Uploader un Fichier"}</span>
              </div>
@@ -192,7 +192,7 @@ function DocumentsContent() {
                    <FileIcon className="w-16 h-16 text-slate-600" />
                 </div>
                 <div className="space-y-4">
-                  <h3 className="text-3xl font-black tracking-tighter text-white">Zone Sans Données</h3>
+                  <h3 className="text-3xl font-black tracking-tighter text-white uppercase text-gradient">Zone Sans Données</h3>
                   <p className="text-slate-500 text-lg font-medium max-w-sm mx-auto leading-relaxed">
                     Cet espace est actuellement vide. Commencez l'indexation pour activer l'IA.
                   </p>
@@ -214,11 +214,11 @@ function DocumentsContent() {
                     return (
                       <div 
                         key={doc.id}
-                        className="fluid-card grid grid-cols-12 items-center py-8 hover:-translate-x-1 group"
+                        className={`fluid-card grid grid-cols-12 items-center py-8 group ${openMenuId === doc.id ? 'z-top-layer overflow-visible' : ''}`}
                         style={{ animationDelay: `${(i+1)*50}ms`, padding: '1.5rem 2.5rem' }}
                       >
                         <div className="col-span-5 flex items-center gap-6">
-                           <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-indigo-500/10 group-hover:border-indigo-500/20 transition-all">
+                           <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 group-hover:bg-indigo-500/10 group-hover:border-indigo-500/20 transition-all duration-500">
                               <FileText className="w-6 h-6 text-indigo-400" />
                            </div>
                            <div className="min-w-0">
@@ -250,7 +250,7 @@ function DocumentsContent() {
                                 e.stopPropagation();
                                 setOpenMenuId(openMenuId === doc.id ? null : doc.id);
                              }}
-                             className="p-3 rounded-2xl hover:bg-white/5 text-slate-500 hover:text-white transition-all focus:outline-none"
+                             className={`glass-trigger ${openMenuId === doc.id ? 'glass-trigger-active' : ''}`}
                            >
                               <MoreVertical className="w-5 h-5" />
                            </button>
@@ -265,7 +265,7 @@ function DocumentsContent() {
                                    
                                    <button 
                                      onClick={() => window.open(`/api/v1/tenants/${selectedTenant}/knowledge-spaces/${currentSpaceId}/documents/${doc.id}/download/`, '_blank')}
-                                     className="w-full flex items-center gap-4 px-6 py-4 rounded-[20px] hover:bg-white/5 text-slate-300 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest text-left"
+                                     className="w-full flex items-center gap-4 px-6 py-4 rounded-[20px] hover:bg-white/5 text-slate-300 hover:text-white transition-all duration-500 text-[10px] font-black uppercase tracking-widest text-left hover:scale-[1.02]"
                                    >
                                       <Download className="w-4 h-4 text-indigo-400" />
                                       <span>Télécharger</span>
@@ -273,7 +273,7 @@ function DocumentsContent() {
                                    
                                    <button 
                                      onClick={() => handleDelete(doc.id)}
-                                     className="w-full flex items-center gap-4 px-6 py-4 rounded-[20px] hover:bg-red-500/5 text-red-400 hover:text-red-300 transition-all text-[10px] font-black uppercase tracking-widest text-left"
+                                     className="w-full flex items-center gap-4 px-6 py-4 rounded-[20px] hover:bg-red-500/5 text-red-400 hover:text-red-300 transition-all duration-500 text-[10px] font-black uppercase tracking-widest text-left hover:scale-[1.02]"
                                    >
                                       <Trash2 className="w-4 h-4" />
                                       <span>Supprimer</span>
