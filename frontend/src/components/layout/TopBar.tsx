@@ -1,7 +1,14 @@
 // src/components/layout/TopBar.tsx
 "use client";
 
-import { ChevronDown, LogOut, Shield, User as UserIcon } from "lucide-react";
+import Link from "next/link";
+import { 
+  ChevronDown, 
+  LogOut, 
+  Shield, 
+  User as UserIcon,
+  LayoutDashboard 
+} from "lucide-react";
 import type { TenantMembership } from "@/types/tenant.types";
 
 interface TopBarProps {
@@ -26,14 +33,14 @@ export function TopBar({
   return (
     <nav className="nav-pill flex items-center justify-between gap-8 group/nav hover:py-5 transition-all">
       {/* Left: Brand */}
-      <div className="flex items-center gap-4">
+      <Link href="/dashboard" className="flex items-center gap-4 hover:opacity-80 transition-all">
         <div className="w-10 h-10 rounded-2xl bg-gradient-brand flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover/nav:scale-110 transition-transform">
           <Shield className="w-5 h-5 text-white" />
         </div>
         <h1 className="text-xl font-black tracking-tighter text-white hidden sm:block">
           DOCPILOT <span className="text-indigo-400">AI</span>
         </h1>
-      </div>
+      </Link>
 
       {/* Center: Tenant Selection & Controls */}
       <div className="flex-1 flex items-center justify-center gap-4">
@@ -56,10 +63,21 @@ export function TopBar({
 
         <div className="h-4 w-px bg-white/10 hidden md:block" />
 
+        {/* Explicit Dashboard Link */}
+        <Link 
+          href="/dashboard"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all group/dash"
+        >
+          <LayoutDashboard className="w-3.5 h-3.5 text-indigo-400 group-hover/dash:scale-110 transition-transform" />
+          <span className="text-white text-[9px] font-black uppercase tracking-widest hidden md:block">
+            Dashboard
+          </span>
+        </Link>
+
         {userEmail && (
           <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/5">
             <UserIcon className="w-3 h-3 text-indigo-400" />
-            <span className="text-slate-400 text-[9px] font-black uppercase tracking-widest">
+            <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">
               {userEmail.split('@')[0]}
             </span>
           </div>
