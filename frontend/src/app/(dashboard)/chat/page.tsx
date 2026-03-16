@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { tenantService } from "@/services/tenant.service";
 import {
@@ -10,23 +10,31 @@ import {
   type Message,
 } from "@/services/conversation.service";
 import type { TenantMembership } from "@/types/tenant.types";
-
 import { Suspense } from "react";
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  FileText,
+  Bot,
+  User,
+  Send,
+  Paperclip,
+} from "lucide-react";
 
 function ChatContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { user, isAuthenticated, isLoading } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [tenants, setTenants] = useState<TenantMembership[]>([]);
   const [selectedTenant, setSelectedTenant] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeConversation, setActiveConversation] =
-    useState<Conversation | null>(null);
+  const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push("/login");
@@ -69,8 +77,6 @@ function ChatContent() {
     if (res.data) setActiveConversation(res.data);
   };
 
-  const [error, setError] = useState("");
-
   const handleSend = async () => {
     if (!input.trim() || sending || !selectedTenant) return;
     const question = input;
@@ -79,7 +85,6 @@ function ChatContent() {
     setError("");
 
     if (activeConversation) {
-      // Optimistic: show user message immediately
       const tempUserMsg: Message = {
         id: "temp-" + Date.now(),
         role: "user",
@@ -90,584 +95,291 @@ function ChatContent() {
         citations: [],
         created_at: new Date().toISOString(),
       };
-      setActiveConversation((prev) => {
-        if (!prev) return prev;
-        return { ...prev, messages: [...(prev.messages || []), tempUserMsg] };
-      });
-
-      // Send follow-up message
-      const res = await conversationService.sendMessage(
-        selectedTenant,
-        activeConversation.id,
-        question
+      setActiveConversation((prev) =>
+        prev ? { ...prev, messages: [...(prev.messages || []), tempUserMsg] } : prev
       );
+
+      const res = await conversationService.sendMessage(selectedTenant, activeConversation.id, question);
       if (res.data) {
         setActiveConversation((prev) => {
           if (!prev) return prev;
-          // Replace temp message with real ones
           const msgs = (prev.messages || []).filter((m) => m.id !== tempUserMsg.id);
-          return {
-            ...prev,
-            messages: [...msgs, res.data!.user_message, res.data!.assistant_message],
-          };
+          return { ...prev, messages: [...msgs, res.data!.user_message, res.data!.assistant_message] };
         });
       } else {
-        console.error("Chat error:", res.error);
         setError(res.error?.message || "Erreur lors de l'envoi du message.");
       }
     } else {
-      // Create new conversation
-      const res = await conversationService.create(selectedTenant, {
-        first_message: question,
-      });
+      const res = await conversationService.create(selectedTenant, { first_message: question });
       if (res.data) {
         setActiveConversation(res.data);
         setConversations((prev) => [res.data!, ...prev]);
       } else {
-        console.error("Chat create error:", res.error);
         setError(res.error?.message || "Erreur lors de la création de la conversation.");
       }
     }
-
     setSending(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
-  const startNewChat = () => {
-    setActiveConversation(null);
-    setInput("");
-    setError("");
-  };
-
-  if (isLoading) {
-    return (
-      <div className="chat-loading">
-        <div className="loader" />
-        <style jsx>{`
-          .chat-loading {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #0f172a;
-          }
-          .loader {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(99, 102, 241, 0.2);
-            border-top-color: #6366f1;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-          }
-          @keyframes spin {
-            to {
-              transform: rotate(360deg);
-            }
-          }
-        `}</style>
-      </div>
-    );
-  }
+  const startNewChat = () => { setActiveConversation(null); setInput(""); setError(""); };
 
   const deleteConversation = async (convId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!selectedTenant) return;
     if (!confirm("Supprimer cette conversation ?")) return;
-
     await conversationService.archive(selectedTenant, convId);
     setConversations((prev) => prev.filter((c) => c.id !== convId));
-    if (activeConversation?.id === convId) {
-      setActiveConversation(null);
-    }
+    if (activeConversation?.id === convId) setActiveConversation(null);
   };
 
-  if (!isAuthenticated) return null;
+  if (isLoading) {
+    return (
+      <div className="h-screen bg-[#0a0a0f] flex items-center justify-center">
+        <div className="w-8 h-8 border-[3px] border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
+  if (!isAuthenticated) return null;
   const messages = activeConversation?.messages || [];
 
   return (
-    <div className="chat-page">
-      {/* Sidebar */}
-      <aside className="sidebar">
-        <div className="sidebar-header">
-          <button onClick={() => router.push("/dashboard")} className="back-btn">
-            ← Dashboard
-          </button>
-          <h2>💬 Conversations</h2>
-          <button onClick={startNewChat} className="new-chat-btn">
-            + Nouveau
-          </button>
-        </div>
+    <div
+      className="h-screen w-screen overflow-hidden flex text-sm"
+      style={{ background: "radial-gradient(circle at center, #151623 0%, #0a0a0f 100%)" }}
+    >
+      {/* ── Sidebar ──────────────────────────── */}
+      <aside className="w-[280px] h-full flex flex-col border-r border-slate-800 bg-[#0c0f1a]/80 p-4 shrink-0">
+        {/* Back link */}
+        <button
+          onClick={() => router.push("/dashboard")}
+          className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors mb-6 group"
+        >
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+          Retour au dashboard
+        </button>
 
-        <div className="conv-list">
+        {/* New conversation button */}
+        <button
+          onClick={startNewChat}
+          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-semibold text-white mb-6 hover:opacity-90 transition-opacity shadow-lg shadow-indigo-500/20"
+          style={{ background: "linear-gradient(135deg, #6366f1, #a855f7)" }}
+        >
+          <Plus className="w-4 h-4" />
+          Nouveau
+        </button>
+
+        {/* Conversation list */}
+        <div className="flex-1 overflow-y-auto space-y-1 pr-1">
           {conversations.map((c) => (
-            <div
+            <button
               key={c.id}
-              className={`conv-item ${activeConversation?.id === c.id ? "active" : ""}`}
               onClick={() => openConversation(c.id)}
+              className={`w-full text-left flex items-start gap-3 p-3 rounded-xl transition-colors group ${
+                activeConversation?.id === c.id
+                  ? "text-white"
+                  : "text-slate-400 hover:bg-slate-800/30"
+              }`}
+              style={
+                activeConversation?.id === c.id
+                  ? { background: "rgba(255,255,255,0.08)" }
+                  : {}
+              }
             >
-              <div className="conv-row">
-                <div className="conv-info">
-                  <div className="conv-title">{c.title || "Sans titre"}</div>
-                  <div className="conv-meta">
-                    {c.message_count || 0} msg · {new Date(c.updated_at).toLocaleDateString("fr-FR")}
-                  </div>
-                </div>
-                <button
-                  className="delete-conv-btn"
-                  onClick={(e) => deleteConversation(c.id, e)}
-                  title="Supprimer"
-                >
-                  🗑
-                </button>
+              <div className={`mt-0.5 p-1.5 rounded-lg flex-shrink-0 ${
+                activeConversation?.id === c.id ? "bg-slate-700/50 text-indigo-400" : "bg-slate-800/50 text-slate-400"
+              }`}>
+                <FileText className="w-4 h-4" />
               </div>
-            </div>
+              <div className="min-w-0 flex-1">
+                <div className="font-medium truncate text-sm">{c.title || "Sans titre"}</div>
+                <div className="text-xs text-slate-500 mt-0.5">
+                  {c.message_count || 0} msg · {new Date(c.updated_at).toLocaleDateString("fr-FR")}
+                </div>
+              </div>
+              <button
+                onClick={(e) => deleteConversation(c.id, e)}
+                className="opacity-0 group-hover:opacity-70 hover:!opacity-100 hover:text-red-400 p-1 rounded transition-all"
+                title="Supprimer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </button>
           ))}
           {conversations.length === 0 && !loadingConversations && (
-            <div className="no-conv">Aucune conversation. Posez une question !</div>
+            <p className="text-center text-slate-500 text-xs py-8 px-2">
+              Aucune conversation. Posez une question !
+            </p>
           )}
         </div>
       </aside>
 
-      {/* Chat area */}
-      <main className="chat-main">
-        {/* Messages */}
-        <div className="messages-area">
-          {messages.length === 0 && !activeConversation && (
-            <div className="welcome-chat">
-              <div className="welcome-icon">🤖</div>
-              <h2>DocPilot AI</h2>
-              <p>Posez une question sur vos documents. L&apos;IA répondra avec des citations sourcées.</p>
-            </div>
-          )}
+      {/* ── Main Chat Area ───────────────────── */}
+      <main className="flex-1 flex flex-col h-full p-6">
+        <header className="mb-6 shrink-0">
+          <h1 className="text-2xl font-extrabold text-white tracking-tight font-heading">
+            DocPilot AI Chat
+          </h1>
+        </header>
 
-          {messages.map((msg) => (
-            <div key={msg.id} className={`message ${msg.role}`}>
-              <div className="msg-avatar">{msg.role === "user" ? "👤" : "🤖"}</div>
-              <div className="msg-body">
-                <div className="msg-content">{msg.content}</div>
-                {msg.citations && msg.citations.length > 0 && (
-                  <div className="citations">
-                    <div className="citations-title">📎 Sources :</div>
-                    {msg.citations.map((cit, i) => (
-                      <div key={cit.id || i} className="citation-item">
-                        <span className="cit-doc">{cit.document_title}</span>
-                        {cit.page_number && (
-                          <span className="cit-page">p.{cit.page_number}</span>
-                        )}
-                        <span className="cit-score">
-                          {Math.round(cit.similarity * 100)}%
-                        </span>
-                      </div>
-                    ))}
+        {/* Chat container */}
+        <section
+          className="flex-1 flex flex-col rounded-2xl overflow-hidden shadow-2xl"
+          style={{
+            background: "rgba(30, 32, 45, 0.4)",
+            backdropFilter: "blur(10px)",
+            border: "1px solid rgba(255,255,255,0.08)",
+          }}
+        >
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col">
+            {messages.length === 0 && !activeConversation && (
+              <div className="flex flex-col items-center justify-center flex-1 text-center py-16">
+                <div className="w-16 h-16 rounded-2xl bg-fuchsia-500/10 border border-fuchsia-500/20 flex items-center justify-center mb-4">
+                  <Bot className="w-8 h-8 text-fuchsia-400" />
+                </div>
+                <h2 className="text-xl font-bold text-white mb-2 font-heading">DocPilot AI</h2>
+                <p className="text-slate-400 text-sm max-w-sm">
+                  Posez une question sur vos documents. L&apos;IA répondra avec des citations sourcées.
+                </p>
+              </div>
+            )}
+
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex items-start gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"} max-w-[85%] ${msg.role === "user" ? "self-end" : "self-start"}`}
+              >
+                {msg.role === "assistant" && (
+                  <div className="w-10 h-10 rounded-full bg-fuchsia-500/20 border border-fuchsia-500/30 flex items-center justify-center shrink-0 mt-1">
+                    <Bot className="w-5 h-5 text-fuchsia-400" />
                   </div>
                 )}
-                {msg.latency_ms > 0 && (
-                  <div className="msg-meta">
-                    {msg.model_name} · {msg.total_tokens} tokens · {msg.latency_ms}ms
+                <div className="flex flex-col gap-2">
+                  <div
+                    className={`px-5 py-3.5 rounded-2xl text-sm leading-relaxed ${
+                      msg.role === "user"
+                        ? "text-white rounded-br-sm shadow-md"
+                        : "text-slate-200 rounded-bl-sm shadow-md border border-slate-700/50"
+                    }`}
+                    style={
+                      msg.role === "user"
+                        ? { background: "linear-gradient(135deg, #6366f1, #a855f7)" }
+                        : { background: "rgba(30,41,59,0.8)" }
+                    }
+                  >
+                    {msg.content}
+                  </div>
+
+                  {/* Citations */}
+                  {msg.citations && msg.citations.length > 0 && (
+                    <div
+                      className="rounded-xl p-4"
+                      style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.08)" }}
+                    >
+                      <div className="flex items-center gap-2 mb-2 text-white text-xs font-semibold">
+                        <Paperclip className="w-3.5 h-3.5 text-slate-400" />
+                        Citations
+                      </div>
+                      <ul className="space-y-1">
+                        {msg.citations.map((cit, i) => (
+                          <li key={cit.id || i} className="text-xs text-indigo-300 flex items-center gap-2">
+                            <span className="text-indigo-500 font-bold">[{i + 1}]</span>
+                            <span className="truncate">{cit.document_title}</span>
+                            {cit.page_number && <span className="text-slate-500">p.{cit.page_number}</span>}
+                            <span className="text-emerald-400 font-semibold ml-auto">
+                              {Math.round(cit.similarity * 100)}%
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {msg.latency_ms > 0 && (
+                    <p className="text-[10px] text-slate-600 px-1">
+                      {msg.model_name} · {msg.total_tokens} tokens · {msg.latency_ms}ms
+                    </p>
+                  )}
+                </div>
+                {msg.role === "user" && (
+                  <div className="w-10 h-10 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
+                    <User className="w-5 h-5 text-indigo-300" />
                   </div>
                 )}
               </div>
-            </div>
-          ))}
-          {sending && (
-            <div className="message assistant">
-              <div className="msg-avatar">🤖</div>
-              <div className="msg-body">
-                <div className="msg-content typing">
-                  <span className="dot" /><span className="dot" /><span className="dot" />
+            ))}
+
+            {/* Typing indicator */}
+            {sending && (
+              <div className="flex items-start gap-3 self-start">
+                <div className="w-10 h-10 rounded-full bg-fuchsia-500/20 border border-fuchsia-500/30 flex items-center justify-center shrink-0">
+                  <Bot className="w-5 h-5 text-fuchsia-400" />
+                </div>
+                <div
+                  className="px-5 py-4 rounded-2xl rounded-bl-sm flex gap-1.5 items-center"
+                  style={{ background: "rgba(30,41,59,0.8)", border: "1px solid rgba(71,85,105,0.5)" }}
+                >
+                  {[0, 200, 400].map((delay) => (
+                    <span
+                      key={delay}
+                      className="w-2 h-2 rounded-full bg-indigo-500"
+                      style={{ animation: `bounce-dot 1.4s ${delay}ms infinite ease-in-out` }}
+                    />
+                  ))}
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {error && (
-            <div className="error-banner">⚠️ {error}</div>
-          )}
+            {error && (
+              <div className="px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm">
+                ⚠️ {error}
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
 
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input */}
-        <div className="input-area">
-          <textarea
-            className="chat-input"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Posez votre question..."
-            rows={1}
-            disabled={sending}
-          />
-          <button
-            onClick={handleSend}
-            className="send-btn"
-            disabled={!input.trim() || sending}
+          {/* Input */}
+          <div
+            className="p-4 border-t border-slate-800/50 shrink-0"
+            style={{ background: "rgba(22,27,44,0.8)", backdropFilter: "blur(8px)" }}
           >
-            {sending ? "⏳" : "➤"}
-          </button>
-        </div>
+            <div className="relative max-w-5xl mx-auto">
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Posez votre question sur vos documents…"
+                rows={1}
+                disabled={sending}
+                className="w-full py-3.5 pl-4 pr-14 text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 resize-none overflow-hidden text-sm transition-all"
+                style={{
+                  background: "rgba(0,0,0,0.2)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: "12px",
+                }}
+              />
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() || sending}
+                className="absolute right-2 bottom-2 p-2 rounded-lg text-white hover:opacity-90 transition-opacity shadow-sm disabled:opacity-30"
+                style={{ background: "linear-gradient(135deg, #6366f1, #a855f7)" }}
+              >
+                <Send className="w-4 h-4 translate-x-[1px]" />
+              </button>
+            </div>
+          </div>
+        </section>
       </main>
 
-      <style jsx>{`
-        .chat-page {
-          display: flex;
-          height: 100vh;
-          background: #0f172a;
-          color: #e2e8f0;
-        }
-
-        /* Sidebar */
-        .sidebar {
-          width: 300px;
-          border-right: 1px solid rgba(99, 102, 241, 0.15);
-          display: flex;
-          flex-direction: column;
-          background: rgba(15, 23, 42, 0.95);
-        }
-
-        .sidebar-header {
-          padding: 1rem;
-          border-bottom: 1px solid rgba(99, 102, 241, 0.1);
-        }
-
-        .sidebar-header h2 {
-          font-size: 1rem;
-          margin: 0.5rem 0;
-        }
-
-        .back-btn {
-          background: none;
-          border: none;
-          color: #94a3b8;
-          cursor: pointer;
-          font-size: 0.8rem;
-          padding: 0;
-          margin-bottom: 0.5rem;
-          display: block;
-        }
-
-        .back-btn:hover {
-          color: #a5b4fc;
-        }
-
-        .new-chat-btn {
-          width: 100%;
-          padding: 0.6rem;
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
-          border: none;
-          border-radius: 8px;
-          color: white;
-          font-size: 0.85rem;
-          cursor: pointer;
-          margin-top: 0.5rem;
-          transition: opacity 0.2s;
-        }
-
-        .new-chat-btn:hover {
-          opacity: 0.9;
-        }
-
-        .conv-list {
-          flex: 1;
-          overflow-y: auto;
-          padding: 0.5rem;
-        }
-
-        .conv-item {
-          padding: 0.8rem;
-          border-radius: 8px;
-          cursor: pointer;
-          margin-bottom: 0.25rem;
-          transition: background 0.15s;
-        }
-
-        .conv-item:hover {
-          background: rgba(99, 102, 241, 0.08);
-        }
-
-        .conv-item.active {
-          background: rgba(99, 102, 241, 0.15);
-          border-left: 3px solid #6366f1;
-        }
-
-        .conv-row {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        .conv-info {
-          flex: 1;
-          min-width: 0;
-        }
-
-        .delete-conv-btn {
-          background: none;
-          border: none;
-          cursor: pointer;
-          font-size: 0.8rem;
-          opacity: 0;
-          transition: opacity 0.2s;
-          padding: 0.25rem;
-          border-radius: 4px;
-        }
-
-        .delete-conv-btn:hover {
-          background: rgba(239, 68, 68, 0.2);
-        }
-
-        .conv-item:hover .delete-conv-btn {
-          opacity: 0.7;
-        }
-
-        .delete-conv-btn:hover {
-          opacity: 1 !important;
-        }
-
-        .conv-title {
-          font-size: 0.85rem;
-          font-weight: 500;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .conv-meta {
-          font-size: 0.7rem;
-          color: #64748b;
-          margin-top: 0.2rem;
-        }
-
-        .no-conv {
-          text-align: center;
-          color: #64748b;
-          font-size: 0.8rem;
-          padding: 2rem 1rem;
-        }
-
-        /* Chat main */
-        .chat-main {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .messages-area {
-          flex: 1;
-          overflow-y: auto;
-          padding: 1.5rem;
-        }
-
-        .welcome-chat {
-          text-align: center;
-          padding: 4rem 2rem;
-        }
-
-        .welcome-icon {
-          font-size: 3rem;
-          margin-bottom: 1rem;
-        }
-
-        .welcome-chat h2 {
-          font-size: 1.5rem;
-          background: linear-gradient(135deg, #6366f1, #a78bfa);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          margin-bottom: 0.5rem;
-        }
-
-        .welcome-chat p {
-          color: #94a3b8;
-          font-size: 0.95rem;
-        }
-
-        /* Messages */
-        .message {
-          display: flex;
-          gap: 0.75rem;
-          margin-bottom: 1.5rem;
-          max-width: 800px;
-        }
-
-        .message.user {
-          margin-left: auto;
-          flex-direction: row-reverse;
-        }
-
-        .msg-avatar {
-          font-size: 1.3rem;
-          flex-shrink: 0;
-          width: 36px;
-          height: 36px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 50%;
-          background: rgba(99, 102, 241, 0.1);
-        }
-
-        .msg-body {
-          flex: 1;
-        }
-
-        .msg-content {
-          padding: 1rem 1.2rem;
-          border-radius: 16px;
-          font-size: 0.9rem;
-          line-height: 1.6;
-          white-space: pre-wrap;
-        }
-
-        .message.user .msg-content {
-          background: linear-gradient(135deg, #6366f1, #7c3aed);
-          border-radius: 16px 16px 4px 16px;
-        }
-
-        .message.assistant .msg-content {
-          background: rgba(30, 27, 75, 0.4);
-          border: 1px solid rgba(99, 102, 241, 0.15);
-          border-radius: 16px 16px 16px 4px;
-        }
-
-        /* Citations */
-        .citations {
-          margin-top: 0.5rem;
-          padding: 0.75rem 1rem;
-          background: rgba(99, 102, 241, 0.05);
-          border: 1px solid rgba(99, 102, 241, 0.1);
-          border-radius: 10px;
-        }
-
-        .citations-title {
-          font-size: 0.75rem;
-          color: #a5b4fc;
-          margin-bottom: 0.4rem;
-          font-weight: 600;
-        }
-
-        .citation-item {
-          display: flex;
-          gap: 0.5rem;
-          align-items: center;
-          font-size: 0.75rem;
-          padding: 0.2rem 0;
-          color: #94a3b8;
-        }
-
-        .cit-doc {
-          flex: 1;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .cit-page {
-          color: #64748b;
-        }
-
-        .cit-score {
-          color: #22c55e;
-          font-weight: 600;
-        }
-
-        .msg-meta {
-          font-size: 0.7rem;
-          color: #475569;
-          margin-top: 0.3rem;
-          padding-left: 1.2rem;
-        }
-
-        /* Input */
-        .input-area {
-          padding: 1rem 1.5rem;
-          border-top: 1px solid rgba(99, 102, 241, 0.1);
-          display: flex;
-          gap: 0.75rem;
-          align-items: flex-end;
-          background: rgba(15, 23, 42, 0.8);
-        }
-
-        .chat-input {
-          flex: 1;
-          padding: 0.8rem 1rem;
-          background: rgba(30, 27, 75, 0.4);
-          border: 1px solid rgba(99, 102, 241, 0.2);
-          border-radius: 12px;
-          color: #e2e8f0;
-          font-size: 0.9rem;
-          resize: none;
-          outline: none;
-          font-family: inherit;
-          min-height: 44px;
-          max-height: 120px;
-        }
-
-        .chat-input:focus {
-          border-color: #6366f1;
-        }
-
-        .chat-input::placeholder {
-          color: #475569;
-        }
-
-        .send-btn {
-          padding: 0.8rem 1.2rem;
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
-          border: none;
-          border-radius: 12px;
-          color: white;
-          font-size: 1.1rem;
-          cursor: pointer;
-          transition: opacity 0.2s;
-          min-width: 48px;
-        }
-
-        .send-btn:hover:not(:disabled) {
-          opacity: 0.9;
-        }
-
-        .send-btn:disabled {
-          opacity: 0.4;
-          cursor: not-allowed;
-        }
-
-        .typing {
-          display: flex;
-          gap: 6px;
-          padding: 1rem 1.5rem !important;
-        }
-
-        .dot {
-          width: 8px;
-          height: 8px;
-          background: #6366f1;
-          border-radius: 50%;
-          animation: bounce 1.4s infinite ease-in-out;
-        }
-
-        .dot:nth-child(2) { animation-delay: 0.2s; }
-        .dot:nth-child(3) { animation-delay: 0.4s; }
-
-        @keyframes bounce {
+      <style>{`
+        @keyframes bounce-dot {
           0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
           40% { transform: scale(1); opacity: 1; }
-        }
-
-        .error-banner {
-          padding: 0.75rem 1rem;
-          background: rgba(239, 68, 68, 0.15);
-          border: 1px solid rgba(239, 68, 68, 0.3);
-          border-radius: 10px;
-          color: #fca5a5;
-          font-size: 0.85rem;
-          margin-bottom: 1rem;
         }
       `}</style>
     </div>
@@ -677,8 +389,8 @@ function ChatContent() {
 export default function ChatPage() {
   return (
     <Suspense fallback={
-      <div className="flex h-screen items-center justify-center bg-slate-900">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+      <div className="h-screen bg-[#0a0a0f] flex items-center justify-center">
+        <div className="w-8 h-8 border-[3px] border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
       </div>
     }>
       <ChatContent />

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { FileText, AlertCircle, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,257 +17,95 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setIsLoading(true);
-
     const result = await login(email, password);
     setIsLoading(false);
-
     if (result.ok) {
       router.push("/dashboard");
     } else {
-      setError(result.error || "Erreur de connexion.");
+      setError(result.error || "Identifiants invalides.");
     }
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        {/* Logo */}
-        <div className="login-header">
-          <div className="login-logo">
-            <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-              <rect width="40" height="40" rx="10" fill="url(#grad)" />
-              <path d="M12 14h16M12 20h12M12 26h8" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-              <defs>
-                <linearGradient id="grad" x1="0" y1="0" x2="40" y2="40">
-                  <stop stopColor="#6366f1" />
-                  <stop offset="1" stopColor="#8b5cf6" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-          <h1>DocPilot AI</h1>
-          <p>Connectez-vous à votre espace</p>
-        </div>
+    <div className="diagonal-split-bg min-h-screen flex flex-col items-center justify-center p-4 antialiased">
+      <main className="w-full max-w-md">
+        {/* Card */}
+        <div className="glowing-card bg-slate-900/80 backdrop-blur-md border border-slate-700/50 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
+          {/* Header */}
+          <header className="flex flex-col items-center mb-8">
+            <div className="mb-4 p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
+              <FileText className="w-10 h-10 text-cyan-400" style={{ filter: "drop-shadow(0 0 8px #22d3ee)" }} />
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight text-white mb-2 font-heading">
+              DocPilot AI
+            </h1>
+            <p className="text-sm text-slate-400 text-center">
+              Votre plateforme d&apos;intelligence documentaire SaaS
+            </p>
+          </header>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="login-form">
+          {/* Error */}
           {error && (
-            <div className="login-error">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7 5h2v4H7V5zm0 5h2v2H7v-2z" />
-              </svg>
-              {error}
+            <div
+              role="alert"
+              className="mb-6 flex items-center gap-3 p-3 bg-red-900/30 border border-red-500/50 rounded-xl text-red-400"
+            >
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <span className="text-sm font-medium">{error}</span>
             </div>
           )}
 
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="votre@email.com"
-              required
-              autoFocus
-              autoComplete="email"
-            />
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email"
+                required
+                autoFocus
+                autoComplete="email"
+                className="block w-full px-4 py-3 bg-white/5 border border-indigo-500/40 rounded-xl text-white placeholder-slate-400 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+              />
+            </div>
+            <div>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Mot de passe"
+                required
+                autoComplete="current-password"
+                className="block w-full px-4 py-3 bg-white/5 border border-indigo-500/40 rounded-xl text-white placeholder-slate-400 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+              />
+            </div>
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                style={{ background: "linear-gradient(to right, #4A5DF1, #2B1676)" }}
+              >
+                {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                {isLoading ? "Connexion…" : "Se connecter"}
+              </button>
+            </div>
+          </form>
+
+          {/* Footer */}
+          <div className="mt-8 pt-6 border-t border-white/5 text-center">
+            <p className="text-xs text-slate-500 font-mono">
+              Demo:{" "}
+              <span className="text-indigo-400">admin@docpilot.dev</span>
+              {" / "}
+              <span className="text-indigo-400">admin123456</span>
+            </p>
           </div>
-
-          <div className="form-group">
-            <label htmlFor="password">Mot de passe</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••••"
-              required
-              autoComplete="current-password"
-            />
-          </div>
-
-          <button type="submit" className="login-btn" disabled={isLoading}>
-            {isLoading ? (
-              <span className="btn-loading">
-                <svg className="spinner" width="20" height="20" viewBox="0 0 20 20">
-                  <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="32" strokeLinecap="round" />
-                </svg>
-                Connexion...
-              </span>
-            ) : (
-              "Se connecter"
-            )}
-          </button>
-        </form>
-
-        {/* Demo hint */}
-        <div className="login-demo">
-          <p>
-            Compte démo : <code>admin@docpilot.dev</code> / <code>admin123456</code>
-          </p>
         </div>
-      </div>
-
-      <style jsx>{`
-        .login-container {
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
-          padding: 1rem;
-        }
-
-        .login-card {
-          width: 100%;
-          max-width: 420px;
-          background: rgba(30, 27, 75, 0.5);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(99, 102, 241, 0.2);
-          border-radius: 20px;
-          padding: 2.5rem;
-          box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
-        }
-
-        .login-header {
-          text-align: center;
-          margin-bottom: 2rem;
-        }
-
-        .login-logo {
-          display: flex;
-          justify-content: center;
-          margin-bottom: 1rem;
-        }
-
-        .login-header h1 {
-          font-size: 1.75rem;
-          font-weight: 700;
-          color: #e2e8f0;
-          margin-bottom: 0.25rem;
-        }
-
-        .login-header p {
-          color: #94a3b8;
-          font-size: 0.875rem;
-        }
-
-        .login-form {
-          display: flex;
-          flex-direction: column;
-          gap: 1.25rem;
-        }
-
-        .login-error {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1rem;
-          background: rgba(239, 68, 68, 0.15);
-          border: 1px solid rgba(239, 68, 68, 0.3);
-          border-radius: 10px;
-          color: #fca5a5;
-          font-size: 0.875rem;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-
-        .form-group label {
-          font-size: 0.8rem;
-          font-weight: 500;
-          color: #94a3b8;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-
-        .form-group input {
-          padding: 0.75rem 1rem;
-          background: rgba(15, 23, 42, 0.6);
-          border: 1px solid rgba(99, 102, 241, 0.2);
-          border-radius: 10px;
-          color: #e2e8f0;
-          font-size: 0.95rem;
-          outline: none;
-          transition: border-color 0.2s, box-shadow 0.2s;
-        }
-
-        .form-group input::placeholder {
-          color: #475569;
-        }
-
-        .form-group input:focus {
-          border-color: #6366f1;
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-        }
-
-        .login-btn {
-          width: 100%;
-          padding: 0.85rem;
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
-          color: white;
-          border: none;
-          border-radius: 10px;
-          font-size: 0.95rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: opacity 0.2s, transform 0.1s;
-          margin-top: 0.5rem;
-        }
-
-        .login-btn:hover:not(:disabled) {
-          opacity: 0.9;
-          transform: translateY(-1px);
-        }
-
-        .login-btn:active:not(:disabled) {
-          transform: translateY(0);
-        }
-
-        .login-btn:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .btn-loading {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-        }
-
-        .spinner {
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-
-        .login-demo {
-          margin-top: 1.5rem;
-          padding-top: 1.5rem;
-          border-top: 1px solid rgba(99, 102, 241, 0.1);
-          text-align: center;
-        }
-
-        .login-demo p {
-          color: #64748b;
-          font-size: 0.8rem;
-        }
-
-        .login-demo code {
-          background: rgba(99, 102, 241, 0.1);
-          color: #a5b4fc;
-          padding: 0.15rem 0.4rem;
-          border-radius: 4px;
-          font-size: 0.75rem;
-        }
-      `}</style>
+      </main>
     </div>
   );
 }

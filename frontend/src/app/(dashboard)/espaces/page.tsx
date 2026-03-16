@@ -6,16 +6,16 @@ import { useAuth } from "@/hooks/useAuth";
 import { tenantService } from "@/services/tenant.service";
 import type { TenantMembership, KnowledgeSpace, TenantPermissions } from "@/types/tenant.types";
 import {
-  BookOpenIcon,
-  PlusIcon,
-  FolderIcon,
-  DocumentTextIcon,
-  XMarkIcon,
-  FolderPlusIcon,
-  TagIcon,
-  InformationCircleIcon,
-  ArrowUpRightIcon,
-} from "@heroicons/react/24/outline";
+  BookOpen as BookOpenIcon,
+  Plus as PlusIcon,
+  Folder as FolderIcon,
+  FileText as DocumentTextIcon,
+  X as XMarkIcon,
+  FolderPlus as FolderPlusIcon,
+  Tag as TagIcon,
+  Info as InformationCircleIcon,
+  ArrowUpRight as ArrowUpRightIcon,
+} from "lucide-react";
 
 function slugify(str: string): string {
   return str

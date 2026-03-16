@@ -6,16 +6,16 @@ import { useAuth } from "@/hooks/useAuth";
 import { tenantService } from "@/services/tenant.service";
 import type { TenantMembership, TenantMember, TenantPermissions } from "@/types/tenant.types";
 import {
-  UserGroupIcon,
-  PlusIcon,
-  TrashIcon,
-  ShieldCheckIcon,
-  XMarkIcon,
-  EnvelopeIcon,
-  IdentificationIcon,
-  FingerPrintIcon,
-  ArrowRightIcon,
-} from "@heroicons/react/24/outline";
+  Users as UserGroupIcon,
+  Plus as PlusIcon,
+  Trash2 as TrashIcon,
+  ShieldCheck as ShieldCheckIcon,
+  X as XMarkIcon,
+  Mail as EnvelopeIcon,
+  CreditCard as IdentificationIcon,
+  Fingerprint as FingerPrintIcon,
+  ArrowRight as ArrowRightIcon,
+} from "lucide-react";
 
 const ROLE_COLORS: Record<string, string> = {
   owner: "bg-purple-500/10 text-purple-400 border-purple-500/20",
