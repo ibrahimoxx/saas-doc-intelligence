@@ -36,6 +36,7 @@ export default function MembresPage() {
   const [members, setMembers] = useState<TenantMember[]>([]);
   const [permissions, setPermissions] = useState<TenantPermissions | null>(null);
   const [loadingMembers, setLoadingMembers] = useState(false);
+  const [loadingPermissions, setLoadingPermissions] = useState(true);
 
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteForm, setInviteForm] = useState({ email: "", role: "member" });
@@ -47,6 +48,13 @@ export default function MembresPage() {
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push("/login");
   }, [isLoading, isAuthenticated, router]);
+
+  // Route guard: only admin/owner can access this page
+  useEffect(() => {
+    if (permissions && permissions.role !== 'admin' && permissions.role !== 'owner' && !permissions.can_manage_members) {
+      router.replace("/dashboard");
+    }
+  }, [permissions, router]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -68,6 +76,7 @@ export default function MembresPage() {
     ]);
     if (membersRes.data) setMembers(membersRes.data);
     if (permsRes.data) setPermissions(permsRes.data);
+    setLoadingPermissions(false); // Gate is now lifted
     setLoadingMembers(false);
   }, []);
 
@@ -115,13 +124,18 @@ export default function MembresPage() {
     router.push("/login");
   };
 
-  if (isLoading || (!isAuthenticated && !isLoading)) {
+  // Block render entirely until auth + permissions are confirmed
+  if (isLoading || loadingPermissions || (!isAuthenticated && !isLoading)) {
     return (
       <div className="min-h-screen bg-[#020617] flex items-center justify-center">
         <div className="w-10 h-10 border-[3px] border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
       </div>
     );
   }
+
+  // Authorization check: if not admin/owner, will be redirected by useEffect above
+  const isAuthorized = permissions?.role === 'admin' || permissions?.role === 'owner' || permissions?.can_manage_members;
+  if (!isAuthorized) return null;
 
   return (
     <div className="min-h-screen">

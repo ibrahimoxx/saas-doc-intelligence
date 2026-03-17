@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { tenantService } from "@/services/tenant.service";
-import type { TenantMembership, TenantSummary } from "@/types/tenant.types";
+import type { TenantMembership, TenantSummary, TenantPermissions } from "@/types/tenant.types";
 import { TopBar } from "@/components/layout/TopBar";
 import {
   FileText,
@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const [loadingTenants, setLoadingTenants] = useState(true);
   const [summary, setSummary] = useState<TenantSummary | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
+  const [permissions, setPermissions] = useState<TenantPermissions | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push("/login");
@@ -44,10 +45,12 @@ export default function DashboardPage() {
   useEffect(() => {
     if (selectedTenant) {
       setLoadingSummary(true);
-      tenantService.getTenantSummary(selectedTenant).then((res) => {
-        if (res.data) {
-          setSummary(res.data);
-        }
+      Promise.all([
+        tenantService.getTenantSummary(selectedTenant),
+        tenantService.myPermissions(selectedTenant),
+      ]).then(([summaryRes, permsRes]) => {
+        if (summaryRes.data) setSummary(summaryRes.data);
+        if (permsRes.data) setPermissions(permsRes.data);
         setLoadingSummary(false);
       });
     }
@@ -71,8 +74,9 @@ export default function DashboardPage() {
   }
 
   const currentTenant = tenants.find((m) => m.tenant.id === selectedTenant);
+  const isAdmin = permissions?.role === "admin" || permissions?.role === "owner" || permissions?.can_manage_members;
 
-  const tiles = [
+  const allTiles = [
     {
       key: "documents",
       label: "Documents",
@@ -80,6 +84,7 @@ export default function DashboardPage() {
       href: "/documents",
       color: "#8b5cf6",
       count: summary?.documents ?? "...",
+      restricted: false,
     },
     {
       key: "chat",
@@ -88,6 +93,7 @@ export default function DashboardPage() {
       href: "/chat",
       color: "#3b82f6",
       count: summary?.conversations ?? "...",
+      restricted: false,
     },
     {
       key: "membres",
@@ -96,6 +102,7 @@ export default function DashboardPage() {
       href: "/membres",
       color: "#ec4899",
       count: summary?.members ?? "...",
+      restricted: true, // Admin/Owner only
     },
     {
       key: "espaces",
@@ -104,8 +111,12 @@ export default function DashboardPage() {
       href: "/espaces",
       color: "#10b981",
       count: summary?.spaces ?? "...",
+      restricted: true, // Admin/Owner only
     },
   ];
+
+  // Filter tiles based on permissions
+  const tiles = allTiles.filter((tile) => !tile.restricted || isAdmin);
 
   return (
     <div className="min-h-screen">
@@ -138,8 +149,17 @@ export default function DashboardPage() {
            </p>
         </section>
 
-        {/* Fluid Metrics Grid */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 animate-fluid-in" style={{ animationDelay: '200ms' }}>
+        {/* Fluid Metrics Grid — dynamically sized based on role */}
+        <section
+          className={`grid grid-cols-1 gap-10 animate-fluid-in ${
+            tiles.length === 4
+              ? "md:grid-cols-2 lg:grid-cols-4"
+              : tiles.length === 2
+              ? "md:grid-cols-2 max-w-2xl mx-auto"
+              : "md:grid-cols-2 lg:grid-cols-3 max-w-4xl mx-auto"
+          }`}
+          style={{ animationDelay: '200ms' }}
+        >
           {tiles.map((tile, i) => (
             <div
               key={tile.key}
