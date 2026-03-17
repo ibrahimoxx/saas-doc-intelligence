@@ -71,10 +71,16 @@ class UpdateMemberRoleSerializer(serializers.Serializer):
 class KnowledgeSpaceSerializer(serializers.ModelSerializer):
     """Knowledge space within a tenant."""
 
+    document_count = serializers.SerializerMethodField()
+
     class Meta:
         model = KnowledgeSpace
-        fields = ["id", "name", "slug", "description", "is_active", "created_at"]
+        fields = ["id", "name", "slug", "description", "is_active", "document_count", "created_at"]
         read_only_fields = ["id", "created_at"]
+
+    def get_document_count(self, obj):
+        """Return the number of documents in this space."""
+        return obj.documents.count()
 
 
 class KnowledgeSpaceCreateSerializer(serializers.ModelSerializer):
