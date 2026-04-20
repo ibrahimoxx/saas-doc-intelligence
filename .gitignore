@@ -88,6 +88,24 @@ htmlcov/
 .tox/
 
 # ===========================
+# AI & Claude artifacts — never commit
+# ===========================
+CLAUDE.md
+.claude/
+tasks/
+skills/
+.cursorrules
+.aider*
+*.ai.md
+generated/
+ai-output/
+ai_output/
+*.generated.ts
+*.generated.js
+*.generated.py
+*.generated.sh
+
+# ===========================
 # Misc
 # ===========================
 *.bak

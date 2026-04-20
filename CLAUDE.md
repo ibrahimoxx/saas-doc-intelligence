@@ -94,21 +94,20 @@ PostgreSQL maps to host port **5433** (not 5432). `DATABASE_URL` in `.env` alrea
 
 ## 3. Current State
 
-### True Phase: 9 — Hardening
-PROGRESS_TRACKER.md is stale (last updated after Phase 2). All phases 1–8 are implemented. Phase 9 is active.
+### Current Phase: 9 — Hardening (near complete) → Phase 10 next
 
 | Phase | Status | Notes |
 |---|---|---|
 | 1 — Foundation | ✅ Done | Monorepo, Docker, migrations |
 | 2 — Identity/Auth/RBAC | ✅ Done | JWT, tenancy, permissions |
-| 3 — Documents | ✅ Done | Upload/list/delete/status |
+| 3 — Documents | ✅ Done | Upload/list/delete/status/download |
 | 4 — Audit baseline | ✅ Done | AuditLog, request_id middleware |
 | 5 — Ingestion async | ✅ Done | Celery, PDF parse/chunk/embed |
 | 6 — Retrieval + RAG | ✅ Done | pgvector search + Gemini + citations |
 | 7 — Conversations | ✅ Done | Conversation/Message/Citation models + API |
-| 8 — Admin stats | ✅ Done (with bugs) | Stats + recent queries endpoints |
-| 9 — Hardening | 🔄 In progress | Rate limiting ✅, structured logs ✅, bugs open ⬇ |
-| 10 — Deploy | 🔲 Not started | No CI/CD, no production Dockerfiles |
+| 8 — Admin stats | ✅ Done | Stats + recent queries endpoints (bugs fixed 2026-04-20) |
+| 9 — Hardening | 🔄 In progress | Bugs fixed ✅ · Tests to validate · Admin UI gaps remain |
+| 10 — Deploy | 🔲 Next | Dockerfiles + CI/CD + Render/Vercel + R2 |
 
 ### Active Bugs ~~(all fixed 2026-04-20)~~
 
@@ -538,35 +537,42 @@ npm run lint      # ESLint check
 
 ---
 
-## 13. Roadmap — Phase 9 Completion Checklist
+## 13. Roadmap
 
-**All bugs fixed 2026-04-20.** Remaining before Phase 10:
+### ✅ Phase 9 — Hardening (finish these 3 items, then move to Phase 10)
 
-- [x] BUG-1 login `res.success` fixed
-- [x] BUG-2 STATUS_CONFIG keys fixed
-- [x] BUG-3 `model_used` fixed
-- [x] BUG-4 all 4 test files repaired
-- [x] BUG-5 space DELETE + document download endpoints added
-- [ ] Validate tests actually pass: `cd backend && python run_tests.py`
-- [ ] Decide: implement or remove admin nav links (`/admin/tenants`, `/admin/users`, `/admin/settings`)
-- [ ] Wire admin dashboard activity to real API data (currently placeholder)
+- [x] All 5 bugs fixed (2026-04-20)
+- [x] Rate limiting, structured logging, Sentry config
+- [ ] **Run tests**: `cd backend && python run_tests.py` — confirm they pass
+- [ ] **Admin UI**: implement or remove the 3 broken nav links (`/admin/tenants`, `/admin/users`, `/admin/settings`) in `frontend/src/app/admin/layout.tsx`
+- [ ] **Admin dashboard**: wire activity section to real API data (currently placeholder in `admin/dashboard/page.tsx`)
 
-Phase 10 prerequisites:
+---
+
+### 🔲 Phase 10 — Deploy (next phase)
+
+**Goal**: get the app running on production infrastructure.
+
 - [ ] Write `Dockerfile` for backend (Django + Gunicorn)
 - [ ] Write `Dockerfile` for Celery worker
-- [ ] Add `.github/workflows/` CI pipeline (lint + test)
-- [ ] Provision Cloudflare R2 bucket, set `AWS_*` vars
-- [ ] Configure Render web service + background worker
-- [ ] Configure Vercel for frontend
-- [ ] Set production env vars on all services
-- [ ] Validate `prod.py` settings (HTTPS, `CORS_ALLOWED_ORIGINS`, `ALLOWED_HOSTS`, `DEBUG=False`)
+- [ ] Add `.github/workflows/` CI pipeline (lint + test on every push)
+- [ ] Switch `STORAGE_BACKEND=s3`, provision Cloudflare R2 bucket, set `AWS_*` vars
+- [ ] Deploy backend on Render (web service + background worker)
+- [ ] Deploy frontend on Vercel
+- [ ] Set all production env vars on Render + Vercel
+- [ ] Audit `backend/config/settings/prod.py` — confirm `DEBUG=False`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, HTTPS redirect
+- [ ] End-to-end smoke test on staging: login → upload → chat → citations
 
-V2 scope (do not implement until MVP is live):
+---
+
+### 🔮 V2 — After MVP is live (do not start before prod is stable)
+
+- Embedding schema upgrade: `vector(1536)` → `vector(3072)` + re-index all docs (full Gemini quality)
+- Token storage: localStorage → httpOnly cookies
 - OCR for scanned PDFs
 - SSO / SAML
 - Billing / tenant quotas
 - Document connectors (Google Drive, Notion, etc.)
-- Embedding schema upgrade: `vector(1536)` → `vector(3072)` for full Gemini quality
 
 ---
 

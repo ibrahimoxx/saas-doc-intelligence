@@ -1,0 +1,8 @@
+{
+  "devDependencies": {
+    "@secretlint/secretlint-rule-preset-recommend": "^12.1.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "secretlint": "^12.1.0"
+  }
+}
