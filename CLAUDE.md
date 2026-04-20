@@ -1,766 +1,632 @@
-# CLAUDE.md — DocPilot AI (SaaS Document Intelligence)
+# CLAUDE.md — DocPilot AI
 
-> Context file for Claude Code. Read this FIRST before any task.
+> Working session brief for Claude Code. Read top-to-bottom on first load; jump to sections by number during active work.
 
-## 1. Project Overview
-DocPilot AI is a multi-tenant SaaS document intelligence platform. Organizations upload internal documents (currently PDF-focused), then query them in natural language through a RAG pipeline that returns sourced answers (citations), with tenant isolation, RBAC, and auditability.
+---
 
-- Product name: `DocPilot AI`
-- Core problem solved: internal knowledge in static docs is hard to search, inconsistent, and slow to use
-- Primary users:
-  - tenant admins/managers (setup, upload, member management)
-  - tenant members (ask questions, review cited answers)
-  - platform superadmin (`is_superuser`) for global stats
-- Value proposition:
-  - faster knowledge retrieval
-  - traceable/cited AI responses
-  - multi-tenant security boundaries
-  - operational observability (audit logs + query logs)
-- Business model context (from docs): B2B SaaS with multi-organization tenancy; billing is planned but not yet implemented in code
+## Recent Changes to This File
 
-Key files:
-- `README.md`
-- `docs/PROJECT_BRIEF.md`
-- `docs/ARCHITECTURE_V1.md`
+**2026-04-20 — All Phase 9 bugs fixed + cleanup executed by Claude Code**
+- BUG-1: Fixed `res.success` → `res.ok` in `login/page.tsx:26`
+- BUG-2: Fixed `STATUS_CONFIG` keys `pending/completed` → `queued/indexed` in `documents/page.tsx`
+- BUG-3: Fixed `query.model_used` → `query.model_name` in `admin_views.py:90`
+- BUG-4: Fixed all 4 test files — added `slug` to `Tenant.objects.create()`, replaced `DocumentStatus.AVAILABLE` with `QUEUED`, removed unused `pytest` import
+- BUG-5a: Added `KnowledgeSpaceDetailView` DELETE endpoint + URL + import to tenancy app
+- BUG-5b: Added `DocumentDownloadView` + URL; replaced `window.open()` with auth-aware `fetch()` + blob download in frontend; handles both local file serve and S3 presigned URL
+- Removed `docs/` from `.gitignore` — docs now tracked in git
+- Moved 4 debug scripts to `backend/scripts/debug/`; deleted 11 stale files from `backend/` root
+- Fixed `RUNBOOK_SETUP.md`: DB port 5432 → 5433, seed command `manage.py seed_dev` → `scripts/seed_dev.py`
+- Updated `PROGRESS_TRACKER.md` — phases 3–9 now reflect reality
 
-## 2. Tech Stack
-### Frontend
-- Framework: Next.js App Router (`next` `^15.1.0`)
-- Runtime/UI: React (`^19.0.0`), React DOM (`^19.0.0`)
-- Language: TypeScript (`^5.7.0`, strict mode)
-- Styling: Tailwind CSS v4 (`tailwindcss` `^4.0.0`) + custom CSS in `globals.css`
-- Icons/libs: `lucide-react`, `@heroicons/react`, `date-fns`
+**2026-04-20 — Rewritten by Claude Code (claude-sonnet-4-6)**
+- Full audit and restructure of Cursor-generated CLAUDE.md
+- Fixed 5 errors: PostgreSQL port (5433), seed_dev command, document status bug location, AI provider framing, PROGRESS_TRACKER staleness
+- Added 12 missing items: French UI context, Gemini embedding truncation gotcha, undocumented core files, debug script inventory, non-negotiable rules, true current phase, docs/ gitignore recommendation, developer profile
+- Merged WIP + Known Issues + Roadmap into unified "Current State" section
+- Added 5 DECIDED BY CLAUDE CODE decisions (see each section)
+- Added Tech Debt & Cleanup section
 
-Files:
-- `frontend/package.json`
-- `frontend/tsconfig.json`
-- `frontend/src/app/globals.css`
+---
 
-### Backend
-- Framework: Django (`>=5.1,<5.2`)
-- API: Django REST Framework (`>=3.15,<4.0`)
-- Auth: SimpleJWT (`djangorestframework-simplejwt`)
-- Queue/async: Celery (`>=5.4,<6.0`) + Redis (`>=5.0,<6.0`)
-- DB adapter: psycopg3 (`psycopg[binary]>=3.2,<4.0`) + `dj-database-url`
-- Logging/monitoring: `django-structlog`, `sentry-sdk[django,celery]`
-- Storage libs: `boto3`, `django-storages`
-- AI/RAG libs: `openai`, `google-generativeai`, `tiktoken`
-- PDF parsing: `pymupdf`, `filetype`
-- Vector: `pgvector`
+## 1. Identity Snapshot
 
-Files:
-- `backend/requirements/base.txt`
-- `backend/requirements/dev.txt`
-- `backend/pyproject.toml`
+| Field | Value |
+|---|---|
+| Product | DocPilot AI |
+| Type | B2B multi-tenant SaaS — document intelligence via RAG |
+| Repo | `saas-doc-intelligence` (monorepo) |
+| GitHub | `git@github.com:ibrahimoxx/saas-doc-intelligence.git` |
+| Stack | Next.js 15 + Django 5.1 + PostgreSQL/pgvector + Redis + Celery |
+| AI | Gemini 2.0 Flash (generation) + gemini-embedding-001 (embeddings) |
+| Active phase | **Phase 9 — Hardening** (all 8 feature epics done, fixing bugs before deploy) |
+| UI language | **French** — all user-facing text is in French |
+| Developer | Solo, part-time (~2h/day + 4–6h weekends), Windows 11 / VS Code |
+| Deploy target | Backend → Render, Frontend → Vercel, DB → PostgreSQL Managed, Storage → Cloudflare R2 |
 
-### Database / Infra
-- PostgreSQL with pgvector extension
-- Redis
-- Docker Compose local infrastructure
+Docs (gitignored — see §14 for why this should change):
+- `docs/MASTER_CONTEXT.md` — primary source of truth
+- `docs/NON_NEGOTIABLE_RULES.md` — binding architectural constraints
+- `docs/ARCHITECTURE_V1.md` — technical architecture
+- `docs/ROADMAP.md` — planned phases
 
-Files:
-- `docker-compose.yml`
-- `infra/docker/init-db.sql`
+---
 
-### Third-party services integrated
-- OpenAI API
-- Google Gemini API
-- Sentry
-- S3-compatible object storage (Cloudflare R2-style config)
+## 2. Local Setup Quick-Ref
 
-Files:
-- `backend/config/settings/base.py`
-- `backend/.env.example`
+### Prerequisites
+- Docker running
+- Python venv activated: `backend/venv/Scripts/activate` (Windows)
+- `.env` present at `backend/.env` (already exists locally)
+- `frontend/.env.local` present (already exists locally)
 
-## 3. Project Structure
-```text
+### Start everything
+```bash
+# 1. Infrastructure (PostgreSQL on port 5433, Redis on 6379)
+docker compose up -d
+
+# 2. Backend API (from backend/)
+cd backend
+venv/Scripts/activate
+python manage.py migrate
+python manage.py runserver
+# → http://localhost:8000
+
+# 3. Celery worker (separate terminal, from backend/)
+celery -A workers.celery_app worker --loglevel=info
+
+# 4. Frontend (from frontend/)
+cd frontend
+npm install
+npm run dev
+# → http://localhost:3000
+```
+
+### Seed dev data
+```bash
+# From backend/ with venv active
+python scripts/seed_dev.py
+```
+
+### ⚠️ Port note
+PostgreSQL maps to host port **5433** (not 5432). `DATABASE_URL` in `.env` already reflects this. Any tool connecting to the DB must use port 5433.
+
+---
+
+## 3. Current State
+
+### True Phase: 9 — Hardening
+PROGRESS_TRACKER.md is stale (last updated after Phase 2). All phases 1–8 are implemented. Phase 9 is active.
+
+| Phase | Status | Notes |
+|---|---|---|
+| 1 — Foundation | ✅ Done | Monorepo, Docker, migrations |
+| 2 — Identity/Auth/RBAC | ✅ Done | JWT, tenancy, permissions |
+| 3 — Documents | ✅ Done | Upload/list/delete/status |
+| 4 — Audit baseline | ✅ Done | AuditLog, request_id middleware |
+| 5 — Ingestion async | ✅ Done | Celery, PDF parse/chunk/embed |
+| 6 — Retrieval + RAG | ✅ Done | pgvector search + Gemini + citations |
+| 7 — Conversations | ✅ Done | Conversation/Message/Citation models + API |
+| 8 — Admin stats | ✅ Done (with bugs) | Stats + recent queries endpoints |
+| 9 — Hardening | 🔄 In progress | Rate limiting ✅, structured logs ✅, bugs open ⬇ |
+| 10 — Deploy | 🔲 Not started | No CI/CD, no production Dockerfiles |
+
+### Active Bugs ~~(all fixed 2026-04-20)~~
+
+**All 5 bugs fixed on 2026-04-20.**
+
+| Bug | Fix applied |
+|---|---|
+| BUG-1 login `res.success` | → `res.ok` in `login/page.tsx:26` |
+| BUG-2 STATUS_CONFIG keys | `pending`→`queued`, `completed`→`indexed` in `documents/page.tsx` |
+| BUG-3 `model_used` | → `model_name` in `admin_views.py:90` |
+| BUG-4 broken tests | `slug` added to `Tenant.objects.create()`, `AVAILABLE`→`QUEUED`, all 4 test files |
+| BUG-5 missing endpoints | `KnowledgeSpaceDetailView` DELETE + `DocumentDownloadView` added |
+
+### WIP / Incomplete
+
+| Item | Status | Files |
+|---|---|---|
+| Admin nav links to non-existent pages | `/admin/tenants`, `/admin/users`, `/admin/settings` linked but pages don't exist | `frontend/src/app/admin/layout.tsx` |
+| Admin dashboard activity is placeholder | Static mock rows, not wired to API | `frontend/src/app/admin/dashboard/page.tsx` |
+| No CI/CD manifests | Docs mention GitHub Actions + Render/Vercel — no `.github/workflows/*` exists | — |
+| Token storage decision (see §10 gotcha #2) | Using localStorage, not httpOnly cookies | `frontend/src/hooks/useAuth.tsx` |
+
+---
+
+## 4. Architecture Map
+
+```
 saas-doc-intelligence/
-├── README.md
-├── CLAUDE.md
-├── docker-compose.yml
-├── docs/                         # Product/architecture/runbook/roadmap docs (currently gitignored)
-├── infra/
-│   └── docker/
-│       └── init-db.sql           # Enables pgvector + uuid-ossp
+├── docker-compose.yml          ← postgres:5433 + redis:6379
+├── infra/docker/init-db.sql    ← enables pgvector + uuid-ossp
 ├── backend/
 │   ├── manage.py
-│   ├── pyproject.toml
+│   ├── .env                    ← LOCAL ONLY, gitignored
 │   ├── .env.example
 │   ├── requirements/
 │   │   ├── base.txt
 │   │   ├── dev.txt
 │   │   └── prod.txt
 │   ├── config/
-│   │   ├── urls.py               # Global API routing
+│   │   ├── urls.py             ← global API routing
 │   │   └── settings/
-│   │       ├── base.py           # Main settings and env contracts
+│   │       ├── base.py         ← main settings + env contracts + RAG defaults
 │   │       ├── dev.py
 │   │       ├── staging.py
 │   │       └── prod.py
 │   ├── apps/
-│   │   ├── core/                 # Shared models, constants, perms, middleware, exceptions
-│   │   ├── identity_access/      # User model + JWT auth endpoints
-│   │   ├── tenancy/              # Tenants, memberships, knowledge spaces
-│   │   ├── documents/            # Upload/list/delete/status + storage adapter
-│   │   ├── ingestion/            # Parsing/chunking/embedding tasks + DocumentChunk
-│   │   ├── retrieval/            # Vector search + RAG + query logging + admin stats endpoints
-│   │   ├── conversations/        # Conversation/message/citations API
-│   │   ├── audit_observability/  # Audit log model + logging service
-│   │   └── admin_ops/            # Registered app; minimal implementation currently
+│   │   ├── core/
+│   │   │   ├── models.py       ← BaseModel (UUID, timestamps, soft-delete mixin)
+│   │   │   ├── constants.py    ← DocumentStatus, MemberRole, etc.
+│   │   │   ├── permissions.py  ← IsTenantMember, IsTenantAdmin, IsTenantManager
+│   │   │   ├── middleware.py   ← request_id injection
+│   │   │   ├── exceptions.py   ← custom DRF exception handler + error envelope
+│   │   │   ├── pagination.py   ← StandardPagination (page_size=20, max=100)
+│   │   │   ├── logging.py      ← JsonFormatter for structured logs
+│   │   │   └── utils.py        ← generate_slug, compute_sha256, truncate_text, safe_int
+│   │   ├── identity_access/
+│   │   │   ├── models.py       ← custom User (UUID PK, email auth, no username)
+│   │   │   ├── backends.py     ← EmailBackend (timing-attack safe)
+│   │   │   └── api/            ← login, register, refresh, logout, me, change-password
+│   │   ├── tenancy/
+│   │   │   ├── models.py       ← Tenant, TenantMembership, KnowledgeSpace
+│   │   │   ├── api/            ← tenant CRUD, members, spaces
+│   │   │   ├── management/commands/assign_user.py  ← dev utility
+│   │   │   └── tests/          ← duplicate of backend/tests/ (see BUG-4)
+│   │   ├── documents/
+│   │   │   ├── models.py       ← Document, DocumentVersion, DocumentProcessingJob
+│   │   │   ├── api/            ← upload/list/detail/delete/status
+│   │   │   └── infrastructure/storage.py  ← local + S3/R2 abstraction
+│   │   ├── ingestion/
+│   │   │   ├── models.py       ← DocumentChunk (1536-dim vector)
+│   │   │   ├── tasks.py        ← Celery: parse → chunk → embed → store
+│   │   │   ├── management/commands/process_documents.py
+│   │   │   └── infrastructure/
+│   │   │       ├── parsers/pdf_parser.py
+│   │   │       ├── chunking/text_chunker.py
+│   │   │       └── embeddings/embedding_service.py  ← Gemini/OpenAI/dev
+│   │   ├── retrieval/
+│   │   │   ├── models.py       ← QueryLog
+│   │   │   ├── api/
+│   │   │   │   ├── views.py    ← /chat/ask + conversations
+│   │   │   │   ├── admin_views.py  ← /admin/stats + /admin/queries/recent (BUG-3)
+│   │   │   │   ├── urls.py
+│   │   │   │   └── admin_urls.py
+│   │   │   └── infrastructure/
+│   │   │       ├── vector_search.py  ← pgvector cosine similarity
+│   │   │       └── rag_pipeline.py   ← context build + Gemini/OpenAI/dev LLM
+│   │   ├── conversations/
+│   │   │   ├── models.py       ← Conversation, Message, MessageCitation
+│   │   │   └── api/            ← conversation CRUD + follow-up messages
+│   │   ├── audit_observability/
+│   │   │   ├── models.py       ← AuditLog
+│   │   │   └── services.py     ← log_action() service
+│   │   └── admin_ops/          ← registered app, minimal (just AppConfig)
 │   ├── scripts/
-│   │   ├── seed_dev.py
-│   │   └── smoke_test.py
+│   │   ├── seed_dev.py         ← seed admin + demo tenant
+│   │   └── smoke_test.py       ← hit /health endpoint
 │   ├── tests/
 │   │   ├── conftest.py
-│   │   ├── test_permissions.py
-│   │   └── test_isolation.py
-│   └── workers/
-│       └── celery_app.py
+│   │   ├── test_permissions.py ← BROKEN — see BUG-4
+│   │   └── test_isolation.py   ← BROKEN — see BUG-4
+│   └── workers/celery_app.py
 └── frontend/
-    ├── package.json
-    ├── package-lock.json
-    ├── .env.local.example
+    ├── package.json            ← scripts: dev, build, start, lint
     ├── next.config.mjs
-    ├── tsconfig.json
+    ├── tsconfig.json           ← strict TS, @/* alias
     └── src/
         ├── app/
+        │   ├── page.tsx                         ← auto-redirect /login or /dashboard
         │   ├── layout.tsx
-        │   ├── page.tsx
         │   ├── globals.css
-        │   ├── (auth)/login/page.tsx
+        │   ├── (auth)/login/page.tsx            ← BUG-1 here
         │   ├── (dashboard)/dashboard/page.tsx
-        │   ├── (dashboard)/documents/page.tsx
+        │   ├── (dashboard)/documents/page.tsx   ← BUG-2, BUG-5 (download) here
         │   ├── (dashboard)/chat/page.tsx
-        │   ├── (dashboard)/membres/page.tsx
-        │   ├── (dashboard)/espaces/page.tsx
-        │   └── admin/{layout.tsx,dashboard/page.tsx}
-        ├── hooks/useAuth.tsx
-        ├── lib/api-client.ts
+        │   ├── (dashboard)/membres/page.tsx     ← French slug, do not rename
+        │   ├── (dashboard)/espaces/page.tsx     ← French slug, do not rename
+        │   └── admin/
+        │       ├── layout.tsx                   ← links to non-existent pages (WIP)
+        │       └── dashboard/page.tsx           ← placeholder data (WIP)
+        ├── hooks/useAuth.tsx                    ← JWT context, localStorage (see gotcha #2)
+        ├── lib/api-client.ts                    ← axios/fetch wrapper
         ├── services/
         │   ├── auth.service.ts
-        │   ├── tenant.service.ts
+        │   ├── tenant.service.ts                ← BUG-5 (space delete) here
         │   ├── conversation.service.ts
         │   └── admin.service.ts
-        ├── components/layout/{TopBar.tsx,Sidebar.tsx}
-        ├── components/ui/*
-        └── types/*
+        ├── components/
+        │   ├── layout/{TopBar.tsx,Sidebar.tsx}
+        │   └── ui/                              ← Avatar, Badge, Button, EmptyState,
+        │                                           ErrorBanner, Input, LoadingSpinner, Modal
+        └── types/
+            ├── api.types.ts
+            ├── auth.types.ts
+            ├── chat.types.ts
+            ├── document.types.ts
+            └── tenant.types.ts
 ```
 
-## 4. Architecture & Design Patterns
-- Overall architecture: modular monolith backend + Next.js frontend
-- Tenancy pattern: shared DB, tenant scope via URL and DB foreign keys (`tenant_id` on business tables)
-- API style: REST JSON under `/api/v1`
-- Backend modular domains:
-  - identity/auth
-  - tenancy/RBAC
-  - documents + ingestion pipeline
-  - retrieval + conversations
-  - audit/observability
-- Async processing:
-  - upload request writes `Document`, `DocumentVersion`, `DocumentProcessingJob`
-  - Celery task handles parse -> chunk -> embed -> store vectors
-- RAG runtime:
-  1. embed question
-  2. pgvector cosine similarity search
-  3. build bounded context
-  4. call provider (Gemini preferred if key present, else OpenAI, else dev mock)
-  5. return answer + citations, write `QueryLog`
-- Cross-cutting patterns:
-  - custom API error envelope via DRF exception handler
-  - request correlation id middleware
-  - scoped DRF throttle rates (`login`, `register`, `chat`, `upload`)
-  - soft-delete mixin on selected domain models
+### Architecture patterns
+- **Modular monolith** — no microservices, one Django project with domain apps
+- **Shared DB + tenant_id** — every business table has `tenant_id` FK
+- **REST JSON** under `/api/v1`, tenant scoped in URL path
+- **Async ingestion** — upload writes job record, Celery worker processes
+- **RAG runtime** — embed question → pgvector cosine search → build context → Gemini → return answer + citations
+- **Cross-cutting** — custom error envelope, request_id middleware, DRF throttle rates, soft-delete mixin
 
-Key files:
-- `backend/config/settings/base.py`
-- `backend/apps/core/middleware.py`
-- `backend/apps/core/exceptions.py`
-- `backend/apps/ingestion/tasks.py`
-- `backend/apps/retrieval/infrastructure/rag_pipeline.py`
-- `backend/apps/retrieval/infrastructure/vector_search.py`
+---
 
-## 5. Database Schema
-ORM: Django ORM, migration files in each app under `migrations/0001_initial.py`.
+## 5. API Reference
 
-### Core identity/tenant
-- `users` (`identity_access.User`)
-  - UUID PK, unique email, full_name, flags (`is_active`, `is_staff`, `is_superuser`)
-- `tenants` (`tenancy.Tenant`)
-  - UUID PK, unique `slug`, `status`
-- `tenant_memberships` (`tenancy.TenantMembership`)
-  - FK tenant + user, role + status, unique `(tenant,user)`
-- `knowledge_spaces` (`tenancy.KnowledgeSpace`)
-  - FK tenant, `slug`, optional created_by, soft delete
-  - unique `(tenant,slug)`
+Base: `/api/v1`
 
-### Documents + ingestion
-- `documents` (`documents.Document`)
-  - FK tenant, knowledge_space, created_by
-  - status in `{queued,processing,indexed,failed}`
-  - soft delete support
-- `document_versions` (`documents.DocumentVersion`)
-  - FK document
-  - file metadata, indexing_status, versioning
-  - unique `(document,version_number)`
-- `document_processing_jobs` (`documents.DocumentProcessingJob`)
-  - FK document_version
-  - job type/status/start/end/error/metadata
-- `document_chunks` (`ingestion.DocumentChunk`)
-  - FK document_version, tenant, knowledge_space
-  - chunk index/content/token_count/page
-  - `embedding` vector dim 1536
-  - unique `(document_version,chunk_index)`
-  - index `(tenant,knowledge_space)`
+| Method | Path | Purpose | Auth |
+|---|---|---|---|
+| GET | `/health/` | Health check | No |
+| POST | `/auth/login/` | Issue JWT | No |
+| POST | `/auth/register/` | Register | No |
+| POST | `/auth/refresh/` | Rotate tokens | No |
+| POST | `/auth/logout/` | Blacklist refresh | Yes |
+| GET/PATCH | `/auth/me/` | Profile | Yes |
+| POST | `/auth/change-password/` | Change password | Yes |
+| GET/POST | `/tenants/` | List / create tenant | Yes |
+| GET | `/tenants/{tid}/` | Tenant detail | Yes + member |
+| GET | `/tenants/{tid}/summary/` | Dashboard counters | Yes + member |
+| GET | `/tenants/{tid}/me/permissions/` | Computed permissions | Yes + member |
+| GET/POST | `/tenants/{tid}/members/` | List / invite member | Yes + member/admin |
+| PATCH/DELETE | `/tenants/{tid}/members/{mid}/` | Update / remove member | Yes + admin |
+| GET/POST | `/tenants/{tid}/spaces/` | List / create space | Yes + member/manager |
+| GET/POST | `/tenants/{tid}/documents/` | List / upload document | Yes + member/manager |
+| GET | `/tenants/{tid}/documents/{did}/` | Document detail | Yes + member |
+| DELETE | `/tenants/{tid}/documents/{did}/` | Soft-delete document | Yes + manager |
+| GET | `/tenants/{tid}/documents/{did}/status/` | Processing status | Yes + member |
+| GET | `/tenants/{tid}/documents/{did}/download/` | Download file (local: blob; S3: presigned URL) | Yes + member |
+| DELETE | `/tenants/{tid}/spaces/{sid}/` | Soft-delete space (blocks `general` space) | Yes + admin |
+| POST | `/tenants/{tid}/chat/ask/` | One-shot RAG ask | Yes + member |
+| GET/POST | `/tenants/{tid}/conversations/` | List / create conversation | Yes + member |
+| GET/DELETE | `/tenants/{tid}/conversations/{cid}/` | Detail / archive | Yes + owner |
+| POST | `/tenants/{tid}/conversations/{cid}/messages/` | Follow-up message | Yes + owner |
+| GET | `/admin/stats/` | Platform stats | Yes + superuser |
+| GET | `/admin/queries/recent/` | Recent queries (BUG-3) | Yes + superuser |
 
-### Retrieval + conversations + audit
-- `query_logs` (`retrieval.QueryLog`)
-  - FK tenant, optional user/space
-  - question/answer/status/model/tokens/latency/chunks_used
-- `conversations` (`conversations.Conversation`)
-  - FK tenant, user, optional knowledge_space, status active/archived
-- `messages` (`conversations.Message`)
-  - FK conversation, role user/assistant/system, content/model/tokens/latency
-- `message_citations` (`conversations.MessageCitation`)
-  - FK message, optional FK chunk, citation metadata (doc/page/similarity/excerpt)
-- `audit_logs` (`audit_observability.AuditLog`)
-  - optional FK tenant/user
-  - action/resource/details/request metadata
-  - indexes on tenant/user action and created_at
+Rate limits: `login: 5/min` · `register: 3/min` · `chat: 20/min` · `upload: 10/min`
 
-DB extension bootstrap:
-- `infra/docker/init-db.sql` enables `vector` and `uuid-ossp`.
+---
 
-## 6. Authentication & Authorization
+## 6. Database Schema
+
+ORM: Django ORM. Migrations at `apps/*/migrations/0001_initial.py`.
+
+### Identity / Tenancy
+| Table | App model | Key fields |
+|---|---|---|
+| `users` | `identity_access.User` | UUID PK, unique `email`, `full_name`, `is_active`, `is_staff`, `is_superuser` |
+| `tenants` | `tenancy.Tenant` | UUID PK, unique `slug`, `status` |
+| `tenant_memberships` | `tenancy.TenantMembership` | FK tenant+user, `role` (owner/admin/manager/member), `status`, unique `(tenant,user)` |
+| `knowledge_spaces` | `tenancy.KnowledgeSpace` | FK tenant, `slug`, optional `created_by`, soft-delete, unique `(tenant,slug)` |
+
+### Documents + Ingestion
+| Table | App model | Key fields |
+|---|---|---|
+| `documents` | `documents.Document` | FK tenant/space/created_by, `status` {queued,processing,indexed,failed}, soft-delete |
+| `document_versions` | `documents.DocumentVersion` | FK document, file metadata, `indexing_status`, unique `(document,version_number)` |
+| `document_processing_jobs` | `documents.DocumentProcessingJob` | FK doc_version, `job_type/status/start/end/error/metadata` |
+| `document_chunks` | `ingestion.DocumentChunk` | FK doc_version/tenant/space, `content/token_count/page`, `embedding vector(1536)`, unique `(doc_version,chunk_index)` |
+
+### Retrieval + Conversations + Audit
+| Table | App model | Key fields |
+|---|---|---|
+| `query_logs` | `retrieval.QueryLog` | FK tenant/user/space, question/answer/status/`model_name`/tokens/latency/chunks_used |
+| `conversations` | `conversations.Conversation` | FK tenant/user/space, status active/archived |
+| `messages` | `conversations.Message` | FK conversation, role user/assistant/system, content/model/tokens/latency |
+| `message_citations` | `conversations.MessageCitation` | FK message/chunk, doc/page/similarity/excerpt |
+| `audit_logs` | `audit_observability.AuditLog` | optional FK tenant/user, action/resource/details/request metadata |
+
+DB extension bootstrap: `infra/docker/init-db.sql` — enables `vector` and `uuid-ossp`.
+
+---
+
+## 7. Auth & Authorization
+
 ### Authentication
-- Strategy: JWT bearer tokens via SimpleJWT
-- Login/register return both access + refresh token
-- Refresh rotation enabled (`ROTATE_REFRESH_TOKENS=True`, blacklist enabled)
-- Logout endpoint blacklists refresh token
-- Frontend currently stores tokens in `localStorage` (`access_token`, `refresh_token`)
+- Strategy: JWT bearer (SimpleJWT)
+- Login/register return access + refresh token
+- Refresh rotation enabled, blacklist on logout
+- Token storage: **localStorage** — `access_token`, `refresh_token` (see gotcha #2)
+- Custom `EmailBackend` at `identity_access/backends.py` — timing-attack safe, supports `email` or `username` kwarg (for Django admin compat)
 
-Backend files:
-- `backend/apps/identity_access/api/views.py`
-- `backend/config/settings/base.py` (`SIMPLE_JWT`)
+### Authorization (RBAC)
+| Role | Capabilities |
+|---|---|
+| `member` | Read/list/query only |
+| `manager` | + document upload/delete, space creation |
+| `admin` | + member lifecycle management |
+| `owner` | Same as admin, cannot be reassigned/removed via API |
+| `superuser` (`is_superuser`) | Platform admin endpoints only |
 
-Frontend files:
-- `frontend/src/hooks/useAuth.tsx`
-- `frontend/src/services/auth.service.ts`
+Permission classes in `core/permissions.py`:
+- `IsTenantMember` — any active member
+- `IsTenantAdmin` — owner or admin
+- `IsTenantManager` — owner, admin, or manager
 
-### Authorization
-- Tenant-scoped role model:
-  - `owner`, `admin`, `manager`, `member`
-- Generic permission classes:
-  - `IsTenantMember`
-  - `IsTenantAdmin` (owner/admin)
-  - `IsTenantManager` (owner/admin/manager)
-- Additional inline checks in view methods for specific actions (invite, delete, create space, upload)
-- Platform admin endpoints require `request.user.is_superuser`
+Business rules enforced in code:
+- Tenant creator becomes `owner` automatically
+- Default `general` knowledge space auto-created per new tenant
+- Members cannot remove themselves via member management endpoint
 
-Files:
-- `backend/apps/core/constants.py`
-- `backend/apps/core/permissions.py`
-- `backend/apps/tenancy/api/views.py`
-- `backend/apps/documents/api/views.py`
-- `backend/apps/retrieval/api/admin_views.py`
+---
 
-## 7. API Reference
-Base prefix: `/api/v1`
+## 8. AI / RAG Configuration
 
-| Method | Path | Purpose | Auth required |
+### Active setup
+| Component | Provider | Model | Notes |
 |---|---|---|---|
-| GET | `/api/v1/health/` | Health check | No |
-| POST | `/api/v1/auth/login/` | Login, issue JWT | No |
-| POST | `/api/v1/auth/register/` | Register account | No |
-| POST | `/api/v1/auth/refresh/` | Rotate refresh/access | No |
-| POST | `/api/v1/auth/logout/` | Blacklist refresh token | Yes |
-| GET | `/api/v1/auth/me/` | Current user profile | Yes |
-| PATCH | `/api/v1/auth/me/` | Update current profile | Yes |
-| POST | `/api/v1/auth/change-password/` | Change password | Yes |
-| GET | `/api/v1/tenants/` | List current user tenant memberships | Yes |
-| POST | `/api/v1/tenants/` | Create tenant (+ owner membership + default space) | Yes |
-| GET | `/api/v1/tenants/{tenant_id}/` | Tenant detail | Yes + tenant member |
-| GET | `/api/v1/tenants/{tenant_id}/summary/` | Dashboard counters | Yes + tenant member |
-| GET | `/api/v1/tenants/{tenant_id}/me/permissions/` | Computed tenant permissions | Yes + tenant member |
-| GET | `/api/v1/tenants/{tenant_id}/members/` | List members | Yes + tenant member |
-| POST | `/api/v1/tenants/{tenant_id}/members/` | Invite member | Yes + admin/owner |
-| PATCH | `/api/v1/tenants/{tenant_id}/members/{member_id}/` | Change member role | Yes + admin/owner |
-| DELETE | `/api/v1/tenants/{tenant_id}/members/{member_id}/` | Remove member | Yes + admin/owner |
-| GET | `/api/v1/tenants/{tenant_id}/spaces/` | List knowledge spaces | Yes + tenant member |
-| POST | `/api/v1/tenants/{tenant_id}/spaces/` | Create knowledge space | Yes + manager+ |
-| GET | `/api/v1/tenants/{tenant_id}/documents/` | List documents (filters: `space_id`,`search`,`status`) | Yes + tenant member |
-| POST | `/api/v1/tenants/{tenant_id}/documents/` | Upload document and dispatch ingestion | Yes + manager+ |
-| GET | `/api/v1/tenants/{tenant_id}/documents/{document_id}/` | Document detail | Yes + tenant member |
-| DELETE | `/api/v1/tenants/{tenant_id}/documents/{document_id}/` | Soft-delete document | Yes + manager+ |
-| GET | `/api/v1/tenants/{tenant_id}/documents/{document_id}/status/` | Processing status/jobs | Yes + tenant member |
-| POST | `/api/v1/tenants/{tenant_id}/chat/ask/` | One-shot RAG ask | Yes + tenant member |
-| GET | `/api/v1/tenants/{tenant_id}/conversations/` | List active conversations | Yes + tenant member |
-| POST | `/api/v1/tenants/{tenant_id}/conversations/` | Create conversation + first QA | Yes + tenant member |
-| GET | `/api/v1/tenants/{tenant_id}/conversations/{conversation_id}/` | Conversation detail with messages/citations | Yes + owner conversation |
-| DELETE | `/api/v1/tenants/{tenant_id}/conversations/{conversation_id}/` | Archive conversation | Yes + owner conversation |
-| POST | `/api/v1/tenants/{tenant_id}/conversations/{conversation_id}/messages/` | Follow-up question + assistant response | Yes + owner conversation |
-| GET | `/api/v1/admin/stats/` | Platform stats | Yes + superuser |
-| GET | `/api/v1/admin/queries/recent/` | Recent cross-tenant queries/messages | Yes + superuser |
+| Generation (LLM) | **Google Gemini** | `gemini-2.0-flash` | Free tier, 15 req/min |
+| Embeddings | **Google Gemini** | `gemini-embedding-001` | Free tier, 429 handling built-in |
+| Fallback (LLM) | OpenAI | `gpt-4o-mini` | Commented out in .env — quota exceeded |
+| Dev mode | Mock | — | Returns structured placeholder, no API needed |
 
-Rate limiting:
-- `login: 5/min`
-- `register: 3/min`
-- `chat: 20/min`
-- `upload: 10/min`
+Provider selection is automatic: if `GEMINI_API_KEY` is set → Gemini. If `OPENAI_API_KEY` set → OpenAI. Neither → dev mock.
 
-Source files:
-- `backend/config/urls.py`
-- `backend/apps/*/api/urls.py`
-- `backend/config/settings/base.py`
+RAG settings (configured in `config/settings/base.py`):
+- `RAG_TOP_K_CHUNKS = 5`
+- `RAG_MIN_SIMILARITY_SCORE = 0.7`
+- `RAG_MAX_CONTEXT_TOKENS = 4000`
+- `RAG_TEMPERATURE = 0.1`
 
-## 8. Environment Variables
-Only names are documented here (no secret values).
+System prompt language: French (`"Tu es DocPilot AI, un assistant expert en analyse de documents."`)
+Response language: adapts to question language (instructions in system prompt)
 
-| Variable | Description | Required | Example format |
+**⚠️ Embedding dimension gotcha** — see §10 gotcha #3.
+
+---
+
+## 9. Non-Negotiable Rules
+
+Extracted from `docs/NON_NEGOTIABLE_RULES.md` (binding throughout project lifecycle):
+
+### Architecture
+- Modular Monolith — no microservices until proven bottleneck
+- `views.py` = HTTP layer only — no heavy business logic in views
+- Business logic belongs in `application/services.py` per domain
+- No cross-module wild imports — use application services
+- Every business table must have: `id` (UUID), `tenant_id`, `created_at`, `updated_at`
+- Soft delete where appropriate (`deleted_at`)
+- Tenant isolation must be centralized — not ad-hoc per query
+- API versioning from day 1 (`/api/v1/...`)
+
+### Security
+- RBAC tenant-scoped on every endpoint
+- Deny-by-default for RAG: return explicit no-answer if context insufficient
+- Audit logs on all sensitive actions
+- Rate limiting on login/chat/upload
+- Backend is source of truth for input validation
+- Secrets never in source code
+
+### Product
+- MVP scope is frozen — no OCR, SSO, billing, or connectors until V2+
+- Product is multi-sector SaaS from day 1 (not just medical/dental)
+- Cabinet médical/dentaire is launch wedge, not a product limitation
+
+---
+
+## 10. Conventions & Gotchas
+
+### Code conventions
+- **Python**: Black + isort + Ruff, line length 120, configured in `backend/pyproject.toml`
+- **TypeScript**: strict mode, `@/*` alias for `src/*`
+- **Formatting**: 4-space Python, 2-space JS/TS/CSS/JSON/YAML (`.editorconfig`)
+- **Git commits**: conventional commits — `feat(scope):`, `fix(scope):`, `chore(scope):`, `docs(scope):`
+- **Branches**: `feature/*`, `fix/*`, `chore/*`
+
+### UI language
+The UI is entirely in French. User-facing labels, error messages, empty states, and system prompts are all in French. When writing frontend code, match the existing language. Do not translate to English.
+
+### Gotcha #1 — French route slugs
+`/membres` and `/espaces` are canonical dashboard URLs. Do not rename them without updating `Sidebar.tsx` and all navigation references.
+- `frontend/src/app/(dashboard)/membres/page.tsx`
+- `frontend/src/app/(dashboard)/espaces/page.tsx`
+
+### Gotcha #2 — Token storage (localStorage)
+Current implementation stores JWT in `localStorage`. This is acceptable for MVP — internal B2B SaaS, low XSS surface, no user-generated HTML rendered.
+
+**DECIDED BY CLAUDE CODE**: localStorage is fine for MVP launch. Upgrade to httpOnly cookies before public/consumer launch or any compliance requirement. Document as open tech debt.
+
+Priority: `LOW` for MVP, `HIGH` before public launch. File: `frontend/src/hooks/useAuth.tsx`.
+
+### Gotcha #3 — Gemini embedding dimension truncation
+`gemini-embedding-001` natively returns 3072-dim vectors. The `DocumentChunk` schema defines `embedding vector(1536)` (sized for OpenAI compatibility). The embedding service truncates Gemini vectors at 1536 dims:
+```python
+if len(vec) > 1536:
+    vec = vec[:1536]
+```
+This means you lose ~half the embedding information. Similarity search still works but quality is reduced vs native 3072-dim.
+
+To fix properly: run a migration to change `vector(1536)` to `vector(3072)`, re-index all documents, update `RAG_EMBEDDING_MODEL` setting. This is non-trivial but worth doing before indexing large document sets.
+
+File: `backend/apps/ingestion/infrastructure/embeddings/embedding_service.py`
+
+### Gotcha #4 — AI provider auto-detection is silent
+If `GEMINI_API_KEY` is removed from `.env`, the system silently falls back to OpenAI (if key exists) or dev mock. There is no log warning when falling back. Monitor `apps.retrieval` and `apps.ingestion` logs to confirm which provider is active after `.env` changes.
+File: `backend/apps/retrieval/infrastructure/rag_pipeline.py` → `_get_ai_provider()`
+
+### Gotcha #5 — Admin stats double-counts queries
+`/admin/stats/` aggregates both `QueryLog` records AND user messages from conversations. This can double-count "questions asked" if both systems are active simultaneously.
+File: `backend/apps/retrieval/api/admin_views.py`
+
+### Gotcha #6 — Soft delete is not universal
+Some models use soft-delete (`deleted_at` via mixin), others are hard-deleted. Check `core/models.py` for the mixin, then verify per-model before writing cleanup or analytics queries.
+Files: `core/models.py`, `tenancy/models.py`, `documents/models.py`
+
+### Gotcha #7 — Gemini free tier rate limits
+Gemini free tier: ~15 req/min. Built-in 429 retry logic uses exponential backoff (max 60s delay, 5 retries). Under heavy ingestion or concurrent chat, jobs will slow down significantly. Do not remove retry logic.
+Files: `ingestion/infrastructure/embeddings/embedding_service.py`, `retrieval/infrastructure/rag_pipeline.py`
+
+---
+
+## 11. Environment Variables
+
+| Variable | Description | Required | Current state |
 |---|---|---|---|
-| `DATABASE_URL` | Django DB connection string | Yes | `postgres://user:pass@host:5432/db` |
-| `REDIS_URL` | Redis base URL | Yes (for queue/cache flows) | `redis://localhost:6379/0` |
-| `SECRET_KEY` | Django secret key | Yes | long random string |
-| `DEBUG` | Django debug mode | Yes | `True` / `False` |
+| `DATABASE_URL` | DB connection string | Yes | Set — `postgres://postgres:postgres@localhost:5433/docpilot_dev` |
+| `REDIS_URL` | Redis base URL — declared in .env but not consumed by Django settings; Celery uses its own `CELERY_BROKER_URL` below | No | `redis://localhost:6379/0` |
+| `SECRET_KEY` | Django secret key | Yes | Set (dev placeholder, change for prod) |
+| `DEBUG` | Django debug mode | Yes | `True` in dev |
 | `ALLOWED_HOSTS` | Allowed hostnames | Yes | `localhost,127.0.0.1` |
 | `CORS_ALLOWED_ORIGINS` | Frontend origins | Yes | `http://localhost:3000` |
 | `JWT_ACCESS_TOKEN_LIFETIME_MINUTES` | Access token duration | Optional | `30` |
 | `JWT_REFRESH_TOKEN_LIFETIME_DAYS` | Refresh token duration | Optional | `7` |
-| `STORAGE_BACKEND` | Storage mode | Yes | `local` or `s3` |
-| `STORAGE_LOCAL_PATH` | Local storage path | Required for local mode | `./media/documents` |
-| `AWS_ACCESS_KEY_ID` | S3/R2 access key | Required for s3 mode | key-like string |
-| `AWS_SECRET_ACCESS_KEY` | S3/R2 secret | Required for s3 mode | secret-like string |
-| `AWS_STORAGE_BUCKET_NAME` | S3/R2 bucket name | Required for s3 mode | `docpilot-bucket` |
-| `AWS_S3_ENDPOINT_URL` | S3-compatible endpoint | Optional/required by provider | `https://<account>.r2.cloudflarestorage.com` |
+| `STORAGE_BACKEND` | Storage mode | Yes | `local` |
+| `STORAGE_LOCAL_PATH` | Local storage path | Required for local | `./media/documents` |
+| `AWS_ACCESS_KEY_ID` | S3/R2 access key | Required for s3 mode | — |
+| `AWS_SECRET_ACCESS_KEY` | S3/R2 secret | Required for s3 mode | — |
+| `AWS_STORAGE_BUCKET_NAME` | S3/R2 bucket | Required for s3 mode | — |
+| `AWS_S3_ENDPOINT_URL` | S3-compatible endpoint | Required for R2 | — |
 | `AWS_S3_REGION_NAME` | S3 region | Optional | `auto` |
-| `OPENAI_API_KEY` | OpenAI key for embeddings/generation | Optional if Gemini used | `sk-...` |
-| `GEMINI_API_KEY` | Gemini key for generation (preferred if set) | Optional | non-empty string |
-| `CELERY_BROKER_URL` | Celery broker URL | Yes for ingestion workers | `redis://localhost:6379/1` |
-| `CELERY_RESULT_BACKEND` | Celery result backend URL | Yes for async jobs | `redis://localhost:6379/2` |
-| `SENTRY_DSN` | Sentry DSN | Optional | URL-like DSN |
-| `NEXT_PUBLIC_API_URL` | Frontend backend API base | Yes | `http://localhost:8000/api/v1` |
-| `NEXT_PUBLIC_SENTRY_DSN` | Frontend Sentry DSN | Optional | DSN string |
-| `NEXT_PUBLIC_APP_NAME` | App display name | Optional | `DocPilot AI` |
+| `GEMINI_API_KEY` | **Active AI provider** | Yes (currently) | **Set in .env** |
+| `OPENAI_API_KEY` | Fallback AI provider | Optional | Commented out — quota exceeded |
+| `CELERY_BROKER_URL` | Celery broker | Yes for workers | `redis://localhost:6379/1` |
+| `CELERY_RESULT_BACKEND` | Celery result backend | Yes for workers | `redis://localhost:6379/2` |
+| `SENTRY_DSN` | Sentry backend DSN | Optional | Empty in dev |
+| `NEXT_PUBLIC_API_URL` | Frontend API base | Yes | `http://localhost:8000/api/v1` |
+| `NEXT_PUBLIC_SENTRY_DSN` | Frontend Sentry DSN | Optional | — (not yet consumed in frontend code) |
+| `NEXT_PUBLIC_APP_NAME` | App display name | Optional | — (not yet consumed in frontend code) |
 
 Env files:
-- `backend/.env.example`
-- `frontend/.env.local.example`
+- `backend/.env` — local dev (gitignored, already exists)
+- `backend/.env.example` — template
+- `frontend/.env.local` — local dev (gitignored, already exists)
+- `frontend/.env.local.example` — template
 
-## 9. Commands Reference
-### Root / infrastructure
-| Command | Purpose |
-|---|---|
-| `docker compose up -d` | Start local PostgreSQL + Redis services |
-| `docker compose up -d postgres redis` | Start only DB and Redis services |
+---
 
-### Backend
-| Command | Purpose |
-|---|---|
-| `cd backend` | Enter backend project |
-| `python -m venv venv` | Create virtual environment |
-| `venv\\Scripts\\activate` | Activate venv (Windows) |
-| `pip install -r requirements/dev.txt` | Install backend + dev dependencies |
-| `python manage.py migrate` | Apply DB migrations |
-| `python manage.py runserver` | Start Django API server |
-| `python manage.py createsuperuser` | Create platform admin user |
-| `python manage.py process_documents` | Run ingestion management command |
-| `python manage.py seed_dev` | Seed development data (if command registered) |
-| `celery -A workers.celery_app worker --loglevel=info` | Start Celery worker |
-| `celery -A workers.celery_app beat --loglevel=info` | Start Celery beat scheduler |
-| `python run_tests.py` | Run selected tenancy tests |
-| `python scripts/smoke_test.py` | Smoke-check API health endpoint |
-| `python scripts/seed_dev.py` | Seed admin + demo tenant directly via script |
+## 12. Commands Reference
 
-### Frontend
-| Command | Purpose |
-|---|---|
-| `cd frontend` | Enter frontend project |
-| `npm install` | Install frontend dependencies |
-| `npm run dev` | Start Next.js dev server |
-| `npm run build` | Build production bundle |
-| `npm run start` | Run built app |
-| `npm run lint` | Run Next lint |
+### Infrastructure
+```bash
+docker compose up -d                          # Start postgres:5433 + redis:6379
+docker compose up -d postgres redis           # Start only DB and Redis
+docker compose down                           # Stop services
+```
 
-Script sources:
-- `README.md`
-- `docs/RUNBOOK_SETUP.md`
-- `frontend/package.json`
-- `backend/run_tests.py`
+### Backend (from `backend/` with venv active)
+```bash
+python manage.py migrate                      # Apply migrations
+python manage.py runserver                    # Start API server → http://localhost:8000
+python manage.py createsuperuser             # Create platform admin
+python manage.py process_documents            # Manual ingestion trigger
+python manage.py assign_user                  # Assign user@docpilot.dev to first tenant (dev utility)
 
-## 10. ✅ What's Already Done
-Implemented capabilities with concrete code locations:
+python scripts/seed_dev.py                    # Seed admin + demo tenant
+python scripts/smoke_test.py                  # Smoke-check /health endpoint
 
-1. JWT authentication + user profile flows  
-   - `backend/apps/identity_access/api/views.py`
-   - `backend/apps/identity_access/api/serializers.py`
-   - `frontend/src/services/auth.service.ts`
-   - `frontend/src/hooks/useAuth.tsx`
+celery -A workers.celery_app worker --loglevel=info  # Start async worker
+celery -A workers.celery_app beat --loglevel=info    # Start beat scheduler
 
-2. Multi-tenant model + membership RBAC  
-   - `backend/apps/tenancy/models.py`
-   - `backend/apps/core/permissions.py`
-   - `backend/apps/tenancy/api/views.py`
+python run_tests.py                           # Run apps/tenancy/tests/ subset (NOT backend/tests/)
+```
 
-3. Tenant operations and default space bootstrap  
-   - tenant creation auto-creates owner membership and `general` space  
-   - `backend/apps/tenancy/api/views.py`
+### Frontend (from `frontend/`)
+```bash
+npm install       # Install dependencies
+npm run dev       # Start dev server → http://localhost:3000
+npm run build     # Production build
+npm run start     # Run built app
+npm run lint      # ESLint check
+```
 
-4. Knowledge spaces listing/creation  
-   - `backend/apps/tenancy/api/views.py`
-   - `frontend/src/app/(dashboard)/espaces/page.tsx`
+---
 
-5. Document upload/list/detail/delete/status endpoints  
-   - `backend/apps/documents/api/views.py`
-   - `backend/apps/documents/models.py`
-   - `frontend/src/app/(dashboard)/documents/page.tsx`
+## 13. Roadmap — Phase 9 Completion Checklist
 
-6. Storage abstraction local + S3-compatible backend  
-   - `backend/apps/documents/infrastructure/storage.py`
+**All bugs fixed 2026-04-20.** Remaining before Phase 10:
 
-7. Async ingestion pipeline with Celery  
-   - parse/chunk/embed/store and status updates  
-   - `backend/apps/ingestion/tasks.py`
-   - `backend/apps/ingestion/infrastructure/*`
+- [x] BUG-1 login `res.success` fixed
+- [x] BUG-2 STATUS_CONFIG keys fixed
+- [x] BUG-3 `model_used` fixed
+- [x] BUG-4 all 4 test files repaired
+- [x] BUG-5 space DELETE + document download endpoints added
+- [ ] Validate tests actually pass: `cd backend && python run_tests.py`
+- [ ] Decide: implement or remove admin nav links (`/admin/tenants`, `/admin/users`, `/admin/settings`)
+- [ ] Wire admin dashboard activity to real API data (currently placeholder)
 
-8. Vector retrieval + RAG response with citations  
-   - `backend/apps/retrieval/infrastructure/vector_search.py`
-   - `backend/apps/retrieval/infrastructure/rag_pipeline.py`
-   - `backend/apps/retrieval/api/views.py`
+Phase 10 prerequisites:
+- [ ] Write `Dockerfile` for backend (Django + Gunicorn)
+- [ ] Write `Dockerfile` for Celery worker
+- [ ] Add `.github/workflows/` CI pipeline (lint + test)
+- [ ] Provision Cloudflare R2 bucket, set `AWS_*` vars
+- [ ] Configure Render web service + background worker
+- [ ] Configure Vercel for frontend
+- [ ] Set production env vars on all services
+- [ ] Validate `prod.py` settings (HTTPS, `CORS_ALLOWED_ORIGINS`, `ALLOWED_HOSTS`, `DEBUG=False`)
 
-9. Conversation persistence with citation links  
-   - `backend/apps/conversations/models.py`
-   - `backend/apps/conversations/api/views.py`
-   - `frontend/src/app/(dashboard)/chat/page.tsx`
+V2 scope (do not implement until MVP is live):
+- OCR for scanned PDFs
+- SSO / SAML
+- Billing / tenant quotas
+- Document connectors (Google Drive, Notion, etc.)
+- Embedding schema upgrade: `vector(1536)` → `vector(3072)` for full Gemini quality
 
-10. Audit and observability base  
-   - request id middleware + structured errors + audit logs + query logs  
-   - `backend/apps/core/middleware.py`
-   - `backend/apps/core/exceptions.py`
-   - `backend/apps/audit_observability/models.py`
-   - `backend/apps/audit_observability/services.py`
+---
 
-11. Platform admin API and UI shell  
-   - `backend/apps/retrieval/api/admin_views.py`
-   - `frontend/src/app/admin/layout.tsx`
-   - `frontend/src/app/admin/dashboard/page.tsx`
+## 14. Tech Debt & Cleanup
 
-12. Tenant isolation and permission tests (with caveats, see issues)  
-   - `backend/tests/test_permissions.py`
-   - `backend/tests/test_isolation.py`
-   - duplicated under `backend/apps/tenancy/tests/*`
+### Debug scripts cleanup ✅ Done 2026-04-20
 
-## 11. 🚧 Work In Progress
-Partially implemented or inconsistent areas:
+11 files removed from `backend/` root. 4 useful ones moved to `backend/scripts/debug/`:
+```
+backend/scripts/debug/force_user.py         — reset user password + ensure membership
+backend/scripts/debug/test_admin_stats.py   — test admin API views without HTTP
+backend/scripts/debug/test_gemini.py        — verify Gemini API key + list models
+backend/scripts/debug/test_tenants.py       — live smoke test for auth + tenants API
+```
 
-1. Knowledge space deletion flow mismatch
-- Frontend calls `DELETE /tenants/{tenant_id}/spaces/{space_id}/`
-- Backend only defines `/spaces/` GET/POST
-- Files:
-  - `frontend/src/services/tenant.service.ts`
-  - `backend/apps/tenancy/api/urls.py`
+### docs/ gitignore ✅ Fixed 2026-04-20
 
-2. Document download UI points to non-existent API route
-- UI opens `/api/v1/tenants/{tenant}/knowledge-spaces/{space}/documents/{doc}/download/`
-- No backend URL/view exists for download endpoint
-- File:
-  - `frontend/src/app/(dashboard)/documents/page.tsx`
+`docs/` removed from `.gitignore`. All 13 docs files are now tracked in git. No real secrets were in docs/ (only placeholder values like `sk-...`).
 
-3. Admin area navigation is ahead of implementation
-- Layout links to `/admin/tenants`, `/admin/users`, `/admin/settings`
-- Corresponding pages do not exist in `frontend/src/app/admin/*`
-- File:
-  - `frontend/src/app/admin/layout.tsx`
+### Embedding dimension mismatch (see §10 gotcha #3)
+**Priority: address before indexing a large document corpus.** Migrating vector dimensions requires re-embedding all existing documents. The longer you wait, the more expensive the migration.
 
-4. Admin dashboard activity section is placeholder-only visual content
-- Static mock rows, not wired to API data
-- File:
-  - `frontend/src/app/admin/dashboard/page.tsx`
+### Token storage (localStorage → httpOnly cookies)
+**Priority: LOW for MVP, required before public/enterprise launch.** Tracked in §10 gotcha #2.
 
-5. Deployment docs vs repo configs drift
-- Docs claim GitHub Actions + Render/Vercel pipeline
-- Repository has no `.github/workflows` or deploy manifests at this time
-- Files:
-  - `docs/ROADMAP.md`
-  - `docs/PROJECT_BRIEF.md`
+---
 
-## 12. 📋 Roadmap — What's Next
-Prioritized next steps based on code state + documented roadmap:
+## 15. External Services
 
-1. Fix broken auth UI contract
-- Accept criteria:
-  - login page checks `res.ok` instead of `res.success`
-  - failed login shows backend error cleanly
-- Files:
-  - `frontend/src/app/(auth)/login/page.tsx`
-  - `frontend/src/hooks/useAuth.tsx`
+### Google Gemini (active)
+- Usage: generation (`gemini-2.0-flash`) + embeddings (`gemini-embedding-001`)
+- Key: `GEMINI_API_KEY` — set in `backend/.env`
+- Free tier limits: ~15 req/min, exponential backoff built in
+- Code: `retrieval/infrastructure/rag_pipeline.py`, `ingestion/infrastructure/embeddings/embedding_service.py`
 
-2. Normalize document status contract across FE/BE
-- Accept criteria:
-  - frontend maps backend statuses `{queued,processing,indexed,failed}` correctly
-  - no fallback mislabeling
-- Files:
-  - `backend/apps/core/constants.py`
-  - `frontend/src/app/(dashboard)/documents/page.tsx`
-
-3. Implement missing knowledge space deletion endpoint (or remove FE action)
-- Accept criteria:
-  - endpoint exists and is secured (admin/owner)
-  - deletion strategy documented (soft delete/cascade)
-  - FE action works end-to-end
-- Files:
-  - `backend/apps/tenancy/api/urls.py`
-  - `backend/apps/tenancy/api/views.py`
-  - `frontend/src/services/tenant.service.ts`
-
-4. Implement document download endpoint (or remove download button)
-- Accept criteria:
-  - URL path is defined and validated for tenant ownership
-  - file stream/redirect works
-- Files:
-  - `backend/apps/documents/api/urls.py`
-  - `backend/apps/documents/api/views.py`
-  - `frontend/src/app/(dashboard)/documents/page.tsx`
-
-5. Fix admin recent queries bug
-- Accept criteria:
-  - use `QueryLog.model_name` instead of non-existent `model_used`
-  - endpoint returns valid payload
-- Files:
-  - `backend/apps/retrieval/api/admin_views.py`
-  - `backend/apps/retrieval/models.py`
-
-6. Repair backend tests to match current models/constants
-- Accept criteria:
-  - create `Tenant` with required `slug`
-  - use valid `DocumentStatus` values
-  - URL name assumptions corrected
-- Files:
-  - `backend/tests/test_permissions.py`
-  - `backend/tests/test_isolation.py`
-  - `backend/apps/tenancy/tests/*`
-
-7. Align token storage security decision
-- Accept criteria:
-  - explicit team decision: localStorage vs httpOnly cookie
-  - implementation + docs aligned
-- Files:
-  - `docs/DECISIONS.md`
-  - `frontend/src/hooks/useAuth.tsx`
-
-8. Add real CI/CD manifests or update docs to avoid drift
-- Accept criteria:
-  - either working workflow files added, or docs updated with current reality
-- Files:
-  - `.github/workflows/*` (missing today)
-  - docs under `docs/`
-
-## 13. ⚠️ Known Issues
-No inline `TODO`, `FIXME`, or `HACK` tags were found via repository search, but the following concrete issues exist:
-
-1. Login page uses wrong return property
-- `if (!res.success)` should use `res.ok`
-- File: `frontend/src/app/(auth)/login/page.tsx`
-
-2. Document status mismatch between frontend and backend enum values
-- FE expects `pending/completed`; BE uses `queued/indexed`
-- Files:
-  - `frontend/src/app/(dashboard)/documents/page.tsx`
-  - `backend/apps/core/constants.py`
-
-3. Admin recent query endpoint references non-existent model field
-- Uses `query.model_used` but model field is `model_name`
-- Files:
-  - `backend/apps/retrieval/api/admin_views.py`
-  - `backend/apps/retrieval/models.py`
-
-4. Tests reference invalid constants and incomplete model construction
-- `DocumentStatus.AVAILABLE` does not exist
-- `Tenant.objects.create(name=...)` misses required unique `slug`
-- Files:
-  - `backend/tests/test_isolation.py`
-  - `backend/tests/test_permissions.py`
-
-5. Frontend actions call missing backend routes
-- space deletion and document download paths do not exist server-side
-- Files:
-  - `frontend/src/services/tenant.service.ts`
-  - `frontend/src/app/(dashboard)/documents/page.tsx`
-  - `backend/apps/tenancy/api/urls.py`
-  - `backend/apps/documents/api/urls.py`
-
-6. `.gitignore` currently excludes `docs/` while docs are project-critical
-- risk: doc updates not tracked consistently
-- File: `.gitignore`
-
-## 14. 💡 Conventions & Code Style
-- Python:
-  - Black/isort/Ruff configured in `backend/pyproject.toml`
-  - line length 120
-  - Django module-per-domain structure under `backend/apps/*`
-- TypeScript/Frontend:
-  - strict TS config in `frontend/tsconfig.json`
-  - app router conventions in `frontend/src/app/*`
-  - alias import style `@/*` for `src/*`
-- Formatting:
-  - `.editorconfig` with 4-space Python, 2-space JS/TS/CSS/JSON/YAML
-- API conventions:
-  - prefix `/api/v1`
-  - tenant in path
-  - JSON response/error structures
-- Git conventions (documented):
-  - branch naming: `feature/*`, `fix/*`, `chore/*`
-  - conventional commits (`feat:`, `fix:`, `chore:`, `docs:`)
-
-Files:
-- `backend/pyproject.toml`
-- `.editorconfig`
-- `README.md`
-- `frontend/tsconfig.json`
-
-## 15. 🧠 Gotchas & Important Decisions
-1. AI provider selection is dynamic and prioritized
-- runtime order is Gemini key -> OpenAI key -> dev mock
-- this can change model outputs/cost behavior silently by env
-- File: `backend/apps/retrieval/infrastructure/rag_pipeline.py`
-
-2. Token storage implementation differs from decision log
-- docs indicate pending/preferred httpOnly cookie strategy
-- production code currently uses `localStorage`
-- Files:
-  - `docs/DECISIONS.md`
-  - `frontend/src/hooks/useAuth.tsx`
-
-3. Frontend routes are French-slugged for key pages
-- `/membres` and `/espaces` are canonical URLs
-- avoid accidental rename without nav updates
-- Files:
-  - `frontend/src/app/(dashboard)/membres/page.tsx`
-  - `frontend/src/app/(dashboard)/espaces/page.tsx`
-
-4. Admin stats combine two data sources for query counts
-- counts aggregate `QueryLog` plus user messages from conversations
-- can double-count conceptual "questions" if both systems used
-- File: `backend/apps/retrieval/api/admin_views.py`
-
-5. Soft delete is not universal
-- some models use soft-delete managers while others are hard-delete
-- enforce caution in cleanup and analytics queries
-- Files:
-  - `backend/apps/core/models.py`
-  - `backend/apps/tenancy/models.py`
-  - `backend/apps/documents/models.py`
-
-## 16. Business Rules
-Implemented and inferred rules from code:
-
-### Tenant and role rules
-- Every tenant creator becomes `owner`
-- Default knowledge space (`general`) is auto-created per new tenant
-- `owner` role cannot be reassigned or removed via member management endpoints
-- Members cannot remove themselves through member removal endpoint
-
-Files:
-- `backend/apps/tenancy/api/views.py`
-
-### Permission capabilities
-- `member`: read/list/query only
-- `manager`: document upload/delete + space creation + admin-like dashboard access
-- `admin/owner`: member lifecycle management
-- `superuser` only: platform admin endpoints
-
-Files:
-- `backend/apps/core/constants.py`
-- `backend/apps/core/permissions.py`
-- `backend/apps/retrieval/api/admin_views.py`
-
-### Document processing lifecycle
-- Upload starts with `queued`
-- async worker moves through `processing` to `indexed` or `failed`
-- chunk embeddings stored per document version
-
-Files:
-- `backend/apps/documents/api/views.py`
-- `backend/apps/ingestion/tasks.py`
-
-### RAG response behavior
-- if no chunks retrieved: explicit no-answer response
-- citations returned with metadata and excerpt
-- query telemetry persisted (`tokens`, `latency`, status)
-
-Files:
-- `backend/apps/retrieval/infrastructure/rag_pipeline.py`
-- `backend/apps/retrieval/api/views.py`
-
-### Quotas/pricing/business limits
-- No explicit billing tiers or hard quotas implemented in executable code
-- Throttling exists as request-rate control (not billing quota)
-- Pending doc-level product decisions listed in `docs/DECISIONS.md`
-
-## 17. Deployment
-Current repository deployment state:
-
-- Local development infra is fully defined:
-  - `docker-compose.yml` for postgres + redis
-  - `infra/docker/init-db.sql` DB extensions
-- Environment splits exist in Django:
-  - `backend/config/settings/dev.py`
-  - `backend/config/settings/staging.py`
-  - `backend/config/settings/prod.py`
-- Documented target platforms (not implemented in repo manifests):
-  - backend/worker on Render
-  - frontend on Vercel
-  - documented in `docs/PROJECT_BRIEF.md` and `docs/ROADMAP.md`
-- CI/CD configuration files are currently absent:
-  - no `.github/workflows/*` found
-  - no checked-in Dockerfiles for app services
-
-Branching/development:
-- active branch from audit: `main`
-- remote branch: `origin/main`
-- conventions documented in `README.md`
-
-Recent git context (captured during audit):
-- `git log --oneline -50` reviewed for feature history cadence
-- `git branch -a` reviewed for branch topology
-
-## 18. External Services & Integrations
-### OpenAI
-- Usage: embeddings + LLM fallback path
-- Config: `OPENAI_API_KEY`
-- Code:
-  - `backend/apps/ingestion/infrastructure/embeddings/embedding_service.py`
-  - `backend/apps/retrieval/infrastructure/rag_pipeline.py`
-- Docs: [OpenAI API docs](https://platform.openai.com/docs)
-
-### Google Gemini
-- Usage: preferred generation provider when key exists
-- Config: `GEMINI_API_KEY`
-- Code: `backend/apps/retrieval/infrastructure/rag_pipeline.py`
-- Docs: [Gemini API docs](https://ai.google.dev/gemini-api/docs)
+### OpenAI (fallback, currently disabled)
+- Usage: generation (`gpt-4o-mini`) + embeddings (`text-embedding-3-small`) when `OPENAI_API_KEY` set
+- Key: `OPENAI_API_KEY` — commented out in `.env` (quota exceeded)
+- Code: same files as Gemini above
 
 ### PostgreSQL + pgvector
-- Usage: relational store + vector similarity
+- Usage: relational store + vector similarity search
+- Local: port **5433** (mapped from container's 5432)
+- Image: `pgvector/pgvector:pg16`
 - Config: `DATABASE_URL`
-- Code:
-  - `backend/apps/ingestion/models.py`
-  - `backend/apps/retrieval/infrastructure/vector_search.py`
-- Docs: [pgvector](https://github.com/pgvector/pgvector)
 
 ### Redis + Celery
-- Usage: async processing queue and result backend
-- Config: `REDIS_URL`, `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`
-- Code:
-  - `backend/workers/celery_app.py`
-  - `backend/apps/ingestion/tasks.py`
-- Docs: [Celery docs](https://docs.celeryq.dev), [Redis docs](https://redis.io/docs)
+- Usage: async task queue (ingestion) + result backend
+- Local: port 6379
+- Config: `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`
+- Code: `workers/celery_app.py`, `ingestion/tasks.py`
 
-### S3-compatible object storage (R2-style)
-- Usage: file storage adapter
-- Config: `STORAGE_BACKEND` + `AWS_*`
-- Code: `backend/apps/documents/infrastructure/storage.py`
-- Docs: [Boto3 docs](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html)
+### S3-compatible storage (Cloudflare R2)
+- Usage: document file storage (local in dev, R2 in prod)
+- Dev mode: `STORAGE_BACKEND=local`, files in `backend/media/documents/`
+- Prod mode: `STORAGE_BACKEND=s3`, requires `AWS_*` vars
+- Code: `documents/infrastructure/storage.py`
 
 ### Sentry
-- Usage: exception/performance monitoring for Django/Celery (+ frontend DSN env available)
-- Config: `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`
-- Code: `backend/config/settings/base.py`
-- Docs: [Sentry docs](https://docs.sentry.io/)
+- Usage: exception + performance monitoring (backend + frontend)
+- Config: `SENTRY_DSN` (backend), `NEXT_PUBLIC_SENTRY_DSN` (frontend)
+- Currently: empty in dev (not blocking)
+- Code: `config/settings/base.py`

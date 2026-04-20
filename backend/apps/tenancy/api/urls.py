@@ -5,6 +5,7 @@ DocPilot AI — Tenancy API URLs
 from django.urls import path
 
 from apps.tenancy.api.views import (
+    KnowledgeSpaceDetailView,
     KnowledgeSpacesListView,
     MemberDetailView,
     MembersListView,
@@ -31,4 +32,5 @@ urlpatterns = [
 
     # Knowledge spaces
     path("<uuid:tenant_id>/spaces/", KnowledgeSpacesListView.as_view(), name="tenant-spaces"),
+    path("<uuid:tenant_id>/spaces/<uuid:space_id>/", KnowledgeSpaceDetailView.as_view(), name="tenant-space-detail"),
 ]

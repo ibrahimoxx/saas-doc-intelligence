@@ -60,8 +60,8 @@ python manage.py migrate
 # Create superuser
 python manage.py createsuperuser
 
-# Seed dev data (when available)
-python manage.py seed_dev
+# Seed dev data
+python scripts/seed_dev.py
 
 # Run server
 python manage.py runserver
@@ -105,7 +105,7 @@ celery -A workers.celery_app beat --loglevel=info
 ### Backend (.env)
 ```env
 # Database
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/docpilot_dev
+DATABASE_URL=postgres://postgres:postgres@localhost:5433/docpilot_dev
 
 # Redis
 REDIS_URL=redis://localhost:6379/0

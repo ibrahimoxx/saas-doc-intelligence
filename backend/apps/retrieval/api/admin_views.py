@@ -87,7 +87,7 @@ class AdminRecentQueriesView(views.APIView):
                 "user_email": query.user.email if query.user else "Anonymous",
                 "question": query.question,
                 "answer_preview": query.answer[:150] + "..." if len(query.answer) > 150 else query.answer,
-                "model_used": query.model_used,
+                "model_used": query.model_name,
                 "total_tokens": query.total_tokens,
                 "created_at": query.created_at.isoformat(),
             })

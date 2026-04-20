@@ -23,7 +23,7 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     const res = await login(form.email, form.password);
-    if (!res.success) setError(res.error || "Identifiants invalides.");
+    if (!res.ok) setError(res.error || "Identifiants invalides.");
     setLoading(false);
   };
 

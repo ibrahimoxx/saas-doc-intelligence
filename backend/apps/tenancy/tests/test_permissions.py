@@ -11,7 +11,7 @@ class TestPermissions(APITestCase):
     """Test RBAC roles inside a tenant."""
 
     def setUp(self):
-        self.tenant = Tenant.objects.create(name="Test Tenant")
+        self.tenant = Tenant.objects.create(name="Test Tenant", slug="test-tenant")
         
         # Create Owner
         self.owner = User.objects.create_user(email="owner@test.com", password="password123")

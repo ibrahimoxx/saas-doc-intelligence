@@ -347,6 +347,43 @@ class KnowledgeSpacesListView(APIView):
 
 
 # ===========================
+# Knowledge Space Detail
+# ===========================
+
+class KnowledgeSpaceDetailView(APIView):
+    """
+    DELETE /api/v1/tenants/{tenant_id}/spaces/{space_id}/  — Soft-delete a knowledge space (admin+)
+    """
+
+    permission_classes = [permissions.IsAuthenticated, IsTenantAdmin]
+
+    def delete(self, request, tenant_id, space_id):
+        try:
+            space = KnowledgeSpace.objects.get(id=space_id, tenant_id=tenant_id, is_active=True)
+        except KnowledgeSpace.DoesNotExist:
+            return Response(
+                {"error": {"code": "not_found", "message": "Espace de connaissance non trouvé."}},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if space.slug == "general":
+            return Response(
+                {"error": {"code": "forbidden", "message": "L'espace par défaut ne peut pas être supprimé."}},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        space.is_active = False
+        space.save(update_fields=["is_active", "updated_at"])
+
+        logger.info(
+            "Knowledge space deleted",
+            extra={"tenant_id": str(tenant_id), "space_id": str(space_id), "user_id": str(request.user.id)},
+        )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ===========================
 # Tenant Summary (Dashboard Stats)
 # ===========================
 

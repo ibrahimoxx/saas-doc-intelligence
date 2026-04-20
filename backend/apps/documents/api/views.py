@@ -3,7 +3,9 @@ DocPilot AI — Documents API Views
 """
 
 import logging
+import os
 
+from django.http import FileResponse
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -262,3 +264,73 @@ class DocumentStatusView(APIView):
             },
             "jobs": DocumentProcessingJobSerializer(jobs, many=True).data,
         })
+
+
+class DocumentDownloadView(APIView):
+    """
+    GET /api/v1/tenants/{tenant_id}/documents/{document_id}/download/
+
+    Serve document file directly (local storage) or return presigned URL (S3/R2).
+    Requires tenant membership — enforces ownership boundary.
+    """
+
+    permission_classes = [permissions.IsAuthenticated, IsTenantMember]
+
+    def get(self, request, tenant_id, document_id):
+        try:
+            document = Document.objects.select_related("knowledge_space").prefetch_related("versions").get(
+                id=document_id, tenant_id=tenant_id
+            )
+        except Document.DoesNotExist:
+            return Response(
+                {"error": {"code": "not_found", "message": "Document non trouvé."}},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        version = document.current_version
+        if not version:
+            return Response(
+                {"error": {"code": "no_version", "message": "Aucune version disponible pour ce document."}},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if storage.backend == "local":
+            if not os.path.exists(version.file_path):
+                return Response(
+                    {"error": {"code": "file_missing", "message": "Fichier introuvable sur le serveur."}},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            file_handle = open(version.file_path, "rb")  # noqa: WPS515 — FileResponse closes it
+            response = FileResponse(file_handle, content_type=version.mime_type or "application/octet-stream")
+            response["Content-Disposition"] = f'attachment; filename="{version.file_name}"'
+            return response
+
+        # S3/R2 mode — generate a presigned URL
+        import boto3
+        from django.conf import settings as django_settings
+
+        try:
+            s3_client = boto3.client(
+                "s3",
+                endpoint_url=django_settings.AWS_S3_ENDPOINT_URL or None,
+                aws_access_key_id=django_settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=django_settings.AWS_SECRET_ACCESS_KEY,
+                region_name=django_settings.AWS_S3_REGION_NAME,
+            )
+            key = version.file_path.replace(f"s3://{django_settings.AWS_STORAGE_BUCKET_NAME}/", "")
+            url = s3_client.generate_presigned_url(
+                "get_object",
+                Params={
+                    "Bucket": django_settings.AWS_STORAGE_BUCKET_NAME,
+                    "Key": key,
+                    "ResponseContentDisposition": f'attachment; filename="{version.file_name}"',
+                },
+                ExpiresIn=300,
+            )
+            return Response({"download_url": url})
+        except Exception as e:
+            logger.error(f"Failed to generate presigned URL for document {document_id}: {e}")
+            return Response(
+                {"error": {"code": "storage_error", "message": "Impossible de générer le lien de téléchargement."}},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

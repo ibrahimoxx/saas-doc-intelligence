@@ -24,9 +24,9 @@ import {
 import { format } from "date-fns";
 
 const STATUS_CONFIG = {
-  pending: { label: "EN ATTENTE", icon: Clock, color: "text-amber-400", bg: "bg-amber-500/5", border: "border-amber-500/10" },
+  queued: { label: "EN ATTENTE", icon: Clock, color: "text-amber-400", bg: "bg-amber-500/5", border: "border-amber-500/10" },
   processing: { label: "INDEXATION", icon: Loader2, color: "text-blue-400", bg: "bg-blue-500/5", border: "border-blue-500/10" },
-  completed: { label: "PRÊT", icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-500/5", border: "border-emerald-500/10" },
+  indexed: { label: "PRÊT", icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-500/5", border: "border-emerald-500/10" },
   failed: { label: "ERREUR", icon: AlertCircle, color: "text-red-400", bg: "bg-red-500/5", border: "border-red-500/10" },
 };
 
@@ -110,6 +110,29 @@ function DocumentsContent() {
     if (!selectedTenant || !currentSpaceId || !confirm("Supprimer ce document ?")) return;
     await tenantService.deleteDocument(selectedTenant, currentSpaceId, docId);
     loadDocs();
+    setOpenMenuId(null);
+  };
+
+  const handleDownload = async (docId: string, fileName: string) => {
+    const token = localStorage.getItem("access_token");
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+    const res = await fetch(`${apiBase}/tenants/${selectedTenant}/documents/${docId}/download/`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const contentType = res.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      const data = await res.json();
+      if (data.download_url) window.open(data.download_url, "_blank");
+    } else {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName || "document.pdf";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
     setOpenMenuId(null);
   };
 
@@ -217,7 +240,7 @@ function DocumentsContent() {
                
                <div className="space-y-4">
                   {documents.map((doc, i) => {
-                    const status = STATUS_CONFIG[doc.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pending;
+                    const status = STATUS_CONFIG[doc.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.queued;
                     return (
                       <div 
                         key={doc.id}
@@ -270,8 +293,8 @@ function DocumentsContent() {
                                 <div className="space-y-3">
                                    <p className="px-2 pb-3 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 border-b border-white/5 mb-2 text-center">Actions Doc</p>
                                    
-                                   <button 
-                                     onClick={() => window.open(`/api/v1/tenants/${selectedTenant}/knowledge-spaces/${currentSpaceId}/documents/${doc.id}/download/`, '_blank')}
+                                   <button
+                                     onClick={() => handleDownload(doc.id, doc.current_version?.file_name || "document.pdf")}
                                      className="w-full flex items-center gap-4 px-6 py-4 rounded-[20px] hover:bg-white/5 text-slate-300 hover:text-white transition-all duration-500 text-[10px] font-black uppercase tracking-widest text-left hover:scale-[1.02]"
                                    >
                                       <Download className="w-4 h-4 text-indigo-400" />
