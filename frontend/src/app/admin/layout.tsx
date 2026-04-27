@@ -39,10 +39,10 @@ export default function AdminLayout({
   }
 
   const navItems = [
-    { label: "Vue d'ensemble", href: "/admin/dashboard", icon: LayoutDashboard },
-    { label: "Organisations", href: "/admin/tenants", icon: Shield },
-    { label: "Utilisateurs", href: "/admin/users", icon: Users },
-    { label: "Configuration", href: "/admin/settings", icon: Settings },
+    { label: "Vue d'ensemble", href: "/admin/dashboard", icon: LayoutDashboard, available: true },
+    { label: "Organisations", href: null, icon: Shield, available: false },
+    { label: "Utilisateurs", href: null, icon: Users, available: false },
+    { label: "Configuration", href: null, icon: Settings, available: false },
   ];
 
   return (
@@ -66,13 +66,29 @@ export default function AdminLayout({
             <nav className="flex-1 space-y-3">
               {navItems.map((item) => {
                 const active = pathname === item.href;
+                if (!item.available) {
+                  return (
+                    <div
+                      key={item.label}
+                      className="flex items-center gap-4 p-5 rounded-[28px] text-slate-700 cursor-not-allowed whitespace-nowrap"
+                    >
+                      <item.icon className="w-5 h-5 flex-shrink-0" />
+                      {isSidebarOpen && (
+                        <span className="flex-1 flex items-center justify-between">
+                          <span className="font-bold text-[13px] tracking-tight">{item.label}</span>
+                          <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/5 text-slate-600">Bientôt</span>
+                        </span>
+                      )}
+                    </div>
+                  );
+                }
                 return (
                   <Link
                     key={item.href}
-                    href={item.href}
+                    href={item.href!}
                     className={`flex items-center gap-4 p-5 rounded-[28px] transition-all duration-500 whitespace-nowrap ${
-                      active 
-                      ? "bg-white/10 border border-white/10 text-white shadow-xl" 
+                      active
+                      ? "bg-white/10 border border-white/10 text-white shadow-xl"
                       : "text-slate-500 hover:text-white hover:bg-white/[0.05]"
                     }`}
                   >

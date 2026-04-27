@@ -104,6 +104,9 @@ ai_output/
 *.generated.js
 *.generated.py
 *.generated.sh
+backend/scripts/debug/
+backend/run_tests.py
+backend/apps/tenancy/tests/test_permissions.py
 
 # ===========================
 # Misc

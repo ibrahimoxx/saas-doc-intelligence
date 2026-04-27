@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { adminService } from "@/services/admin.service";
+import { adminService, type AdminRecentQuery } from "@/services/admin.service";
 import { 
   Users, 
   Shield, 
@@ -19,19 +19,23 @@ export default function AdminDashboardPage() {
     total_documents: 0,
     total_queries: 0,
   });
+  const [recentQueries, setRecentQueries] = useState<AdminRecentQuery[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Note: service uses getAdminStats, UI was using getStats
-    adminService.getAdminStats().then((res) => {
-      if (res.data && res.data.totals) {
+    Promise.all([
+      adminService.getAdminStats(),
+      adminService.getRecentQueries(),
+    ]).then(([statsRes, queriesRes]) => {
+      if (statsRes.data?.totals) {
         setStats({
-          total_users: res.data.totals.users,
-          total_tenants: res.data.totals.tenants,
-          total_documents: res.data.totals.documents,
-          total_queries: res.data.totals.queries,
+          total_users: statsRes.data.totals.users,
+          total_tenants: statsRes.data.totals.tenants,
+          total_documents: statsRes.data.totals.documents,
+          total_queries: statsRes.data.totals.queries,
         });
       }
+      if (queriesRes.data) setRecentQueries(queriesRes.data);
       setLoading(false);
     });
   }, []);
@@ -103,26 +107,32 @@ export default function AdminDashboardPage() {
          </div>
 
          <div className="space-y-4">
-            {[1, 2, 3].map((_, i) => (
-              <div 
-                key={i} 
+            {recentQueries.length === 0 ? (
+              <div className="fluid-card py-16 text-center text-slate-600 text-[10px] font-black uppercase tracking-widest">
+                Aucune requête enregistrée
+              </div>
+            ) : recentQueries.map((q, i) => (
+              <div
+                key={q.id}
                 className="fluid-card flex items-center justify-between py-8 px-12 hover:-translate-x-1"
                 style={{ animationDelay: `${(i+5)*100}ms` }}
               >
-                 <div className="flex items-center gap-6">
-                    <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center">
-                       <Activity className="w-5 h-5 text-indigo-400" />
-                    </div>
-                    <div>
-                       <p className="text-base font-black text-white">Activité système détectée</p>
-                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">En temps réel • Supervision globale</p>
-                    </div>
-                 </div>
-                 <div className="flex items-center gap-4">
-                    <div className="px-4 py-1.5 rounded-full bg-white/5 border border-white/5 text-[9px] font-black text-slate-500 uppercase">
-                       LOG-CORE
-                    </div>
-                 </div>
+                <div className="flex items-center gap-6 min-w-0">
+                  <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center shrink-0">
+                    <Activity className="w-5 h-5 text-indigo-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-base font-black text-white truncate max-w-xl">{q.question}</p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+                      {q.user_email} • {q.tenant_name}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className="px-4 py-1.5 rounded-full bg-white/5 border border-white/5 text-[9px] font-black text-slate-500 uppercase">
+                    {q.model_used}
+                  </div>
+                </div>
               </div>
             ))}
          </div>
