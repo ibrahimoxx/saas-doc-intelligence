@@ -255,16 +255,42 @@ class MemberDetailView(APIView):
 
         serializer = UpdateMemberRoleSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        new_role = serializer.validated_data["role"]
 
-        target_membership.role = serializer.validated_data["role"]
+        # Only owner or super owner can grant or revoke admin role
+        if new_role == TenantRole.ADMIN or target_membership.role == TenantRole.ADMIN:
+            caller_is_owner = request.user.is_superuser or TenantMembership.objects.filter(
+                tenant_id=tenant_id,
+                user=request.user,
+                role=TenantRole.OWNER,
+                status="active",
+            ).exists()
+            if not caller_is_owner:
+                return Response(
+                    {"error": {"code": "forbidden", "message": "Seul le propriétaire peut accorder ou retirer le rôle d'administrateur."}},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+        old_role = target_membership.role
+        target_membership.role = new_role
         target_membership.save(update_fields=["role", "updated_at"])
+
+        log_action(
+            action=AuditAction.ROLE_GRANTED if new_role > old_role else AuditAction.ROLE_REVOKED,
+            user=request.user,
+            tenant_id=tenant_id,
+            resource="membership",
+            resource_id=str(member_id),
+            details={"old_role": old_role, "new_role": new_role},
+        )
 
         logger.info(
             "Member role changed",
             extra={
                 "tenant_id": tenant_id,
                 "member_id": member_id,
-                "new_role": target_membership.role,
+                "old_role": old_role,
+                "new_role": new_role,
                 "by_user_id": str(request.user.id),
             },
         )

@@ -86,6 +86,52 @@ class IsTenantManager(permissions.BasePermission):
         ).exists()
 
 
+class IsTenantOwner(permissions.BasePermission):
+    """
+    Permission: user must be the owner of the tenant (not just admin).
+    Used for operations only owners can perform, e.g. granting admin role.
+    Super owners (is_superuser=True) always pass.
+    """
+
+    message = "Accès réservé au propriétaire de l'organisation."
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+
+        if request.user.is_superuser:
+            return True
+
+        tenant_id = view.kwargs.get("tenant_id")
+        if not tenant_id:
+            return False
+
+        from apps.tenancy.models import TenantMembership
+
+        return TenantMembership.objects.filter(
+            tenant_id=tenant_id,
+            user=request.user,
+            role="owner",
+            status="active",
+        ).exists()
+
+
+class IsSuperOwner(permissions.BasePermission):
+    """
+    Permission: user must be a platform super owner (is_superuser=True).
+    Used for platform-wide admin operations.
+    """
+
+    message = "Accès réservé aux super administrateurs de la plateforme."
+
+    def has_permission(self, request, view):
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and request.user.is_superuser
+        )
+
+
 def get_user_tenant_role(user, tenant_id) -> str | None:
     """
     Get the user's role in a specific tenant.

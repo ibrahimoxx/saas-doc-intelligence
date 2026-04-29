@@ -183,8 +183,24 @@ class AuditAction:
     SPACE_PROFILE_ASSIGNED = "space_profile_assigned"
     SPACE_PROFILE_REMOVED = "space_profile_removed"
 
+    # Roles
+    ROLE_GRANTED = "role_granted"
+    ROLE_REVOKED = "role_revoked"
+
+    # User lifecycle
+    USER_ACTIVATED = "user_activated"
+    USER_DEACTIVATED = "user_deactivated"
+
+    # Invitations
+    INVITATION_SENT = "invitation_sent"
+    INVITATION_ACCEPTED = "invitation_accepted"
+    INVITATION_REVOKED = "invitation_revoked"
+
     # Admin
     ADMIN_ACTION = "admin_action"
+    TENANT_CREATED_BY_SUPER = "tenant_created_by_super"
+    TENANT_SUSPENDED = "tenant_suspended"
+    MEMBERSHIP_DISABLED = "membership_disabled"
 
 
 # ===========================
