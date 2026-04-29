@@ -100,3 +100,74 @@ def get_user_tenant_role(user, tenant_id) -> str | None:
     ).first()
 
     return membership.role if membership else None
+
+
+def user_can_access_space(user, tenant_id, space_id) -> bool:
+    """
+    Return True if user is allowed to access the given knowledge space.
+
+    Rules (in order):
+    1. Must be an active tenant member.
+    2. Admins and owners always bypass — they see all spaces.
+    3. Members need either a direct grant OR a profile that includes the space.
+       No grants = no access. ACL is always enforced.
+    """
+    from apps.core.constants import TenantRole
+    from apps.tenancy.models import TenantMembership, UserSpaceAccess, UserSpaceProfile
+
+    membership = TenantMembership.objects.filter(
+        tenant_id=tenant_id, user=user, status="active"
+    ).first()
+
+    if not membership:
+        return False
+
+    if membership.role in TenantRole.ADMIN_ROLES:
+        return True
+
+    if UserSpaceAccess.objects.filter(
+        tenant_id=tenant_id, user=user, space_id=space_id
+    ).exists():
+        return True
+
+    return UserSpaceProfile.objects.filter(
+        tenant_id=tenant_id, user=user, profile__spaces__id=space_id
+    ).exists()
+
+
+def get_accessible_spaces(user, tenant_id):
+    """
+    Return a QuerySet of KnowledgeSpace the user can access in this tenant.
+
+    Admins/owners get all active spaces.
+    Members get only spaces they have a direct grant or profile grant for.
+    No grants = empty queryset. ACL is always enforced.
+    """
+    from apps.core.constants import TenantRole
+    from apps.tenancy.models import (
+        KnowledgeSpace,
+        TenantMembership,
+        UserSpaceAccess,
+        UserSpaceProfile,
+    )
+
+    membership = TenantMembership.objects.filter(
+        tenant_id=tenant_id, user=user, status="active"
+    ).first()
+
+    if not membership:
+        return KnowledgeSpace.objects.none()
+
+    if membership.role in TenantRole.ADMIN_ROLES:
+        return KnowledgeSpace.objects.filter(tenant_id=tenant_id, is_active=True)
+
+    direct_ids = UserSpaceAccess.objects.filter(
+        tenant_id=tenant_id, user=user
+    ).values_list("space_id", flat=True)
+
+    profile_ids = UserSpaceProfile.objects.filter(
+        tenant_id=tenant_id, user=user
+    ).values_list("profile__spaces__id", flat=True)
+
+    space_ids = set(direct_ids) | set(filter(None, profile_ids))
+    return KnowledgeSpace.objects.filter(id__in=space_ids, is_active=True)

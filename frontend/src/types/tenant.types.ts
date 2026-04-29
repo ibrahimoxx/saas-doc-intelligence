@@ -47,6 +47,29 @@ export interface TenantPermissions {
   can_delete_documents: boolean;
   can_manage_members: boolean;
   can_view_admin: boolean;
+  accessible_space_ids: string[];
+}
+
+export interface SpaceAccessProfile {
+  id: string;
+  name: string;
+  description: string;
+  spaces: KnowledgeSpace[];
+  created_at: string;
+}
+
+export interface UserSpaceAccess {
+  id: string;
+  space: KnowledgeSpace;
+  granted_by: { id: string; email: string; full_name: string } | null;
+  created_at: string;
+}
+
+export interface UserSpaceProfileAssignment {
+  id: string;
+  profile: SpaceAccessProfile;
+  granted_by: { id: string; email: string; full_name: string } | null;
+  created_at: string;
 }
 
 export interface DocumentVersion {

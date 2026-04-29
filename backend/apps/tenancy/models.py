@@ -1,7 +1,7 @@
 """
 DocPilot AI — Tenancy Models
 
-Tenant, TenantMembership, KnowledgeSpace.
+Tenant, TenantMembership, KnowledgeSpace, SpaceAccessProfile, UserSpaceAccess, UserSpaceProfile.
 """
 
 from django.conf import settings
@@ -100,3 +100,117 @@ class KnowledgeSpace(BaseUUIDModel, SoftDeleteModel):
 
     def __str__(self):
         return f"{self.name} ({self.tenant.name})"
+
+
+class SpaceAccessProfile(BaseUUIDModel):
+    """
+    Reusable permission profile that bundles access to N knowledge spaces.
+    Admins create profiles, then assign them to multiple users.
+    """
+
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="space_profiles",
+    )
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, default="")
+    spaces = models.ManyToManyField(
+        KnowledgeSpace,
+        related_name="profiles",
+        blank=True,
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_space_profiles",
+    )
+
+    class Meta:
+        db_table = "space_access_profiles"
+        unique_together = [("tenant", "name")]
+        verbose_name = "Profil d'accès aux espaces"
+        verbose_name_plural = "Profils d'accès aux espaces"
+
+    def __str__(self):
+        return f"{self.name} ({self.tenant.name})"
+
+
+class UserSpaceAccess(BaseUUIDModel):
+    """
+    Direct user → space grant.
+    Gives a specific user access to a specific knowledge space.
+    """
+
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="space_accesses",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="space_accesses",
+    )
+    space = models.ForeignKey(
+        KnowledgeSpace,
+        on_delete=models.CASCADE,
+        related_name="direct_accesses",
+    )
+    granted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="granted_space_accesses",
+    )
+
+    class Meta:
+        db_table = "user_space_accesses"
+        unique_together = [("tenant", "user", "space")]
+        verbose_name = "Accès direct à un espace"
+        verbose_name_plural = "Accès directs aux espaces"
+
+    def __str__(self):
+        return f"{self.user.email} → {self.space.name}"
+
+
+class UserSpaceProfile(BaseUUIDModel):
+    """
+    User → SpaceAccessProfile assignment.
+    Assigns a reusable profile to a user, granting them all spaces in that profile.
+    """
+
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="user_space_profiles",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="space_profile_assignments",
+    )
+    profile = models.ForeignKey(
+        SpaceAccessProfile,
+        on_delete=models.CASCADE,
+        related_name="user_assignments",
+    )
+    granted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="granted_space_profiles",
+    )
+
+    class Meta:
+        db_table = "user_space_profiles"
+        unique_together = [("tenant", "user", "profile")]
+        verbose_name = "Profil assigné à un utilisateur"
+        verbose_name_plural = "Profils assignés aux utilisateurs"
+
+    def __str__(self):
+        return f"{self.user.email} → {self.profile.name}"

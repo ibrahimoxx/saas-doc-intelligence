@@ -11,8 +11,12 @@ from apps.tenancy.api.views import (
     MembersListView,
     MyPermissionsView,
     MyTenantsView,
+    SpaceProfileDetailView,
+    SpaceProfileListView,
     TenantDetailView,
     TenantSummaryView,
+    UserSpaceAccessView,
+    UserSpaceProfileView,
 )
 
 urlpatterns = [
@@ -30,7 +34,41 @@ urlpatterns = [
     path("<uuid:tenant_id>/members/", MembersListView.as_view(), name="tenant-members"),
     path("<uuid:tenant_id>/members/<uuid:member_id>/", MemberDetailView.as_view(), name="tenant-member-detail"),
 
-    # Knowledge spaces
+    # User direct space access
+    path(
+        "<uuid:tenant_id>/members/<uuid:member_id>/space-access/",
+        UserSpaceAccessView.as_view(),
+        name="user-space-access",
+    ),
+    path(
+        "<uuid:tenant_id>/members/<uuid:member_id>/space-access/<uuid:space_id>/",
+        UserSpaceAccessView.as_view(),
+        name="user-space-access-detail",
+    ),
+
+    # User space profile assignments
+    path(
+        "<uuid:tenant_id>/members/<uuid:member_id>/space-profiles/",
+        UserSpaceProfileView.as_view(),
+        name="user-space-profiles",
+    ),
+    path(
+        "<uuid:tenant_id>/members/<uuid:member_id>/space-profiles/<uuid:profile_id>/",
+        UserSpaceProfileView.as_view(),
+        name="user-space-profile-detail",
+    ),
+
+    # Knowledge spaces (list + create)
     path("<uuid:tenant_id>/spaces/", KnowledgeSpacesListView.as_view(), name="tenant-spaces"),
+
+    # Knowledge space detail (GET detail, PATCH update, DELETE soft-delete)
     path("<uuid:tenant_id>/spaces/<uuid:space_id>/", KnowledgeSpaceDetailView.as_view(), name="tenant-space-detail"),
+
+    # Space access profiles
+    path("<uuid:tenant_id>/space-profiles/", SpaceProfileListView.as_view(), name="space-profiles"),
+    path(
+        "<uuid:tenant_id>/space-profiles/<uuid:profile_id>/",
+        SpaceProfileDetailView.as_view(),
+        name="space-profile-detail",
+    ),
 ]

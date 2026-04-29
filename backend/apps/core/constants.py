@@ -175,6 +175,14 @@ class AuditAction:
     # RAG
     QUESTION_ASKED = "question_asked"
 
+    # Space ACL
+    SPACE_ACCESS_GRANTED = "space_access_granted"
+    SPACE_ACCESS_REVOKED = "space_access_revoked"
+    SPACE_PROFILE_CREATED = "space_profile_created"
+    SPACE_PROFILE_DELETED = "space_profile_deleted"
+    SPACE_PROFILE_ASSIGNED = "space_profile_assigned"
+    SPACE_PROFILE_REMOVED = "space_profile_removed"
+
     # Admin
     ADMIN_ACTION = "admin_action"
 

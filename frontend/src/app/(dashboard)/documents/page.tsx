@@ -76,7 +76,11 @@ function DocumentsContent() {
     ]);
     if (spacesRes.data) {
       setSpaces(spacesRes.data);
-      if (!currentSpaceId && spacesRes.data.length) setCurrentSpaceId(spacesRes.data[0].id);
+      if (!currentSpaceId && spacesRes.data.length) {
+        setCurrentSpaceId(spacesRes.data[0].id);
+      } else if (!spacesRes.data.length) {
+        setLoading(false);
+      }
     }
     if (permsRes.data) setPermissions(permsRes.data);
   }, [currentSpaceId]);

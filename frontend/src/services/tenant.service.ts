@@ -3,14 +3,17 @@
  */
 
 import { apiClient, type ApiResponse } from "@/lib/api-client";
-import type { 
-  Tenant, 
-  TenantMembership, 
-  TenantPermissions, 
-  KnowledgeSpace, 
+import type {
+  Tenant,
+  TenantMembership,
+  TenantPermissions,
+  KnowledgeSpace,
   TenantMember,
   Document,
-  TenantSummary
+  TenantSummary,
+  SpaceAccessProfile,
+  UserSpaceAccess,
+  UserSpaceProfileAssignment,
 } from "@/types/tenant.types";
 
 export const tenantService = {
@@ -103,5 +106,68 @@ export const tenantService = {
   /** Get tenant summary statistics. */
   async getTenantSummary(tenantId: string): Promise<ApiResponse<TenantSummary>> {
     return apiClient.get(`/tenants/${tenantId}/summary/`);
+  },
+
+  // SPACE ACCESS PROFILES
+
+  /** List all space access profiles for a tenant. */
+  async listSpaceProfiles(tenantId: string): Promise<ApiResponse<SpaceAccessProfile[]>> {
+    return apiClient.get(`/tenants/${tenantId}/space-profiles/`);
+  },
+
+  /** Create a space access profile. */
+  async createSpaceProfile(
+    tenantId: string,
+    data: { name: string; description?: string; space_ids?: string[] }
+  ): Promise<ApiResponse<SpaceAccessProfile>> {
+    return apiClient.post(`/tenants/${tenantId}/space-profiles/`, data);
+  },
+
+  /** Update a space access profile. */
+  async updateSpaceProfile(
+    tenantId: string,
+    profileId: string,
+    data: { name?: string; description?: string; space_ids?: string[] }
+  ): Promise<ApiResponse<SpaceAccessProfile>> {
+    return apiClient.patch(`/tenants/${tenantId}/space-profiles/${profileId}/`, data);
+  },
+
+  /** Delete a space access profile. */
+  async deleteSpaceProfile(tenantId: string, profileId: string): Promise<ApiResponse<null>> {
+    return apiClient.delete(`/tenants/${tenantId}/space-profiles/${profileId}/`);
+  },
+
+  // USER SPACE ACCESS (direct grants)
+
+  /** List direct space grants for a member. */
+  async getUserSpaceAccess(tenantId: string, memberId: string): Promise<ApiResponse<UserSpaceAccess[]>> {
+    return apiClient.get(`/tenants/${tenantId}/members/${memberId}/space-access/`);
+  },
+
+  /** Grant a member direct access to a space. */
+  async grantSpaceAccess(tenantId: string, memberId: string, spaceId: string): Promise<ApiResponse<UserSpaceAccess>> {
+    return apiClient.post(`/tenants/${tenantId}/members/${memberId}/space-access/`, { space_id: spaceId });
+  },
+
+  /** Revoke a member's direct access to a space. */
+  async revokeSpaceAccess(tenantId: string, memberId: string, spaceId: string): Promise<ApiResponse<null>> {
+    return apiClient.delete(`/tenants/${tenantId}/members/${memberId}/space-access/${spaceId}/`);
+  },
+
+  // USER SPACE PROFILE ASSIGNMENTS
+
+  /** List profiles assigned to a member. */
+  async getUserSpaceProfiles(tenantId: string, memberId: string): Promise<ApiResponse<UserSpaceProfileAssignment[]>> {
+    return apiClient.get(`/tenants/${tenantId}/members/${memberId}/space-profiles/`);
+  },
+
+  /** Assign a profile to a member. */
+  async assignSpaceProfile(tenantId: string, memberId: string, profileId: string): Promise<ApiResponse<UserSpaceProfileAssignment>> {
+    return apiClient.post(`/tenants/${tenantId}/members/${memberId}/space-profiles/`, { profile_id: profileId });
+  },
+
+  /** Remove a profile from a member. */
+  async removeSpaceProfile(tenantId: string, memberId: string, profileId: string): Promise<ApiResponse<null>> {
+    return apiClient.delete(`/tenants/${tenantId}/members/${memberId}/space-profiles/${profileId}/`);
   },
 };

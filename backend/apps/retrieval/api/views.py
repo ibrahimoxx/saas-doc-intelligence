@@ -11,7 +11,7 @@ from rest_framework.views import APIView
 
 from apps.audit_observability.services import log_action
 from apps.core.constants import AuditAction, QueryStatus
-from apps.core.permissions import IsTenantMember
+from apps.core.permissions import IsTenantMember, user_can_access_space
 from apps.retrieval.api.serializers import AskQuestionSerializer
 from apps.retrieval.infrastructure.rag_pipeline import ask_question
 from apps.retrieval.infrastructure.vector_search import search_chunks
@@ -36,6 +36,12 @@ class AskView(APIView):
 
         question = serializer.validated_data["question"]
         knowledge_space_id = serializer.validated_data.get("knowledge_space_id")
+
+        if knowledge_space_id and not user_can_access_space(request.user, tenant_id, knowledge_space_id):
+            return Response(
+                {"error": {"code": "forbidden", "message": "Accès à cet espace non autorisé."}},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         start_time = time.time()
 

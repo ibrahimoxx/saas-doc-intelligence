@@ -20,6 +20,7 @@ import {
   MoreVertical,
   Trash2,
   Edit,
+  Layers,
 } from "lucide-react";
 
 function slugify(str: string): string {
@@ -163,15 +164,26 @@ export default function EspacesPage() {
             </p>
           </div>
           
-          {permissions?.can_upload && (
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="btn-magnetic flex items-center gap-4 group interactive-premium"
-            >
-              <PlusIcon className="w-5 h-5 group-hover:rotate-90 transition-transform duration-500" />
-              <span>Initialiser un Espace</span>
-            </button>
-          )}
+          <div className="flex items-center gap-4">
+            {(permissions?.role === 'admin' || permissions?.role === 'owner') && (
+              <button
+                onClick={() => router.push("/espaces/profiles")}
+                className="flex items-center gap-3 px-6 py-4 rounded-3xl bg-white/5 border border-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all text-[10px] font-black uppercase tracking-widest interactive-premium"
+              >
+                <Layers className="w-4 h-4 text-purple-400" />
+                <span>Profils d'Accès</span>
+              </button>
+            )}
+            {permissions?.can_upload && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="btn-magnetic flex items-center gap-4 group interactive-premium"
+              >
+                <PlusIcon className="w-5 h-5 group-hover:rotate-90 transition-transform duration-500" />
+                <span>Initialiser un Espace</span>
+              </button>
+            )}
+          </div>
         </section>
 
         {/* Dynamic Grid */}

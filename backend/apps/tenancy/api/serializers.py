@@ -5,7 +5,14 @@ DocPilot AI — Tenancy Serializers
 from rest_framework import serializers
 
 from apps.identity_access.api.serializers import UserProfileSerializer
-from apps.tenancy.models import KnowledgeSpace, Tenant, TenantMembership
+from apps.tenancy.models import (
+    KnowledgeSpace,
+    SpaceAccessProfile,
+    Tenant,
+    TenantMembership,
+    UserSpaceAccess,
+    UserSpaceProfile,
+)
 
 
 class TenantSerializer(serializers.ModelSerializer):
@@ -102,3 +109,50 @@ class TenantPermissionsSerializer(serializers.Serializer):
     can_delete_documents = serializers.BooleanField()
     can_manage_members = serializers.BooleanField()
     can_view_admin = serializers.BooleanField()
+    accessible_space_ids = serializers.ListField(child=serializers.UUIDField())
+
+
+class SpaceAccessProfileSerializer(serializers.ModelSerializer):
+    """Space access profile with its spaces."""
+
+    spaces = KnowledgeSpaceSerializer(many=True, read_only=True)
+    space_ids = serializers.ListField(
+        child=serializers.UUIDField(), write_only=True, required=False, default=list
+    )
+
+    class Meta:
+        model = SpaceAccessProfile
+        fields = ["id", "name", "description", "spaces", "space_ids", "created_at"]
+        read_only_fields = ["id", "created_at", "spaces"]
+
+
+class SpaceAccessProfileCreateSerializer(serializers.Serializer):
+    """Create or update a space access profile."""
+
+    name = serializers.CharField(max_length=255)
+    description = serializers.CharField(allow_blank=True, default="")
+    space_ids = serializers.ListField(child=serializers.UUIDField(), default=list)
+
+
+class UserSpaceAccessSerializer(serializers.ModelSerializer):
+    """Direct user → space grant."""
+
+    space = KnowledgeSpaceSerializer(read_only=True)
+    granted_by = UserProfileSerializer(read_only=True)
+
+    class Meta:
+        model = UserSpaceAccess
+        fields = ["id", "space", "granted_by", "created_at"]
+        read_only_fields = fields
+
+
+class UserSpaceProfileSerializer(serializers.ModelSerializer):
+    """Profile assignment for a user."""
+
+    profile = SpaceAccessProfileSerializer(read_only=True)
+    granted_by = UserProfileSerializer(read_only=True)
+
+    class Meta:
+        model = UserSpaceProfile
+        fields = ["id", "profile", "granted_by", "created_at"]
+        read_only_fields = fields

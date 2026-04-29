@@ -5,7 +5,15 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { tenantService } from "@/services/tenant.service";
-import type { TenantMembership, TenantMember, TenantPermissions } from "@/types/tenant.types";
+import type {
+  TenantMembership,
+  TenantMember,
+  TenantPermissions,
+  KnowledgeSpace,
+  SpaceAccessProfile,
+  UserSpaceAccess,
+  UserSpaceProfileAssignment,
+} from "@/types/tenant.types";
 import { TopBar } from "@/components/layout/TopBar";
 import {
   Users,
@@ -16,9 +24,14 @@ import {
   X,
   Mail,
   Loader2,
-  AlertCircle,
   Trash2,
   Edit,
+  ChevronDown,
+  ChevronUp,
+  Key,
+  Layers,
+  Plus,
+  Check,
 } from "lucide-react";
 
 const ROLE_COLORS = {
@@ -44,6 +57,14 @@ export default function MembresPage() {
   const [inviteError, setInviteError] = useState<string | null>(null);
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  // Space ACL state
+  const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
+  const [spaces, setSpaces] = useState<KnowledgeSpace[]>([]);
+  const [profiles, setProfiles] = useState<SpaceAccessProfile[]>([]);
+  const [memberAccesses, setMemberAccesses] = useState<Record<string, UserSpaceAccess[]>>({});
+  const [memberProfiles, setMemberProfiles] = useState<Record<string, UserSpaceProfileAssignment[]>>({});
+  const [aclLoading, setAclLoading] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push("/login");
@@ -119,6 +140,55 @@ export default function MembresPage() {
     return () => window.removeEventListener("click", handleClickOutside);
   }, []);
 
+  const loadAclData = useCallback(async (memberId: string, userId: string) => {
+    if (!selectedTenantId) return;
+    setAclLoading(memberId);
+    const [accessRes, profileRes, spacesRes, allProfilesRes] = await Promise.all([
+      tenantService.getUserSpaceAccess(selectedTenantId, memberId),
+      tenantService.getUserSpaceProfiles(selectedTenantId, memberId),
+      tenantService.knowledgeSpaces(selectedTenantId),
+      tenantService.listSpaceProfiles(selectedTenantId),
+    ]);
+    if (accessRes.data) setMemberAccesses(prev => ({ ...prev, [memberId]: accessRes.data! }));
+    if (profileRes.data) setMemberProfiles(prev => ({ ...prev, [memberId]: profileRes.data! }));
+    if (spacesRes.data) setSpaces(spacesRes.data);
+    if (allProfilesRes.data) setProfiles(allProfilesRes.data);
+    setAclLoading(null);
+  }, [selectedTenantId]);
+
+  const toggleExpand = async (member: TenantMember) => {
+    if (expandedMemberId === member.id) {
+      setExpandedMemberId(null);
+      return;
+    }
+    setExpandedMemberId(member.id);
+    await loadAclData(member.id, member.user.id);
+  };
+
+  const handleGrantAccess = async (memberId: string, spaceId: string) => {
+    if (!selectedTenantId) return;
+    await tenantService.grantSpaceAccess(selectedTenantId, memberId, spaceId);
+    await loadAclData(memberId, "");
+  };
+
+  const handleRevokeAccess = async (memberId: string, spaceId: string) => {
+    if (!selectedTenantId) return;
+    await tenantService.revokeSpaceAccess(selectedTenantId, memberId, spaceId);
+    await loadAclData(memberId, "");
+  };
+
+  const handleAssignProfile = async (memberId: string, profileId: string) => {
+    if (!selectedTenantId) return;
+    await tenantService.assignSpaceProfile(selectedTenantId, memberId, profileId);
+    await loadAclData(memberId, "");
+  };
+
+  const handleRemoveProfile = async (memberId: string, profileId: string) => {
+    if (!selectedTenantId) return;
+    await tenantService.removeSpaceProfile(selectedTenantId, memberId, profileId);
+    await loadAclData(memberId, "");
+  };
+
   const handleLogout = async () => {
     await logout();
     router.push("/login");
@@ -192,11 +262,12 @@ export default function MembresPage() {
 
                 <div className="space-y-4">
                    {members.map((m, i) => (
-                     <div 
+                     <div
                        key={m.id}
-                       className={`fluid-card grid grid-cols-12 items-center py-8 group ${openMenuId === m.id ? 'z-top-layer overflow-visible' : ''}`}
-                       style={{ animationDelay: `${(i+1)*50}ms`, padding: '1.5rem 2.5rem' }}
+                       className="fluid-card group"
+                       style={{ animationDelay: `${(i+1)*50}ms` }}
                      >
+                     <div className={`grid grid-cols-12 items-center py-8 ${openMenuId === m.id ? 'z-top-layer overflow-visible' : ''}`} style={{ padding: '1.5rem 2.5rem' }}>
                         <div className="col-span-6 flex items-center gap-6">
                            <div className="w-14 h-14 rounded-2xl bg-gradient-brand flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform duration-500">
                               <span className="text-lg font-black text-white">{m.user.email[0].toUpperCase()}</span>
@@ -224,8 +295,15 @@ export default function MembresPage() {
                         </div>
 
                         {permissions?.can_manage_members && (
-                          <div className="col-span-1 flex justify-end relative">
-                            <button 
+                          <div className="col-span-1 flex justify-end items-center gap-3 relative">
+                            <button
+                              onClick={() => toggleExpand(m)}
+                              className={`glass-trigger ${expandedMemberId === m.id ? 'glass-trigger-active' : ''}`}
+                              title="Gérer l'accès aux espaces"
+                            >
+                              <Key className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setOpenMenuId(openMenuId === m.id ? null : m.id);
@@ -236,24 +314,24 @@ export default function MembresPage() {
                             </button>
 
                             {openMenuId === m.id && (
-                              <div 
+                              <div
                                 className="absolute right-0 top-full mt-4 w-64 bg-[#0f172a] border border-white/10 rounded-[40px] p-6 shadow-2xl z-50 animate-fluid-in backdrop-blur-3xl"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                  <div className="space-y-3">
                                     <p className="px-2 pb-3 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 border-b border-white/5 mb-2 text-center">Gestion Membre</p>
-                                    
+
                                     {m.role !== 'owner' && (
                                        <>
-                                          <button 
+                                          <button
                                             onClick={() => handleUpdateRole(m.id, m.role === 'admin' ? 'member' : 'admin')}
                                             className="w-full flex items-center gap-4 px-6 py-4 rounded-[20px] hover:bg-white/5 text-slate-300 hover:text-white transition-all duration-500 text-[10px] font-black uppercase tracking-widest text-left hover:scale-[1.02]"
                                           >
                                              <Edit className="w-4 h-4 text-indigo-400" />
                                              <span>Passer en {m.role === 'admin' ? 'Membre' : 'Admin'}</span>
                                           </button>
-                                          
-                                          <button 
+
+                                          <button
                                             onClick={() => handleRemoveMember(m.id)}
                                             className="w-full flex items-center gap-4 px-6 py-4 rounded-[20px] hover:bg-red-500/5 text-red-400 hover:text-red-300 transition-all duration-500 text-[10px] font-black uppercase tracking-widest text-left hover:scale-[1.02]"
                                           >
@@ -270,6 +348,78 @@ export default function MembresPage() {
                             )}
                           </div>
                         )}
+                     </div>
+
+                     {/* Space ACL Panel */}
+                     {expandedMemberId === m.id && (
+                       <div className="mt-4 mx-6 mb-6 p-8 rounded-[32px] bg-white/[0.02] border border-white/5 space-y-8 animate-fluid-in">
+                         {aclLoading === m.id ? (
+                           <div className="flex items-center justify-center py-8">
+                             <Loader2 className="w-6 h-6 animate-spin text-indigo-400" />
+                           </div>
+                         ) : (
+                           <>
+                             {/* Direct space access */}
+                             <div className="space-y-4">
+                               <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-2">
+                                 <Key className="w-3 h-3 text-indigo-400" /> Accès directs aux espaces
+                               </p>
+                               <div className="flex flex-wrap gap-3">
+                                 {spaces.map((space) => {
+                                   const hasAccess = memberAccesses[m.id]?.some(a => a.space.id === space.id);
+                                   return (
+                                     <button
+                                       key={space.id}
+                                       onClick={() => hasAccess ? handleRevokeAccess(m.id, space.id) : handleGrantAccess(m.id, space.id)}
+                                       className={`flex items-center gap-2 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all interactive-premium ${
+                                         hasAccess
+                                           ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-400"
+                                           : "bg-white/5 border-white/5 text-slate-500 hover:text-white hover:border-white/20"
+                                       }`}
+                                     >
+                                       {hasAccess && <Check className="w-3 h-3" />}
+                                       {space.name}
+                                     </button>
+                                   );
+                                 })}
+                                 {spaces.length === 0 && (
+                                   <p className="text-[10px] text-slate-600">Aucun espace disponible.</p>
+                                 )}
+                               </div>
+                             </div>
+
+                             {/* Profile assignments */}
+                             <div className="space-y-4 pt-4 border-t border-white/5">
+                               <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-2">
+                                 <Layers className="w-3 h-3 text-purple-400" /> Profils assignés
+                               </p>
+                               <div className="flex flex-wrap gap-3">
+                                 {profiles.map((profile) => {
+                                   const isAssigned = memberProfiles[m.id]?.some(a => a.profile.id === profile.id);
+                                   return (
+                                     <button
+                                       key={profile.id}
+                                       onClick={() => isAssigned ? handleRemoveProfile(m.id, profile.id) : handleAssignProfile(m.id, profile.id)}
+                                       className={`flex items-center gap-2 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all interactive-premium ${
+                                         isAssigned
+                                           ? "bg-purple-500/10 border-purple-500/30 text-purple-400"
+                                           : "bg-white/5 border-white/5 text-slate-500 hover:text-white hover:border-white/20"
+                                       }`}
+                                     >
+                                       {isAssigned && <Check className="w-3 h-3" />}
+                                       {profile.name}
+                                     </button>
+                                   );
+                                 })}
+                                 {profiles.length === 0 && (
+                                   <p className="text-[10px] text-slate-600">Aucun profil créé. Créez-en un dans la page Espaces.</p>
+                                 )}
+                               </div>
+                             </div>
+                           </>
+                         )}
+                       </div>
+                     )}
                      </div>
                    ))}
                 </div>

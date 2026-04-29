@@ -12,7 +12,7 @@ from rest_framework.views import APIView
 
 from apps.audit_observability.services import log_action
 from apps.core.constants import AuditAction, DocumentStatus, JobType
-from apps.core.permissions import IsTenantManager, IsTenantMember
+from apps.core.permissions import IsTenantManager, IsTenantMember, user_can_access_space
 from apps.documents.api.serializers import (
     DocumentProcessingJobSerializer,
     DocumentSerializer,
@@ -43,6 +43,12 @@ class DocumentsListView(APIView):
     def get(self, request, tenant_id):
         """List documents for this tenant, optionally filtered by space."""
         space_id = request.query_params.get("space_id")
+
+        if space_id and not user_can_access_space(request.user, tenant_id, space_id):
+            return Response(
+                {"error": {"code": "forbidden", "message": "Accès à cet espace non autorisé."}},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         qs = Document.objects.filter(tenant_id=tenant_id).select_related(
             "knowledge_space", "created_by"
@@ -87,13 +93,19 @@ class DocumentsListView(APIView):
         knowledge_space_id = serializer.validated_data["knowledge_space_id"]
         title = serializer.validated_data.get("title") or file_obj.name
 
-        # Verify knowledge space belongs to this tenant
+        # Verify knowledge space belongs to this tenant and user has access
         try:
             space = KnowledgeSpace.objects.get(id=knowledge_space_id, tenant_id=tenant_id)
         except KnowledgeSpace.DoesNotExist:
             return Response(
                 {"error": {"code": "not_found", "message": "Espace de connaissance non trouvé."}},
                 status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if not user_can_access_space(request.user, tenant_id, knowledge_space_id):
+            return Response(
+                {"error": {"code": "forbidden", "message": "Accès à cet espace non autorisé."}},
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         # Create document
@@ -181,6 +193,12 @@ class DocumentDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        if not user_can_access_space(request.user, tenant_id, document.knowledge_space_id):
+            return Response(
+                {"error": {"code": "forbidden", "message": "Accès à cet espace non autorisé."}},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         serializer = DocumentSerializer(document)
         return Response(serializer.data)
 
@@ -205,6 +223,12 @@ class DocumentDetailView(APIView):
             return Response(
                 {"error": {"code": "not_found", "message": "Document non trouvé."}},
                 status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if not user_can_access_space(request.user, tenant_id, document.knowledge_space_id):
+            return Response(
+                {"error": {"code": "forbidden", "message": "Accès à cet espace non autorisé."}},
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         # Soft delete
@@ -285,6 +309,12 @@ class DocumentDownloadView(APIView):
             return Response(
                 {"error": {"code": "not_found", "message": "Document non trouvé."}},
                 status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if not user_can_access_space(request.user, tenant_id, document.knowledge_space_id):
+            return Response(
+                {"error": {"code": "forbidden", "message": "Accès à cet espace non autorisé."}},
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         version = document.current_version
