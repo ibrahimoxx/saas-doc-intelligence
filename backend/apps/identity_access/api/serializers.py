@@ -24,10 +24,16 @@ class LoginSerializer(serializers.Serializer):
         user = authenticate(request=self.context.get("request"), email=email, password=password)
 
         if not user:
+            # Distinguish disabled account from wrong credentials.
+            # Trade-off: reveals that a known email is disabled (acceptable for internal B2B SaaS).
+            try:
+                candidate = User.objects.get(email=email)
+                if not candidate.is_active:
+                    from apps.core.exceptions import AccountDisabledException
+                    raise AccountDisabledException()
+            except User.DoesNotExist:
+                pass
             raise serializers.ValidationError("Email ou mot de passe incorrect.")
-
-        if not user.is_active:
-            raise serializers.ValidationError("Ce compte est désactivé.")
 
         attrs["user"] = user
         return attrs

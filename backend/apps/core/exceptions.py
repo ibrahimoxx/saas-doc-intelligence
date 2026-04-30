@@ -153,3 +153,10 @@ class UploadValidationError(BusinessException):
     """Raised when an uploaded file fails validation."""
     default_code = "upload_validation_error"
     default_detail = "Le fichier uploadé ne respecte pas les critères requis."
+
+
+class AccountDisabledException(APIException):
+    """Raised when a user tries to log in with a disabled account."""
+    status_code = status.HTTP_401_UNAUTHORIZED
+    default_code = "account_disabled"
+    default_detail = "Votre compte est désactivé. Contactez un administrateur."
