@@ -40,8 +40,8 @@ export default function AdminLayout({
 
   const navItems = [
     { label: "Vue d'ensemble", href: "/admin/dashboard", icon: LayoutDashboard, available: true },
-    { label: "Organisations", href: null, icon: Shield, available: false },
-    { label: "Utilisateurs", href: null, icon: Users, available: false },
+    { label: "Organisations", href: "/admin/tenants", icon: Shield, available: true },
+    { label: "Utilisateurs", href: "/admin/users", icon: Users, available: true },
     { label: "Configuration", href: null, icon: Settings, available: false },
   ];
 
