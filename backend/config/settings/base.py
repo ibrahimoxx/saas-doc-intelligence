@@ -244,6 +244,13 @@ CELERY_TASK_TIME_LIMIT = 600  # 10 minutes max per task
 CELERY_TASK_SOFT_TIME_LIMIT = 540  # Soft limit at 9 minutes
 
 # ===========================
+# Email
+# ===========================
+EMAIL_BACKEND = config("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@docpilot.local")
+FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:3000")
+
+# ===========================
 # Sentry
 # ===========================
 SENTRY_DSN = config("SENTRY_DSN", default="")

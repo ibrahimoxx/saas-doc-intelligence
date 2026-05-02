@@ -17,6 +17,9 @@ urlpatterns = [
     path("api/v1/tenants/<uuid:tenant_id>/chat/", include("apps.retrieval.api.urls")),
     path("api/v1/tenants/<uuid:tenant_id>/conversations/", include("apps.conversations.api.urls")),
 
+    # Public invitation flow (no auth)
+    path("api/v1/invitations/", include("apps.tenancy.api.public_invitation_urls")),
+
     # Health check
     path("api/v1/health/", include("apps.core.urls")),
 ]

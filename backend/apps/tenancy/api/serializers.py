@@ -10,6 +10,7 @@ from apps.tenancy.models import (
     SpaceAccessProfile,
     Tenant,
     TenantMembership,
+    UserInvitation,
     UserSpaceAccess,
     UserSpaceProfile,
 )
@@ -156,3 +157,31 @@ class UserSpaceProfileSerializer(serializers.ModelSerializer):
         model = UserSpaceProfile
         fields = ["id", "profile", "granted_by", "created_at"]
         read_only_fields = fields
+
+
+class UserInvitationSerializer(serializers.ModelSerializer):
+    """Invitation details (read-only, for list/detail)."""
+
+    invited_by = UserProfileSerializer(read_only=True)
+    is_pending = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = UserInvitation
+        fields = [
+            "id", "email", "role", "token", "invited_by",
+            "expires_at", "consumed_at", "revoked_at", "is_pending", "created_at",
+        ]
+        read_only_fields = fields
+
+
+class InvitationAcceptSerializer(serializers.Serializer):
+    """Payload for accepting an invitation — creates a new user account."""
+
+    full_name = serializers.CharField(max_length=255)
+    password = serializers.CharField(write_only=True, min_length=10)
+    password_confirm = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        if attrs["password"] != attrs["password_confirm"]:
+            raise serializers.ValidationError({"password_confirm": "Les mots de passe ne correspondent pas."})
+        return attrs

@@ -1,11 +1,16 @@
 """
 DocPilot AI — Tenancy Models
 
-Tenant, TenantMembership, KnowledgeSpace, SpaceAccessProfile, UserSpaceAccess, UserSpaceProfile.
+Tenant, TenantMembership, KnowledgeSpace, SpaceAccessProfile, UserSpaceAccess, UserSpaceProfile,
+UserInvitation.
 """
+
+import secrets
+from datetime import timedelta
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 from apps.core.constants import MembershipStatus, TenantRole, TenantStatus
 from apps.core.models import BaseUUIDModel, SoftDeleteManager, SoftDeleteModel
@@ -214,3 +219,57 @@ class UserSpaceProfile(BaseUUIDModel):
 
     def __str__(self):
         return f"{self.user.email} → {self.profile.name}"
+
+
+def _default_token():
+    return secrets.token_urlsafe(32)
+
+
+def _default_expires_at():
+    return timezone.now() + timedelta(days=7)
+
+
+class UserInvitation(BaseUUIDModel):
+    """
+    Token-based invitation that lets a brand-new person join a tenant.
+    Consumed once accepted; can be revoked by an admin before that.
+    """
+
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="invitations",
+    )
+    email = models.EmailField(max_length=255)
+    role = models.CharField(
+        max_length=20,
+        choices=[(r, r) for r in TenantRole.MANAGER_ROLES if r != TenantRole.OWNER],
+        default=TenantRole.MEMBER,
+    )
+    token = models.CharField(max_length=64, unique=True, default=_default_token)
+    invited_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sent_invitations",
+    )
+    expires_at = models.DateTimeField(default=_default_expires_at)
+    consumed_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "user_invitations"
+        verbose_name = "Invitation"
+        verbose_name_plural = "Invitations"
+
+    def __str__(self):
+        return f"Invitation {self.email} → {self.tenant.name} ({self.role})"
+
+    @property
+    def is_pending(self):
+        return (
+            self.consumed_at is None
+            and self.revoked_at is None
+            and self.expires_at > timezone.now()
+        )

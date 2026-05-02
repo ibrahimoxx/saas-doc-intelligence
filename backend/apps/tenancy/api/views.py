@@ -4,15 +4,18 @@ DocPilot AI — Tenancy API Views
 
 import logging
 
-from rest_framework import generics, permissions, status
+from django.utils import timezone
+from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.audit_observability.services import log_action
 from apps.core.constants import AuditAction, TenantRole
 from apps.core.permissions import IsTenantAdmin, IsTenantMember, get_accessible_spaces
 from apps.identity_access.models import User
 from apps.tenancy.api.serializers import (
+    InvitationAcceptSerializer,
     InviteMemberSerializer,
     KnowledgeSpaceCreateSerializer,
     KnowledgeSpaceSerializer,
@@ -24,6 +27,7 @@ from apps.tenancy.api.serializers import (
     TenantPermissionsSerializer,
     TenantSerializer,
     UpdateMemberRoleSerializer,
+    UserInvitationSerializer,
     UserSpaceAccessSerializer,
     UserSpaceProfileSerializer,
 )
@@ -32,9 +36,11 @@ from apps.tenancy.models import (
     SpaceAccessProfile,
     Tenant,
     TenantMembership,
+    UserInvitation,
     UserSpaceAccess,
     UserSpaceProfile,
 )
+from apps.tenancy.services import send_invitation_email
 from apps.documents.models import Document
 from apps.conversations.models import Conversation
 
@@ -843,3 +849,232 @@ class TenantSummaryView(APIView):
             "spaces": accessible.count(),
         }
         return Response(stats)
+
+
+# ===========================
+# Invitations (tenant-scoped, admin only)
+# ===========================
+
+class InvitationListView(APIView):
+    """
+    GET  /api/v1/tenants/{tenant_id}/invitations/  — List invitations
+    POST /api/v1/tenants/{tenant_id}/invitations/  — Create and send invitation
+    """
+
+    permission_classes = [permissions.IsAuthenticated, IsTenantAdmin]
+
+    def get(self, request, tenant_id):
+        invitations = UserInvitation.objects.filter(
+            tenant_id=tenant_id
+        ).select_related("invited_by").order_by("-created_at")
+        return Response(UserInvitationSerializer(invitations, many=True).data)
+
+    def post(self, request, tenant_id):
+        serializer = InviteMemberSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data["email"].lower().strip()
+        role = serializer.validated_data["role"]
+
+        # Already a member?
+        if TenantMembership.objects.filter(
+            tenant_id=tenant_id, user__email=email, status="active"
+        ).exists():
+            return Response(
+                {"error": {"code": "already_member", "message": "Cet utilisateur est déjà membre de l'organisation."}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Already a pending invitation?
+        if UserInvitation.objects.filter(
+            tenant_id=tenant_id,
+            email=email,
+            consumed_at__isnull=True,
+            revoked_at__isnull=True,
+            expires_at__gt=timezone.now(),
+        ).exists():
+            return Response(
+                {"error": {"code": "already_invited", "message": "Une invitation est déjà en attente pour cet email."}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        invitation = UserInvitation.objects.create(
+            tenant_id=tenant_id,
+            email=email,
+            role=role,
+            invited_by=request.user,
+        )
+
+        try:
+            send_invitation_email(invitation)
+        except Exception:
+            invitation.delete()
+            return Response(
+                {"error": {"code": "email_error", "message": "Impossible d'envoyer l'email d'invitation."}},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        log_action(
+            AuditAction.INVITATION_SENT,
+            user=request.user, tenant_id=tenant_id,
+            resource_type="invitation", resource_id=invitation.id,
+            details={"email": email, "role": role},
+            request=request,
+        )
+
+        return Response(UserInvitationSerializer(invitation).data, status=status.HTTP_201_CREATED)
+
+
+class InvitationDetailView(APIView):
+    """
+    DELETE /api/v1/tenants/{tenant_id}/invitations/{invitation_id}/  — Revoke invitation
+    """
+
+    permission_classes = [permissions.IsAuthenticated, IsTenantAdmin]
+
+    def delete(self, request, tenant_id, invitation_id):
+        try:
+            invitation = UserInvitation.objects.get(id=invitation_id, tenant_id=tenant_id)
+        except UserInvitation.DoesNotExist:
+            return Response(
+                {"error": {"code": "not_found", "message": "Invitation non trouvée."}},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if not invitation.is_pending:
+            return Response(
+                {"error": {"code": "not_pending", "message": "Cette invitation ne peut plus être révoquée."}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        invitation.revoked_at = timezone.now()
+        invitation.save(update_fields=["revoked_at", "updated_at"])
+
+        log_action(
+            AuditAction.INVITATION_REVOKED,
+            user=request.user, tenant_id=tenant_id,
+            resource_type="invitation", resource_id=invitation.id,
+            details={"email": invitation.email},
+            request=request,
+        )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ===========================
+# Invitations (public — no auth)
+# ===========================
+
+class InvitationPublicView(APIView):
+    """
+    GET /api/v1/invitations/{token}/  — Validate token and return invitation info.
+    No authentication required.
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, token):
+        try:
+            invitation = UserInvitation.objects.select_related("tenant").get(token=token)
+        except UserInvitation.DoesNotExist:
+            return Response(
+                {"error": {"code": "invalid_token", "message": "Lien d'invitation invalide."}},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if not invitation.is_pending:
+            if invitation.consumed_at:
+                msg = "Cette invitation a déjà été utilisée."
+                code = "already_consumed"
+            elif invitation.revoked_at:
+                msg = "Cette invitation a été révoquée."
+                code = "revoked"
+            else:
+                msg = "Cette invitation a expiré."
+                code = "expired"
+            return Response(
+                {"error": {"code": code, "message": msg}},
+                status=status.HTTP_410_GONE,
+            )
+
+        return Response({
+            "email": invitation.email,
+            "role": invitation.role,
+            "tenant_name": invitation.tenant.name,
+            "expires_at": invitation.expires_at,
+        })
+
+
+class InvitationAcceptView(APIView):
+    """
+    POST /api/v1/invitations/{token}/accept/  — Create account and join tenant.
+    No authentication required.
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, token):
+        try:
+            invitation = UserInvitation.objects.select_related("tenant").get(token=token)
+        except UserInvitation.DoesNotExist:
+            return Response(
+                {"error": {"code": "invalid_token", "message": "Lien d'invitation invalide."}},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if not invitation.is_pending:
+            return Response(
+                {"error": {"code": "invitation_unavailable", "message": "Cette invitation n'est plus valide."}},
+                status=status.HTTP_410_GONE,
+            )
+
+        # Prevent re-registration if the email is already on the platform
+        if User.objects.filter(email=invitation.email).exists():
+            return Response(
+                {
+                    "error": {
+                        "code": "email_exists",
+                        "message": "Un compte existe déjà pour cet email. Connectez-vous puis demandez à un administrateur de vous ajouter.",
+                    }
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        serializer = InvitationAcceptSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = User.objects.create_user(
+            email=invitation.email,
+            full_name=serializer.validated_data["full_name"],
+            password=serializer.validated_data["password"],
+        )
+
+        TenantMembership.objects.create(
+            tenant=invitation.tenant,
+            user=user,
+            role=invitation.role,
+            status="active",
+        )
+
+        invitation.consumed_at = timezone.now()
+        invitation.save(update_fields=["consumed_at", "updated_at"])
+
+        log_action(
+            AuditAction.INVITATION_ACCEPTED,
+            user=user, tenant_id=invitation.tenant_id,
+            resource_type="invitation", resource_id=invitation.id,
+            details={"email": invitation.email, "role": invitation.role},
+            request=request,
+        )
+
+        refresh = RefreshToken.for_user(user)
+        from apps.identity_access.api.serializers import UserProfileSerializer
+        return Response(
+            {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "user": UserProfileSerializer(user).data,
+                "tenant_id": str(invitation.tenant_id),
+            },
+            status=status.HTTP_201_CREATED,
+        )

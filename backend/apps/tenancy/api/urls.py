@@ -5,6 +5,8 @@ DocPilot AI — Tenancy API URLs
 from django.urls import path
 
 from apps.tenancy.api.views import (
+    InvitationDetailView,
+    InvitationListView,
     KnowledgeSpaceDetailView,
     KnowledgeSpacesListView,
     MemberDetailView,
@@ -70,5 +72,13 @@ urlpatterns = [
         "<uuid:tenant_id>/space-profiles/<uuid:profile_id>/",
         SpaceProfileDetailView.as_view(),
         name="space-profile-detail",
+    ),
+
+    # Invitations (admin-scoped)
+    path("<uuid:tenant_id>/invitations/", InvitationListView.as_view(), name="tenant-invitations"),
+    path(
+        "<uuid:tenant_id>/invitations/<uuid:invitation_id>/",
+        InvitationDetailView.as_view(),
+        name="tenant-invitation-detail",
     ),
 ]
