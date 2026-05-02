@@ -13,6 +13,7 @@ import type {
   SpaceAccessProfile,
   UserSpaceAccess,
   UserSpaceProfileAssignment,
+  UserInvitation,
 } from "@/types/tenant.types";
 import { TopBar } from "@/components/layout/TopBar";
 import {
@@ -55,8 +56,12 @@ export default function MembresPage() {
   const [inviteForm, setInviteForm] = useState({ email: "", role: "member" });
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteSent, setInviteSent] = useState(false);
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  // Invitations
+  const [invitations, setInvitations] = useState<UserInvitation[]>([]);
 
   // Space ACL state
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
@@ -91,13 +96,15 @@ export default function MembresPage() {
 
   const loadMembers = useCallback(async (tid: string) => {
     setLoadingMembers(true);
-    const [membersRes, permsRes] = await Promise.all([
+    const [membersRes, permsRes, invitationsRes] = await Promise.all([
       tenantService.listMembers(tid),
-      tenantService.myPermissions(tid)
+      tenantService.myPermissions(tid),
+      tenantService.listInvitations(tid),
     ]);
     if (membersRes.data) setMembers(membersRes.data);
     if (permsRes.data) setPermissions(permsRes.data);
-    setLoadingPermissions(false); // Gate is now lifted
+    if (invitationsRes.data) setInvitations(invitationsRes.data);
+    setLoadingPermissions(false);
     setLoadingMembers(false);
   }, []);
 
@@ -109,15 +116,21 @@ export default function MembresPage() {
     if (!selectedTenantId || !inviteForm.email.trim()) return;
     setInviting(true);
     setInviteError(null);
-    const res = await tenantService.inviteMember(selectedTenantId, inviteForm.email, inviteForm.role);
+    const res = await tenantService.sendInvitation(selectedTenantId, inviteForm.email, inviteForm.role);
     if (res.error) {
       setInviteError(res.error.message);
     } else {
-      setShowInviteModal(false);
-      setInviteForm({ email: "", role: "member" });
+      setInviteSent(true);
       loadMembers(selectedTenantId);
     }
     setInviting(false);
+  };
+
+  const closeInviteModal = () => {
+    setShowInviteModal(false);
+    setInviteForm({ email: "", role: "member" });
+    setInviteError(null);
+    setInviteSent(false);
   };
 
   const handleRemoveMember = async (memberId: string) => {
@@ -132,6 +145,20 @@ export default function MembresPage() {
     await tenantService.updateMemberRole(selectedTenantId, memberId, newRole);
     loadMembers(selectedTenantId);
     setOpenMenuId(null);
+  };
+
+  const handleToggleMemberStatus = async (memberId: string, currentStatus: string) => {
+    if (!selectedTenantId) return;
+    const newStatus = currentStatus === "disabled" ? "active" : "disabled";
+    await tenantService.updateMemberStatus(selectedTenantId, memberId, newStatus);
+    loadMembers(selectedTenantId);
+    setOpenMenuId(null);
+  };
+
+  const handleRevokeInvitation = async (invitationId: string) => {
+    if (!selectedTenantId || !confirm("Révoquer cette invitation ?")) return;
+    await tenantService.revokeInvitation(selectedTenantId, invitationId);
+    loadMembers(selectedTenantId);
   };
 
   useEffect(() => {
@@ -288,10 +315,22 @@ export default function MembresPage() {
                         </div>
 
                         <div className="col-span-2 flex justify-center">
-                           <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/10 text-emerald-400 text-[9px] font-black uppercase tracking-widest">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                              <span>ACTIF</span>
-                           </div>
+                           {m.status === "disabled" ? (
+                             <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/5 border border-red-500/10 text-red-400 text-[9px] font-black uppercase tracking-widest">
+                               <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                               <span>DÉSACTIVÉ</span>
+                             </div>
+                           ) : m.status === "invited" ? (
+                             <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/5 border border-amber-500/10 text-amber-400 text-[9px] font-black uppercase tracking-widest">
+                               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                               <span>INVITÉ</span>
+                             </div>
+                           ) : (
+                             <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/10 text-emerald-400 text-[9px] font-black uppercase tracking-widest">
+                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                               <span>ACTIF</span>
+                             </div>
+                           )}
                         </div>
 
                         {permissions?.can_manage_members && (
@@ -323,13 +362,27 @@ export default function MembresPage() {
 
                                     {m.role !== 'owner' && (
                                        <>
-                                          <button
-                                            onClick={() => handleUpdateRole(m.id, m.role === 'admin' ? 'member' : 'admin')}
-                                            className="w-full flex items-center gap-4 px-6 py-4 rounded-[20px] hover:bg-white/5 text-slate-300 hover:text-white transition-all duration-500 text-[10px] font-black uppercase tracking-widest text-left hover:scale-[1.02]"
-                                          >
-                                             <Edit className="w-4 h-4 text-indigo-400" />
-                                             <span>Passer en {m.role === 'admin' ? 'Membre' : 'Admin'}</span>
-                                          </button>
+                                          {/* Only owner can grant or revoke admin */}
+                                          {(permissions?.role === 'owner' || !!user?.is_superuser) && (
+                                            <button
+                                              onClick={() => handleUpdateRole(m.id, m.role === 'admin' ? 'member' : 'admin')}
+                                              className="w-full flex items-center gap-4 px-6 py-4 rounded-[20px] hover:bg-white/5 text-slate-300 hover:text-white transition-all duration-500 text-[10px] font-black uppercase tracking-widest text-left hover:scale-[1.02]"
+                                            >
+                                               <Edit className="w-4 h-4 text-indigo-400" />
+                                               <span>Passer en {m.role === 'admin' ? 'Membre' : 'Admin'}</span>
+                                            </button>
+                                          )}
+
+                                          {/* Owner/admin can disable or reactivate members */}
+                                          {m.user.id !== user?.id && (
+                                            <button
+                                              onClick={() => handleToggleMemberStatus(m.id, m.status)}
+                                              className="w-full flex items-center gap-4 px-6 py-4 rounded-[20px] hover:bg-amber-500/5 text-amber-400 hover:text-amber-300 transition-all duration-500 text-[10px] font-black uppercase tracking-widest text-left hover:scale-[1.02]"
+                                            >
+                                               <Shield className="w-4 h-4" />
+                                               <span>{m.status === 'disabled' ? 'Réactiver' : 'Désactiver'}</span>
+                                            </button>
+                                          )}
 
                                           <button
                                             onClick={() => handleRemoveMember(m.id)}
@@ -426,78 +479,129 @@ export default function MembresPage() {
              </div>
            )}
         </section>
+
+        {/* Pending Invitations */}
+        {invitations.length > 0 && (
+          <section className="animate-fluid-in" style={{ animationDelay: '500ms' }}>
+            <div className="space-y-6">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 flex items-center gap-3">
+                <Mail className="w-3.5 h-3.5 text-amber-400" />
+                Invitations en attente ({invitations.length})
+              </h3>
+              <div className="space-y-3">
+                {invitations.map((inv) => (
+                  <div key={inv.id} className="fluid-card flex items-center justify-between gap-6" style={{ padding: '1rem 2rem' }}>
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/10 flex items-center justify-center">
+                        <Mail className="w-4 h-4 text-amber-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-white">{inv.email}</p>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">{inv.role} · expire le {new Date(inv.expires_at).toLocaleDateString("fr-FR")}</p>
+                      </div>
+                    </div>
+                    {permissions?.can_manage_members && (
+                      <button
+                        onClick={() => handleRevokeInvitation(inv.id)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-full bg-red-500/5 border border-red-500/10 text-red-400 hover:text-red-300 text-[9px] font-black uppercase tracking-widest transition-all interactive-premium"
+                      >
+                        <X className="w-3 h-3" />
+                        Révoquer
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
       </main>
 
       {/* Invite Modal Redesign */}
       {showInviteModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-          <div className="absolute inset-0 bg-[#020617]/95 backdrop-blur-3xl" onClick={() => !inviting && setShowInviteModal(false)} />
-          
+          <div className="absolute inset-0 bg-[#020617]/95 backdrop-blur-3xl" onClick={() => !inviting && closeInviteModal()} />
+
           <div className="relative w-full max-w-xl bg-white/[0.02] border border-white/10 rounded-[64px] p-16 shadow-2xl animate-fluid-in">
              <header className="flex justify-between items-start mb-12">
                 <div className="space-y-4">
                    <h3 className="text-4xl font-black tracking-tighter text-white uppercase text-gradient">Invitation</h3>
                    <p className="text-slate-400 font-medium">Ajoutez un collaborateur à l'organisation.</p>
                 </div>
-                <button 
-                  onClick={() => setShowInviteModal(false)}
+                <button
+                  onClick={closeInviteModal}
                   className="w-14 h-14 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all interactive-premium"
                 >
                   <X className="w-6 h-6" />
                 </button>
              </header>
 
-             <div className="space-y-10">
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-2 flex items-center gap-2">
-                    <Mail className="w-3 h-3" />
-                    <span>Adresse Email</span>
-                  </label>
-                  <input
-                    type="email"
-                    value={inviteForm.email}
-                    onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
-                    className="w-full bg-white/5 border border-white/5 rounded-[24px] px-8 py-5 text-white focus:outline-none focus:border-indigo-500/50 transition-all font-medium"
-                    placeholder="partenaire@entreprise.com"
-                  />
-                </div>
+             {inviteSent ? (
+               <div className="text-center space-y-8 py-8">
+                 <div className="w-20 h-20 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto">
+                   <Mail className="w-8 h-8 text-emerald-400" />
+                 </div>
+                 <div className="space-y-3">
+                   <p className="text-2xl font-black text-white">Invitation envoyée !</p>
+                   <p className="text-slate-400 text-sm">Un lien d'activation a été envoyé à <span className="text-white font-bold">{inviteForm.email}</span>.</p>
+                 </div>
+                 <button onClick={closeInviteModal} className="btn-magnetic px-12 py-4 interactive-premium">
+                   Fermer
+                 </button>
+               </div>
+             ) : (
+               <div className="space-y-10">
+                 <div className="space-y-4">
+                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-2 flex items-center gap-2">
+                     <Mail className="w-3 h-3" />
+                     <span>Adresse Email</span>
+                   </label>
+                   <input
+                     type="email"
+                     value={inviteForm.email}
+                     onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
+                     className="w-full bg-white/5 border border-white/5 rounded-[24px] px-8 py-5 text-white focus:outline-none focus:border-indigo-500/50 transition-all font-medium"
+                     placeholder="partenaire@entreprise.com"
+                   />
+                 </div>
 
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-2 flex items-center gap-2">
-                    <Shield className="w-3 h-3" />
-                    <span>Niveau d'Accès</span>
-                  </label>
-                  <div className="grid grid-cols-2 gap-4">
-                    {["member", "admin"].map((r) => (
-                      <button
-                        key={r}
-                        onClick={() => setInviteForm({ ...inviteForm, role: r })}
-                        className={`py-4 rounded-[20px] text-[10px] font-black uppercase tracking-widest border transition-all interactive-premium ${
-                          inviteForm.role === r 
-                          ? "bg-white text-indigo-950 border-white shadow-xl shadow-white/10" 
-                          : "bg-white/5 text-slate-500 border-white/5 hover:bg-white/10"
-                        }`}
-                      >
-                        {r}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                 <div className="space-y-4">
+                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-2 flex items-center gap-2">
+                     <Shield className="w-3 h-3" />
+                     <span>Niveau d'Accès</span>
+                   </label>
+                   <div className="grid grid-cols-3 gap-4">
+                     {["member", "manager", "admin"].map((r) => (
+                       <button
+                         key={r}
+                         onClick={() => setInviteForm({ ...inviteForm, role: r })}
+                         className={`py-4 rounded-[20px] text-[10px] font-black uppercase tracking-widest border transition-all interactive-premium ${
+                           inviteForm.role === r
+                           ? "bg-white text-indigo-950 border-white shadow-xl shadow-white/10"
+                           : "bg-white/5 text-slate-500 border-white/5 hover:bg-white/10"
+                         }`}
+                       >
+                         {r}
+                       </button>
+                     ))}
+                   </div>
+                 </div>
 
-                {inviteError && (
-                  <div className="p-5 bg-red-500/5 border border-red-500/10 rounded-[28px] text-red-400 text-sm font-bold animate-pulse">
-                    {inviteError}
-                  </div>
-                )}
+                 {inviteError && (
+                   <div className="p-5 bg-red-500/5 border border-red-500/10 rounded-[28px] text-red-400 text-sm font-bold animate-pulse">
+                     {inviteError}
+                   </div>
+                 )}
 
-                <button
-                  onClick={handleInvite}
-                  disabled={inviting || !inviteForm.email.trim()}
-                  className="btn-magnetic w-full py-6 interactive-premium"
-                >
-                  {inviting ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : "Envoyer l'Invitation"}
-                </button>
-             </div>
+                 <button
+                   onClick={handleInvite}
+                   disabled={inviting || !inviteForm.email.trim()}
+                   className="btn-magnetic w-full py-6 interactive-premium"
+                 >
+                   {inviting ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : "Envoyer l'Invitation"}
+                 </button>
+               </div>
+             )}
           </div>
         </div>
       )}

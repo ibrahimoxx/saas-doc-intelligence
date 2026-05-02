@@ -110,3 +110,12 @@ export interface TenantSummary {
   members: number;
   spaces: number;
 }
+
+export interface UserInvitation {
+  id: string;
+  email: string;
+  role: "owner" | "admin" | "manager" | "member";
+  invited_by: { id: string; email: string; full_name: string } | null;
+  expires_at: string;
+  created_at: string;
+}

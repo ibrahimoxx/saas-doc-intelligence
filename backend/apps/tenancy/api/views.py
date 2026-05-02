@@ -11,7 +11,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.audit_observability.services import log_action
-from apps.core.constants import AuditAction, TenantRole
+from apps.core.constants import AuditAction, MembershipStatus, TenantRole
 from apps.core.permissions import IsTenantAdmin, IsTenantMember, get_accessible_spaces
 from apps.identity_access.models import User
 from apps.tenancy.api.serializers import (
@@ -252,51 +252,88 @@ class MemberDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # Cannot change owner role
-        if target_membership.role == TenantRole.OWNER:
-            return Response(
-                {"error": {"code": "forbidden", "message": "Le rôle du propriétaire ne peut pas être modifié."}},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
         serializer = UpdateMemberRoleSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        new_role = serializer.validated_data["role"]
 
-        # Only owner or super owner can grant or revoke admin role
-        if new_role == TenantRole.ADMIN or target_membership.role == TenantRole.ADMIN:
-            caller_is_owner = request.user.is_superuser or TenantMembership.objects.filter(
-                tenant_id=tenant_id,
-                user=request.user,
-                role=TenantRole.OWNER,
-                status="active",
-            ).exists()
-            if not caller_is_owner:
+        update_fields = []
+
+        # --- Role change ---
+        if "role" in serializer.validated_data:
+            # Cannot change owner's role
+            if target_membership.role == TenantRole.OWNER:
                 return Response(
-                    {"error": {"code": "forbidden", "message": "Seul le propriétaire peut accorder ou retirer le rôle d'administrateur."}},
+                    {"error": {"code": "forbidden", "message": "Le rôle du propriétaire ne peut pas être modifié."}},
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
-        old_role = target_membership.role
-        target_membership.role = new_role
-        target_membership.save(update_fields=["role", "updated_at"])
+            new_role = serializer.validated_data["role"]
 
-        log_action(
-            action=AuditAction.ROLE_GRANTED if new_role > old_role else AuditAction.ROLE_REVOKED,
-            user=request.user,
-            tenant_id=tenant_id,
-            resource="membership",
-            resource_id=str(member_id),
-            details={"old_role": old_role, "new_role": new_role},
-        )
+            # Only owner or super owner can grant or revoke admin
+            if new_role == TenantRole.ADMIN or target_membership.role == TenantRole.ADMIN:
+                caller_is_owner = request.user.is_superuser or TenantMembership.objects.filter(
+                    tenant_id=tenant_id,
+                    user=request.user,
+                    role=TenantRole.OWNER,
+                    status="active",
+                ).exists()
+                if not caller_is_owner:
+                    return Response(
+                        {"error": {"code": "forbidden", "message": "Seul le propriétaire peut accorder ou retirer le rôle d'administrateur."}},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+
+            old_role = target_membership.role
+            target_membership.role = new_role
+            update_fields.append("role")
+
+            log_action(
+                action=AuditAction.ROLE_GRANTED if new_role > old_role else AuditAction.ROLE_REVOKED,
+                user=request.user,
+                tenant_id=tenant_id,
+                resource_type="membership",
+                resource_id=str(member_id),
+                details={"old_role": old_role, "new_role": new_role},
+            )
+
+        # --- Status change ---
+        if "status" in serializer.validated_data:
+            # Cannot modify your own membership status
+            if target_membership.user == request.user:
+                return Response(
+                    {"error": {"code": "forbidden", "message": "Vous ne pouvez pas modifier votre propre statut."}},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            # Cannot disable the owner
+            if target_membership.role == TenantRole.OWNER:
+                return Response(
+                    {"error": {"code": "forbidden", "message": "Le statut du propriétaire ne peut pas être modifié."}},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            new_status = serializer.validated_data["status"]
+            old_status = target_membership.status
+            target_membership.status = new_status
+            update_fields.append("status")
+
+            log_action(
+                action=AuditAction.MEMBERSHIP_DISABLED,
+                user=request.user,
+                tenant_id=tenant_id,
+                resource_type="membership",
+                resource_id=str(member_id),
+                details={"old_status": old_status, "new_status": new_status, "target_user": str(target_membership.user.id)},
+            )
+
+        if update_fields:
+            target_membership.save(update_fields=update_fields + ["updated_at"])
 
         logger.info(
-            "Member role changed",
+            "Member updated",
             extra={
-                "tenant_id": tenant_id,
-                "member_id": member_id,
-                "old_role": old_role,
-                "new_role": new_role,
+                "tenant_id": str(tenant_id),
+                "member_id": str(member_id),
+                "updated_fields": update_fields,
                 "by_user_id": str(request.user.id),
             },
         )

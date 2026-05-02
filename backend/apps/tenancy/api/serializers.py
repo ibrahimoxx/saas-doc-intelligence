@@ -71,9 +71,15 @@ class InviteMemberSerializer(serializers.Serializer):
 
 
 class UpdateMemberRoleSerializer(serializers.Serializer):
-    """Update a member's role."""
+    """Update a member's role and/or membership status."""
 
-    role = serializers.ChoiceField(choices=["admin", "manager", "member"])
+    role = serializers.ChoiceField(choices=["admin", "manager", "member"], required=False)
+    status = serializers.ChoiceField(choices=["active", "disabled"], required=False)
+
+    def validate(self, data):
+        if "role" not in data and "status" not in data:
+            raise serializers.ValidationError("Au moins un champ (role ou status) est requis.")
+        return data
 
 
 class KnowledgeSpaceSerializer(serializers.ModelSerializer):

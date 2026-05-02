@@ -56,6 +56,33 @@ export const authService = {
   },
 
   /**
+   * Validate an invitation token (public, no auth).
+   */
+  async validateInvitation(token: string): Promise<ApiResponse<{
+    email: string;
+    role: string;
+    tenant_name: string;
+    expires_at: string;
+  }>> {
+    return apiClient.get(`/invitations/${token}/`);
+  },
+
+  /**
+   * Accept an invitation and create account (public, no auth).
+   */
+  async acceptInvitation(
+    token: string,
+    payload: { full_name: string; password: string }
+  ): Promise<ApiResponse<{
+    access: string;
+    refresh: string;
+    user: UserProfile;
+    tenant_id: string;
+  }>> {
+    return apiClient.post(`/invitations/${token}/accept/`, payload);
+  },
+
+  /**
    * Change password.
    */
   async changePassword(

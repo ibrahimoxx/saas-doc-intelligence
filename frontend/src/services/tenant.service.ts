@@ -14,6 +14,7 @@ import type {
   SpaceAccessProfile,
   UserSpaceAccess,
   UserSpaceProfileAssignment,
+  UserInvitation,
 } from "@/types/tenant.types";
 
 export const tenantService = {
@@ -169,5 +170,29 @@ export const tenantService = {
   /** Remove a profile from a member. */
   async removeSpaceProfile(tenantId: string, memberId: string, profileId: string): Promise<ApiResponse<null>> {
     return apiClient.delete(`/tenants/${tenantId}/members/${memberId}/space-profiles/${profileId}/`);
+  },
+
+  // MEMBER STATUS
+
+  /** Toggle a member's status (active / disabled). */
+  async updateMemberStatus(tenantId: string, memberId: string, status: "active" | "disabled"): Promise<ApiResponse<TenantMember>> {
+    return apiClient.patch(`/tenants/${tenantId}/members/${memberId}/`, { status });
+  },
+
+  // INVITATIONS
+
+  /** List pending invitations for a tenant. */
+  async listInvitations(tenantId: string): Promise<ApiResponse<UserInvitation[]>> {
+    return apiClient.get(`/tenants/${tenantId}/invitations/`);
+  },
+
+  /** Send a new invitation. */
+  async sendInvitation(tenantId: string, email: string, role: string): Promise<ApiResponse<UserInvitation>> {
+    return apiClient.post(`/tenants/${tenantId}/invitations/`, { email, role });
+  },
+
+  /** Revoke a pending invitation. */
+  async revokeInvitation(tenantId: string, invitationId: string): Promise<ApiResponse<null>> {
+    return apiClient.delete(`/tenants/${tenantId}/invitations/${invitationId}/`);
   },
 };

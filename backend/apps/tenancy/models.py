@@ -243,7 +243,7 @@ class UserInvitation(BaseUUIDModel):
     email = models.EmailField(max_length=255)
     role = models.CharField(
         max_length=20,
-        choices=[(r, r) for r in TenantRole.MANAGER_ROLES if r != TenantRole.OWNER],
+        choices=TenantRole.CHOICES,
         default=TenantRole.MEMBER,
     )
     token = models.CharField(max_length=64, unique=True, default=_default_token)

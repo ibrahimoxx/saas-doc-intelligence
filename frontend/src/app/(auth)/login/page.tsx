@@ -12,6 +12,7 @@ export default function LoginPage() {
   
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -22,8 +23,12 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setErrorCode(null);
     const res = await login(form.email, form.password);
-    if (!res.ok) setError(res.error || "Identifiants invalides.");
+    if (!res.ok) {
+      setError(res.error || "Identifiants invalides.");
+      setErrorCode(res.errorCode || null);
+    }
     setLoading(false);
   };
 
@@ -80,9 +85,16 @@ export default function LoginPage() {
               </div>
 
               {error && (
-                <div className="p-5 bg-red-500/5 border border-red-500/10 rounded-[28px] text-red-400 text-sm font-bold text-center animate-pulse">
-                  {error}
-                </div>
+                errorCode === "account_disabled" ? (
+                  <div className="p-5 bg-amber-500/10 border border-amber-500/20 rounded-[28px] text-amber-300 text-sm font-bold text-center space-y-1">
+                    <p>Votre compte est désactivé.</p>
+                    <p className="text-amber-400/70 font-medium text-xs">Contactez un administrateur pour réactiver votre accès.</p>
+                  </div>
+                ) : (
+                  <div className="p-5 bg-red-500/5 border border-red-500/10 rounded-[28px] text-red-400 text-sm font-bold text-center animate-pulse">
+                    {error}
+                  </div>
+                )
               )}
 
               <button
