@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { adminService } from "@/services/admin.service";
 import type { AdminTenantDetail } from "@/types/admin.types";
@@ -18,8 +18,8 @@ const STATUS_BADGE: Record<string, string> = {
   invited: "bg-amber-500/10 border-amber-500/20 text-amber-400",
 };
 
-export default function AdminTenantDetailPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function AdminTenantDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [tenant, setTenant] = useState<AdminTenantDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [patching, setPatching] = useState(false);

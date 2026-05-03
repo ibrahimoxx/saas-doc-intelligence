@@ -316,13 +316,38 @@ class MemberDetailView(APIView):
             target_membership.status = new_status
             update_fields.append("status")
 
+            # Sync is_active so login is blocked immediately
+            target_user = target_membership.user
+            if new_status == "disabled":
+                target_user.is_active = False
+                target_user.save(update_fields=["is_active"])
+                log_action(
+                    action=AuditAction.USER_DEACTIVATED,
+                    user=request.user,
+                    tenant_id=tenant_id,
+                    resource_type="user",
+                    resource_id=str(target_user.id),
+                    details={"reason": "membership_disabled"},
+                )
+            elif new_status == "active" and not target_user.is_active:
+                target_user.is_active = True
+                target_user.save(update_fields=["is_active"])
+                log_action(
+                    action=AuditAction.USER_ACTIVATED,
+                    user=request.user,
+                    tenant_id=tenant_id,
+                    resource_type="user",
+                    resource_id=str(target_user.id),
+                    details={"reason": "membership_reactivated"},
+                )
+
             log_action(
                 action=AuditAction.MEMBERSHIP_DISABLED,
                 user=request.user,
                 tenant_id=tenant_id,
                 resource_type="membership",
                 resource_id=str(member_id),
-                details={"old_status": old_status, "new_status": new_status, "target_user": str(target_membership.user.id)},
+                details={"old_status": old_status, "new_status": new_status, "target_user": str(target_user.id)},
             )
 
         if update_fields:
