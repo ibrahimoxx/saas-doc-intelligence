@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { adminService } from "@/services/admin.service";
 import type { AdminTenant } from "@/types/admin.types";
@@ -135,7 +136,7 @@ export default function AdminTenantsPage() {
         </div>
       )}
 
-      {showModal && (
+      {showModal && createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
           <div className="absolute inset-0 bg-[#020617]/95 backdrop-blur-3xl" onClick={closeModal} />
           <div className="relative w-full max-w-lg bg-white/[0.02] border border-white/10 rounded-[48px] p-12 shadow-2xl">
@@ -175,7 +176,8 @@ export default function AdminTenantsPage() {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
