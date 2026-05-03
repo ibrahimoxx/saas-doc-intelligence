@@ -927,7 +927,9 @@ class InvitationListView(APIView):
 
     def get(self, request, tenant_id):
         invitations = UserInvitation.objects.filter(
-            tenant_id=tenant_id
+            tenant_id=tenant_id,
+            revoked_at__isnull=True,
+            consumed_at__isnull=True,
         ).select_related("invited_by").order_by("-created_at")
         return Response(UserInvitationSerializer(invitations, many=True).data)
 
