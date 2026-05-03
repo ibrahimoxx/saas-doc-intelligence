@@ -354,7 +354,7 @@ export default function MembresPage() {
 
                             {openMenuId === m.id && (
                               <div
-                                className="absolute right-0 top-full mt-4 w-64 bg-[#0f172a] border border-white/10 rounded-[40px] p-6 shadow-2xl z-50 animate-fluid-in backdrop-blur-3xl"
+                                className="absolute right-0 bottom-full mb-4 w-64 bg-[#0f172a] border border-white/10 rounded-[40px] p-6 shadow-2xl z-50 animate-fluid-in backdrop-blur-3xl"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                  <div className="space-y-3">
