@@ -157,13 +157,13 @@ export default function MembresPage() {
   };
 
   const handleRevokeInvitation = async (invitationId: string) => {
-    if (!selectedTenantId || !confirm("Révoquer cette invitation ?")) return;
+    if (!selectedTenantId) return;
     await tenantService.revokeInvitation(selectedTenantId, invitationId);
     setRevokeSuccessId(invitationId);
     setTimeout(() => {
       setRevokeSuccessId(null);
       loadMembers(selectedTenantId);
-    }, 1500);
+    }, 2000);
   };
 
   useEffect(() => {
