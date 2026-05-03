@@ -72,7 +72,7 @@ export const authService = {
    */
   async acceptInvitation(
     token: string,
-    payload: { full_name: string; password: string }
+    payload: { full_name: string; password: string; password_confirm: string }
   ): Promise<ApiResponse<{
     access: string;
     refresh: string;

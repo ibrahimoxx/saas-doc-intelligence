@@ -62,6 +62,7 @@ export default function MembresPage() {
 
   // Invitations
   const [invitations, setInvitations] = useState<UserInvitation[]>([]);
+  const [revokeSuccessId, setRevokeSuccessId] = useState<string | null>(null);
 
   // Space ACL state
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
@@ -158,7 +159,11 @@ export default function MembresPage() {
   const handleRevokeInvitation = async (invitationId: string) => {
     if (!selectedTenantId || !confirm("Révoquer cette invitation ?")) return;
     await tenantService.revokeInvitation(selectedTenantId, invitationId);
-    loadMembers(selectedTenantId);
+    setRevokeSuccessId(invitationId);
+    setTimeout(() => {
+      setRevokeSuccessId(null);
+      loadMembers(selectedTenantId);
+    }, 1500);
   };
 
   useEffect(() => {
@@ -501,13 +506,20 @@ export default function MembresPage() {
                       </div>
                     </div>
                     {permissions?.can_manage_members && (
-                      <button
-                        onClick={() => handleRevokeInvitation(inv.id)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-full bg-red-500/5 border border-red-500/10 text-red-400 hover:text-red-300 text-[9px] font-black uppercase tracking-widest transition-all interactive-premium"
-                      >
-                        <X className="w-3 h-3" />
-                        Révoquer
-                      </button>
+                      revokeSuccessId === inv.id ? (
+                        <span className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-widest">
+                          <Check className="w-3 h-3" />
+                          Révoquée
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleRevokeInvitation(inv.id)}
+                          className="flex items-center gap-2 px-4 py-2 rounded-full bg-red-500/5 border border-red-500/10 text-red-400 hover:text-red-300 text-[9px] font-black uppercase tracking-widest transition-all interactive-premium"
+                        >
+                          <X className="w-3 h-3" />
+                          Révoquer
+                        </button>
+                      )
                     )}
                   </div>
                 ))}

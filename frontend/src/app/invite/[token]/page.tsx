@@ -65,8 +65,8 @@ export default function InvitePage({ params }: { params: { token: string } }) {
     setErrorCode(null);
     setSuccess(null);
 
-    if (form.password.length < 8) {
-      setError("Le mot de passe doit contenir au moins 8 caractères.");
+    if (form.password.length < 10) {
+      setError("Le mot de passe doit contenir au moins 10 caractères.");
       return;
     }
 
@@ -79,6 +79,7 @@ export default function InvitePage({ params }: { params: { token: string } }) {
     const res = await authService.acceptInvitation(token, {
       full_name: form.full_name,
       password: form.password,
+      password_confirm: form.password_confirm,
     });
 
     if (res.data) {
