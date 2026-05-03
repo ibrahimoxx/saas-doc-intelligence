@@ -54,7 +54,7 @@ class AdminUsersListView(APIView):
                 "is_active": u.is_active,
                 "is_superuser": u.is_superuser,
                 "created_at": u.created_at,
-                "membership_count": u.tenantmembership_set.count(),
+                "membership_count": u.memberships.count(),
             }
             for u in page
         ]
