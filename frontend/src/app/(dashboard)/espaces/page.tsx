@@ -1,25 +1,27 @@
-// src/app/(dashboard)/espaces/page.tsx
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { tenantService } from "@/services/tenant.service";
 import type { TenantMembership, KnowledgeSpace, TenantPermissions } from "@/types/tenant.types";
 import { TopBar } from "@/components/layout/TopBar";
+import { PageLoader } from "@/components/ui/LoadingSpinner";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { EmptySpaces } from "@/components/illustrations/EmptySpaces";
+import { fadeUp, staggerContainer } from "@/lib/motion";
 import {
-  Plus as PlusIcon,
-  Folder as FolderIcon,
-  X as XMarkIcon,
-  FolderPlus as FolderPlusIcon,
-  Tag as TagIcon,
-  Info as InfoIcon,
-  ArrowUpRight as ArrowUpRightIcon,
-  Shield as ShieldIcon,
-  FileIcon,
+  Plus,
+  Folder,
+  X,
+  ArrowUpRight,
+  FileText,
   MoreVertical,
   Trash2,
-  Edit,
   Layers,
 } from "lucide-react";
 
@@ -27,7 +29,7 @@ function slugify(str: string): string {
   return str
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 }
@@ -35,6 +37,7 @@ function slugify(str: string): string {
 export default function EspacesPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const shouldReduceMotion = useReducedMotion();
 
   const [tenants, setTenants] = useState<TenantMembership[]>([]);
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
@@ -54,9 +57,8 @@ export default function EspacesPage() {
     if (!isLoading && !isAuthenticated) router.push("/login");
   }, [isLoading, isAuthenticated, router]);
 
-  // Route guard: only admin/owner can access this page
   useEffect(() => {
-    if (permissions && permissions.role !== 'admin' && permissions.role !== 'owner' && !permissions.can_manage_members) {
+    if (permissions && permissions.role !== "admin" && permissions.role !== "owner" && !permissions.can_manage_members) {
       router.replace("/dashboard");
     }
   }, [permissions, router]);
@@ -81,7 +83,7 @@ export default function EspacesPage() {
     ]);
     if (spacesRes.data) setSpaces(spacesRes.data);
     if (permsRes.data) setPermissions(permsRes.data);
-    setLoadingPermissions(false); // Gate is now lifted
+    setLoadingPermissions(false);
     setLoadingSpaces(false);
   }, []);
 
@@ -126,21 +128,18 @@ export default function EspacesPage() {
     router.push("/login");
   };
 
-  // Block render entirely until auth + permissions are confirmed
-  if (isLoading || loadingPermissions || (!isAuthenticated && !isLoading)) {
-    return (
-      <div className="min-h-screen bg-[#020617] flex items-center justify-center">
-        <div className="w-10 h-10 border-[3px] border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (isLoading || loadingPermissions || (!isAuthenticated && !isLoading)) return <PageLoader />;
 
-  // Authorization check: if not admin/owner, will be redirected by useEffect above
-  const isAuthorized = permissions?.role === 'admin' || permissions?.role === 'owner' || permissions?.can_manage_members;
+  const isAuthorized =
+    permissions?.role === "admin" ||
+    permissions?.role === "owner" ||
+    permissions?.can_manage_members;
   if (!isAuthorized) return null;
 
+  const isAdmin = permissions?.role === "admin" || permissions?.role === "owner";
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-bg-base">
       <TopBar
         userEmail={user?.email}
         isSuperuser={user?.is_superuser}
@@ -151,239 +150,284 @@ export default function EspacesPage() {
         onAdminDashboard={() => router.push("/admin/dashboard")}
       />
 
-      <main className="max-w-[1400px] mx-auto px-12 py-48 space-y-24">
-        {/* Section Header */}
-        <section className="flex flex-col md:flex-row items-center justify-between gap-12 text-center md:text-left animate-fluid-in">
-          <div className="space-y-6 max-w-2xl">
-            <h2 className="text-hero leading-tight">
-               Espaces de <br />
-               <span className="text-gradient">Connaissance</span>
-            </h2>
-            <p className="text-slate-400 text-lg md:text-xl font-medium leading-relaxed">
-              Compartimentez vos données pour une analyse chirurgicale par département ou projet.
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            {(permissions?.role === 'admin' || permissions?.role === 'owner') && (
-              <button
-                onClick={() => router.push("/espaces/profiles")}
-                className="flex items-center gap-3 px-6 py-4 rounded-3xl bg-white/5 border border-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all text-[10px] font-black uppercase tracking-widest interactive-premium"
-              >
-                <Layers className="w-4 h-4 text-purple-400" />
-                <span>Profils d'Accès</span>
-              </button>
-            )}
-            {permissions?.can_upload && (
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="btn-magnetic flex items-center gap-4 group interactive-premium"
-              >
-                <PlusIcon className="w-5 h-5 group-hover:rotate-90 transition-transform duration-500" />
-                <span>Initialiser un Espace</span>
-              </button>
-            )}
-          </div>
-        </section>
+      <main id="main" className="mx-auto max-w-6xl px-6 pt-28 pb-16">
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={shouldReduceMotion ? {} : staggerContainer}
+          className="space-y-10"
+        >
+          {/* Header */}
+          <motion.header
+            variants={shouldReduceMotion ? { hidden: { opacity: 0 }, visible: { opacity: 1 } } : fadeUp}
+            className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
+          >
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-fg-tertiary">
+                Espaces de connaissance
+              </p>
+              <h1 className="font-serif text-4xl tracking-tight text-fg-primary sm:text-5xl">
+                Espaces
+              </h1>
+              <p className="text-sm text-fg-secondary">
+                Compartimentez vos données pour une analyse par département ou projet.
+              </p>
+            </div>
 
-        {/* Dynamic Grid */}
-        {loadingSpaces ? (
-          <div className="py-48 flex flex-col items-center justify-center gap-6 animate-fluid-in">
-             <div className="w-16 h-16 border-4 border-indigo-500/10 border-t-indigo-500 rounded-full animate-spin" />
-             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 animate-pulse">Synchronisation...</p>
-          </div>
-        ) : spaces.length === 0 ? (
-          <div className="fluid-card max-w-3xl mx-auto text-center space-y-12 animate-fluid-in">
-              <div className="w-32 h-32 rounded-[40px] bg-indigo-500/5 flex items-center justify-center mx-auto shadow-2xl">
-                 <FolderPlusIcon className="w-16 h-16 text-indigo-400" />
-              </div>
-              <div className="space-y-4">
-                 <h3 className="text-4xl font-black tracking-tighter text-white uppercase text-gradient">Prêt à uploader ?</h3>
-                 <p className="text-slate-400 text-lg font-medium max-w-md mx-auto">
-                    Créez votre premier espace de travail pour indexer vos documents PDF.
-                 </p>
-              </div>
-              {permissions?.can_upload && (
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="btn-magnetic interactive-premium"
+            <div className="flex items-center gap-2">
+              {isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  leftIcon={<Layers className="h-4 w-4" />}
+                  onClick={() => router.push("/espaces/profiles")}
                 >
-                  Démarrer l'aventure
-                </button>
+                  Profils d&apos;accès
+                </Button>
               )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 animate-fluid-in">
-            {spaces.map((space, i) => (
-              <div
-                key={space.id}
-                onClick={() => router.push(`/documents?space=${space.id}`)}
-                className={`fluid-card group relative cursor-pointer ${openMenuId === space.id ? 'z-top-layer overflow-visible' : ''}`}
-                style={{ animationDelay: `${(i+1)*100}ms` }}
-              >
-                <div className="flex flex-col gap-10">
-                  <div className="flex items-start justify-between">
-                    <div className="w-20 h-20 rounded-[28px] bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 group-hover:bg-indigo-500/10 group-hover:border-indigo-500/20 transition-all duration-700">
-                      <FolderIcon className="w-10 h-10 text-indigo-400" />
-                    </div>
-                    
-                    <div className="flex items-center gap-4">
-                       <div className={`px-4 py-1.5 rounded-full text-[9px] font-black tracking-widest uppercase border ${
-                         space.is_active 
-                         ? "bg-emerald-500/5 text-emerald-400 border-emerald-500/10" 
-                         : "bg-slate-500/5 text-slate-500 border-white/5"
-                       }`}>
-                         {space.is_active ? "PRÊT" : "OFFLINE"}
-                       </div>
+              {permissions?.can_upload && (
+                <Button
+                  variant="primary"
+                  size="md"
+                  leftIcon={<Plus className="h-4 w-4" />}
+                  onClick={() => setShowCreateModal(true)}
+                >
+                  Nouvel espace
+                </Button>
+              )}
+            </div>
+          </motion.header>
 
-                       <div className="relative">
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setOpenMenuId(openMenuId === space.id ? null : space.id);
-                            }}
-                            className={`glass-trigger ${openMenuId === space.id ? 'glass-trigger-active' : ''}`}
-                          >
-                             <MoreVertical className="w-4 h-4" />
-                          </button>
-
-                          {openMenuId === space.id && (
-                            <div 
-                              className="absolute right-0 top-full mt-2 w-56 bg-[#0f172a] border border-white/10 rounded-[32px] p-4 shadow-2xl z-50 animate-fluid-in backdrop-blur-3xl"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                               <div className="space-y-2">
-                                  <p className="px-2 pb-2 text-[8px] font-black uppercase tracking-widest text-slate-600 border-b border-white/5 mb-1 text-center">Options Espace</p>
-                                  
-                                  <button 
-                                    onClick={() => router.push(`/documents?space=${space.id}`)}
-                                    className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/5 text-slate-300 hover:text-white transition-all duration-500 text-[9px] font-black uppercase tracking-widest text-left hover:scale-[1.02]"
-                                  >
-                                     <ArrowUpRightIcon className="w-4 h-4 text-indigo-400" />
-                                     <span>Ouvrir</span>
-                                  </button>
-
-                                  {(permissions?.role === 'admin' || permissions?.role === 'owner') && (
-                                    <button 
-                                      onClick={() => handleDeleteSpace(space.id)}
-                                      className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-red-500/5 text-red-400 hover:text-red-300 transition-all duration-500 text-[9px] font-black uppercase tracking-widest text-left hover:scale-[1.02]"
-                                    >
-                                       <Trash2 className="w-4 h-4" />
-                                       <span>Supprimer</span>
-                                    </button>
-                                  )}
-                               </div>
-                            </div>
-                          )}
-                       </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <h3 className="text-3xl font-black tracking-tighter text-white group-hover:text-indigo-400 transition-colors">
-                      {space.name}
-                    </h3>
-                    <p className="text-slate-500 text-sm font-medium line-clamp-2 leading-relaxed">
-                      {space.description || "Aucune description analytique fournie."}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-8 border-t border-white/5 uppercase text-[10px] font-black tracking-widest text-slate-500">
-                    <div className="flex items-center gap-2">
-                       <FileIcon className="w-4 h-4 text-indigo-500/30" />
-                       <span>{space.document_count ?? 0} Documents</span>
-                    </div>
-                    <div className="w-12 h-12 rounded-full border border-white/5 flex items-center justify-center group-hover:bg-white group-hover:text-indigo-950 transition-all duration-500">
-                       <ArrowUpRightIcon className="w-5 h-5" />
-                    </div>
-                  </div>
-                </div>
+          {/* Spaces grid */}
+          <motion.section
+            variants={shouldReduceMotion ? { hidden: { opacity: 0 }, visible: { opacity: 1 } } : fadeUp}
+          >
+            {loadingSpaces ? (
+              <div className="flex items-center justify-center py-24">
+                <div className="h-8 w-8 rounded-full border-2 border-bg-elevated-3 border-t-brand-primary animate-spin" />
               </div>
-            ))}
-          </div>
-        )}
-      </main>
-
-      {/* Modern Modal Overhaul */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-          <div className="absolute inset-0 bg-[#020617]/95 backdrop-blur-3xl" onClick={() => !creating && setShowCreateModal(false)} />
-          
-          <div className="relative w-full max-w-2xl bg-white/[0.02] border border-white/10 rounded-[64px] p-16 overflow-hidden shadow-2xl animate-fluid-in">
-            <header className="flex justify-between items-start mb-12">
-              <div className="space-y-4">
-                <h3 className="text-4xl font-black tracking-tighter text-white uppercase text-gradient">Initialisation</h3>
-                <p className="text-slate-400 font-medium">Configurez les paramètres de l'espace.</p>
-              </div>
-              <button 
-                onClick={() => setShowCreateModal(false)}
-                className="w-14 h-14 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all interactive-premium shadow-xl"
-              >
-                <XMarkIcon className="w-6 h-6" />
-              </button>
-            </header>
-
-            <div className="space-y-10">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-2 flex items-center gap-2">
-                    <TagIcon className="w-3 h-3" />
-                    <span>Identité</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value, slug: slugify(e.target.value) })}
-                    placeholder="Ventes France..."
-                    className="w-full bg-white/5 border border-white/5 rounded-[24px] px-8 py-5 font-bold text-white focus:outline-none focus:border-indigo-500/50 transition-all placeholder:text-slate-700"
-                  />
-                </div>
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-2 flex items-center gap-2">
-                    <ShieldIcon className="w-3 h-3" />
-                    <span>Unique Slug</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.slug}
-                    onChange={(e) => setForm({ ...form, slug: slugify(e.target.value) })}
-                    placeholder="ventes-fr"
-                    className="w-full bg-white/5 border border-white/5 rounded-[24px] px-8 py-5 font-mono font-bold text-indigo-400 focus:outline-none focus:border-indigo-500/50 transition-all"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-2 flex items-center gap-2">
-                  <InfoIcon className="w-3 h-3" />
-                  <span>Metadata</span>
-                </label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="Décrivez l'usage de cet espace..."
-                  rows={4}
-                  className="w-full bg-white/5 border border-white/5 rounded-[32px] px-8 py-6 text-white resize-none focus:outline-none focus:border-indigo-500/50 transition-all placeholder:text-slate-700 font-medium"
+            ) : spaces.length === 0 ? (
+              <div className="rounded-[28px] border border-border-subtle bg-bg-elevated-1/60 py-20">
+                <EmptyState
+                  illustration={<EmptySpaces className="mx-auto" />}
+                  title="Prêt à uploader ?"
+                  description="Créez votre premier espace de travail pour indexer vos documents PDF."
+                  action={
+                    permissions?.can_upload ? (
+                      <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+                        Démarrer l&apos;aventure
+                      </Button>
+                    ) : undefined
+                  }
                 />
               </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {spaces.map((space, i) => (
+                  <motion.div
+                    key={space.id}
+                    initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="group relative overflow-hidden rounded-xl border border-border-subtle bg-bg-elevated-1/60 p-5 transition-shadow hover:shadow-card"
+                  >
+                    {/* Subtle glow on hover */}
+                    <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl"
+                      style={{ background: "radial-gradient(circle at 30% 20%, rgba(99,102,241,0.06), transparent 60%)" }}
+                    />
 
-              {createError && (
-                <div className="p-5 bg-red-500/5 border border-red-500/10 rounded-[28px] text-red-400 text-sm font-bold animate-pulse">
-                  {createError}
+                    <div className="relative flex flex-col gap-5">
+                      {/* Top row */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border-subtle bg-bg-elevated-2 text-brand-primary">
+                          <Folder className="h-5 w-5" />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest ${
+                              space.is_active
+                                ? "bg-success/10 text-success"
+                                : "bg-bg-elevated-2 text-fg-tertiary"
+                            }`}
+                          >
+                            {space.is_active ? "Prêt" : "Hors ligne"}
+                          </span>
+
+                          <div className="relative">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuId(openMenuId === space.id ? null : space.id);
+                              }}
+                              className="flex h-8 w-8 items-center justify-center rounded-xl border border-border-subtle bg-bg-elevated-2 text-fg-tertiary transition-colors hover:text-fg-primary"
+                              aria-label="Options"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </button>
+
+                            <AnimatePresence>
+                              {openMenuId === space.id && (
+                                <motion.div
+                                  initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                                  exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                                  transition={{ duration: 0.15 }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="absolute right-0 top-full z-50 mt-2 w-44 overflow-hidden rounded-2xl border border-border-subtle bg-bg-elevated-2 shadow-[0_24px_48px_-16px_rgba(0,0,0,0.8)]"
+                                >
+                                  <button
+                                    onClick={() => router.push(`/documents?space=${space.id}`)}
+                                    className="flex w-full items-center gap-3 px-4 py-3 text-xs font-semibold text-fg-secondary transition-colors hover:bg-bg-elevated-3 hover:text-fg-primary"
+                                  >
+                                    <ArrowUpRight className="h-3.5 w-3.5 text-brand-primary" />
+                                    Ouvrir
+                                  </button>
+                                  {isAdmin && (
+                                    <button
+                                      onClick={() => handleDeleteSpace(space.id)}
+                                      className="flex w-full items-center gap-3 border-t border-border-subtle px-4 py-3 text-xs font-semibold text-error transition-colors hover:bg-error/10"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                      Supprimer
+                                    </button>
+                                  )}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Info */}
+                      <div className="space-y-1">
+                        <h3 className="font-display text-lg font-semibold text-fg-primary group-hover:text-brand-primary transition-colors">
+                          {space.name}
+                        </h3>
+                        <p className="line-clamp-2 text-xs leading-5 text-fg-tertiary">
+                          {space.description || "Aucune description fournie."}
+                        </p>
+                      </div>
+
+                      {/* Footer */}
+                      <div className="flex items-center justify-between border-t border-border-subtle pt-4">
+                        <div className="flex items-center gap-1.5 text-xs text-fg-tertiary">
+                          <FileText className="h-3.5 w-3.5" />
+                          <span>{space.document_count ?? 0} document{(space.document_count ?? 0) !== 1 ? "s" : ""}</span>
+                        </div>
+                        <button
+                          onClick={() => router.push(`/documents?space=${space.id}`)}
+                          className="flex items-center gap-1 text-xs font-semibold text-fg-tertiary transition-colors group-hover:text-brand-primary"
+                        >
+                          <span>Ouvrir</span>
+                          <ArrowUpRight className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </motion.section>
+        </motion.div>
+      </main>
+
+      {/* Create modal */}
+      <AnimatePresence>
+        {showCreateModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-100 flex items-center justify-center p-6"
+          >
+            <div
+              className="absolute inset-0 bg-bg-base/90 backdrop-blur-md"
+              onClick={() => !creating && setShowCreateModal(false)}
+            />
+
+            <motion.div
+              initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 16 }}
+              transition={{ duration: 0.25 }}
+              className="relative w-full max-w-lg overflow-hidden rounded-[32px] border border-border-subtle bg-bg-elevated-1 shadow-[0_40px_120px_-32px_rgba(0,0,0,0.9)]"
+            >
+              <div className="h-px w-full aurora-bg" />
+
+              <div className="p-8">
+                <div className="mb-8 flex items-start justify-between">
+                  <div className="space-y-1">
+                    <h2 className="font-serif text-3xl tracking-tight text-fg-primary">
+                      Initialisation
+                    </h2>
+                    <p className="text-sm text-fg-secondary">
+                      Configurez les paramètres de l&apos;espace.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowCreateModal(false)}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-border-subtle bg-bg-elevated-2 text-fg-tertiary transition-colors hover:text-fg-primary"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
-              )}
 
-              <button
-                onClick={handleCreate}
-                disabled={creating || !form.name.trim() || !form.slug.trim()}
-                className="btn-magnetic w-full py-6 text-xs interactive-premium"
-              >
-                {creating ? "Phase d'Initialisation..." : "Confirmer l'Initialisation"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                <div className="space-y-5">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input
+                      label="Nom"
+                      type="text"
+                      value={form.name}
+                      onChange={(e) =>
+                        setForm({ ...form, name: e.target.value, slug: slugify(e.target.value) })
+                      }
+                      placeholder="Ventes France"
+                    />
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold uppercase tracking-widest text-fg-tertiary">
+                        Slug
+                      </label>
+                      <input
+                        type="text"
+                        value={form.slug}
+                        onChange={(e) => setForm({ ...form, slug: slugify(e.target.value) })}
+                        className="w-full rounded-xl border border-border-subtle bg-bg-elevated-2 px-3 py-2.5 font-mono text-sm text-brand-primary focus:border-brand-primary focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-widest text-fg-tertiary">
+                      Description
+                    </label>
+                    <textarea
+                      value={form.description}
+                      onChange={(e) => setForm({ ...form, description: e.target.value })}
+                      placeholder="Décrivez l'usage de cet espace…"
+                      rows={3}
+                      className="w-full resize-none rounded-xl border border-border-subtle bg-bg-elevated-2 px-3 py-2.5 text-sm text-fg-primary placeholder:text-fg-tertiary focus:border-brand-primary focus:outline-none"
+                    />
+                  </div>
+
+                  {createError && <ErrorBanner message={createError} dismissible={false} />}
+
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    className="w-full"
+                    onClick={handleCreate}
+                    loading={creating}
+                    disabled={creating || !form.name.trim() || !form.slug.trim()}
+                  >
+                    {creating ? "Initialisation…" : "Confirmer l'initialisation"}
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

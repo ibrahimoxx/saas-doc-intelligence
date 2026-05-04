@@ -1,8 +1,8 @@
-// src/app/(dashboard)/membres/page.tsx
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { tenantService } from "@/services/tenant.service";
 import type {
@@ -16,8 +16,14 @@ import type {
   UserInvitation,
 } from "@/types/tenant.types";
 import { TopBar } from "@/components/layout/TopBar";
+import { PageLoader } from "@/components/ui/LoadingSpinner";
+import { Avatar } from "@/components/ui/Avatar";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { fadeUp, staggerContainer } from "@/lib/motion";
 import {
-  Users,
   UserPlus,
   Shield,
   ShieldCheck,
@@ -27,23 +33,36 @@ import {
   Loader2,
   Trash2,
   Edit,
-  ChevronDown,
-  ChevronUp,
   Key,
   Layers,
-  Plus,
   Check,
+  ChevronDown,
+  CheckCircle2,
 } from "lucide-react";
 
-const ROLE_COLORS = {
-  owner: "text-amber-400 bg-amber-500/5 border-amber-500/10",
-  admin: "text-indigo-400 bg-indigo-500/5 border-indigo-500/10",
-  member: "text-slate-400 bg-white/5 border-white/5",
+const ROLE_VARIANT: Record<string, "indigo" | "blue" | "amber" | "slate"> = {
+  owner: "amber",
+  admin: "indigo",
+  manager: "blue",
+  member: "slate",
+};
+
+const STATUS_VARIANT: Record<string, "green" | "amber" | "red" | "slate"> = {
+  active: "green",
+  invited: "amber",
+  disabled: "red",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  active: "Actif",
+  invited: "Invité",
+  disabled: "Désactivé",
 };
 
 export default function MembresPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const shouldReduceMotion = useReducedMotion();
 
   const [tenants, setTenants] = useState<TenantMembership[]>([]);
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
@@ -76,9 +95,8 @@ export default function MembresPage() {
     if (!isLoading && !isAuthenticated) router.push("/login");
   }, [isLoading, isAuthenticated, router]);
 
-  // Route guard: only admin/owner can access this page
   useEffect(() => {
-    if (permissions && permissions.role !== 'admin' && permissions.role !== 'owner' && !permissions.can_manage_members) {
+    if (permissions && permissions.role !== "admin" && permissions.role !== "owner" && !permissions.can_manage_members) {
       router.replace("/dashboard");
     }
   }, [permissions, router]);
@@ -181,8 +199,8 @@ export default function MembresPage() {
       tenantService.knowledgeSpaces(selectedTenantId),
       tenantService.listSpaceProfiles(selectedTenantId),
     ]);
-    if (accessRes.data) setMemberAccesses(prev => ({ ...prev, [memberId]: accessRes.data! }));
-    if (profileRes.data) setMemberProfiles(prev => ({ ...prev, [memberId]: profileRes.data! }));
+    if (accessRes.data) setMemberAccesses((prev) => ({ ...prev, [memberId]: accessRes.data! }));
+    if (profileRes.data) setMemberProfiles((prev) => ({ ...prev, [memberId]: profileRes.data! }));
     if (spacesRes.data) setSpaces(spacesRes.data);
     if (allProfilesRes.data) setProfiles(allProfilesRes.data);
     setAclLoading(null);
@@ -226,21 +244,18 @@ export default function MembresPage() {
     router.push("/login");
   };
 
-  // Block render entirely until auth + permissions are confirmed
-  if (isLoading || loadingPermissions || (!isAuthenticated && !isLoading)) {
-    return (
-      <div className="min-h-screen bg-[#020617] flex items-center justify-center">
-        <div className="w-10 h-10 border-[3px] border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (isLoading || loadingPermissions || (!isAuthenticated && !isLoading)) return <PageLoader />;
 
-  // Authorization check: if not admin/owner, will be redirected by useEffect above
-  const isAuthorized = permissions?.role === 'admin' || permissions?.role === 'owner' || permissions?.can_manage_members;
+  const isAuthorized =
+    permissions?.role === "admin" ||
+    permissions?.role === "owner" ||
+    permissions?.can_manage_members;
   if (!isAuthorized) return null;
 
+  const isOwner = permissions?.role === "owner" || !!user?.is_superuser;
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-bg-base">
       <TopBar
         userEmail={user?.email}
         isSuperuser={user?.is_superuser}
@@ -251,372 +266,441 @@ export default function MembresPage() {
         onAdminDashboard={() => router.push("/admin/dashboard")}
       />
 
-      <main className="max-w-[1400px] mx-auto px-10 py-48 space-y-24">
-        {/* Spacious Header */}
-        <header className="flex flex-col lg:flex-row items-center justify-between gap-12 animate-fluid-in">
-          <div className="text-center lg:text-left space-y-6 max-w-2xl">
-            <h2 className="text-hero">
-               Équipe & <br />
-               <span className="text-gradient">Permissions</span>
-            </h2>
-            <p className="text-slate-400 text-lg md:text-xl font-medium leading-relaxed">
-              Gérez les accès et les rôles collaboratifs au sein de votre organisation.
-            </p>
-          </div>
+      <main id="main" className="mx-auto max-w-5xl px-6 pt-28 pb-16">
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={shouldReduceMotion ? {} : staggerContainer}
+          className="space-y-10"
+        >
+          {/* Header */}
+          <motion.header
+            variants={shouldReduceMotion ? { hidden: { opacity: 0 }, visible: { opacity: 1 } } : fadeUp}
+            className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
+          >
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-fg-tertiary">
+                Équipe & permissions
+              </p>
+              <h1 className="font-serif text-4xl tracking-tight text-fg-primary sm:text-5xl">
+                Membres
+              </h1>
+              <p className="text-sm text-fg-secondary">
+                {members.length} membre{members.length !== 1 ? "s" : ""} dans cette organisation
+              </p>
+            </div>
 
-          {permissions?.can_manage_members && (
-            <button
-              onClick={() => setShowInviteModal(true)}
-              className="btn-magnetic flex items-center gap-4 animate-fluid-in interactive-premium"
-              style={{ animationDelay: '200ms' }}
-            >
-              <UserPlus className="w-5 h-5" />
-              <span>Inviter un Contributeur</span>
-            </button>
-          )}
-        </header>
+            {permissions?.can_manage_members && (
+              <Button
+                variant="primary"
+                size="md"
+                leftIcon={<UserPlus className="h-4 w-4" />}
+                onClick={() => setShowInviteModal(true)}
+              >
+                Inviter un membre
+              </Button>
+            )}
+          </motion.header>
 
-        {/* Fluid Table Overhaul */}
-        <section className="animate-fluid-in" style={{ animationDelay: '400ms' }}>
-           {loadingMembers ? (
-              <div className="py-48 flex flex-col items-center justify-center gap-8">
-                <div className="w-16 h-16 border-4 border-white/5 border-t-indigo-500 rounded-full animate-spin" />
-                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-600">Indexation des profils...</p>
+          {/* Member list */}
+          <motion.section
+            variants={shouldReduceMotion ? { hidden: { opacity: 0 }, visible: { opacity: 1 } } : fadeUp}
+          >
+            {loadingMembers ? (
+              <div className="flex flex-col items-center justify-center gap-4 py-24">
+                <div className="h-8 w-8 rounded-full border-2 border-bg-elevated-3 border-t-brand-primary animate-spin" />
+                <p className="text-xs font-semibold uppercase tracking-widest text-fg-tertiary">
+                  Chargement des membres…
+                </p>
               </div>
-           ) : (
-             <div className="space-y-6">
-                <div className="grid grid-cols-12 px-10 text-[9px] font-black uppercase tracking-[0.4em] text-slate-600 mb-4">
-                   <div className="col-span-6">Utilisateur</div>
-                   <div className="col-span-3 text-center">Rôle</div>
-                   <div className="col-span-2 text-center">Statut</div>
-                   <div className="col-span-1 text-right">Action</div>
-                </div>
+            ) : (
+              <div className="space-y-3">
+                {members.map((m, i) => (
+                  <motion.div
+                    key={m.id}
+                    initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="overflow-hidden rounded-[20px] border border-border-subtle bg-bg-elevated-1/60"
+                  >
+                    {/* Member row */}
+                    <div className="flex items-center gap-4 px-5 py-4">
+                      <Avatar name={m.user.full_name || m.user.email} size="md" />
 
-                <div className="space-y-4">
-                   {members.map((m, i) => (
-                     <div
-                       key={m.id}
-                       className="fluid-card group"
-                       style={{ animationDelay: `${(i+1)*50}ms` }}
-                     >
-                     <div className={`grid grid-cols-12 items-center py-8 ${openMenuId === m.id ? 'z-top-layer overflow-visible' : ''}`} style={{ padding: '1.5rem 2.5rem' }}>
-                        <div className="col-span-6 flex items-center gap-6">
-                           <div className="w-14 h-14 rounded-2xl bg-gradient-brand flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform duration-500">
-                              <span className="text-lg font-black text-white">{m.user.email[0].toUpperCase()}</span>
-                           </div>
-                           <div className="min-w-0">
-                              <p className="text-lg font-black tracking-tight text-white line-clamp-1">
-                                {m.user.full_name || m.user.email.split('@')[0]}
-                              </p>
-                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{m.user.email}</p>
-                           </div>
-                        </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-fg-primary">
+                          {m.user.full_name || m.user.email.split("@")[0]}
+                        </p>
+                        <p className="truncate text-xs text-fg-tertiary">{m.user.email}</p>
+                      </div>
 
-                        <div className="col-span-3 flex justify-center">
-                           <div className={`px-4 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest flex items-center gap-2 ${ROLE_COLORS[m.role as keyof typeof ROLE_COLORS] || ROLE_COLORS.member}`}>
-                              {m.role === 'owner' ? <ShieldCheck className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
-                              <span>{m.role}</span>
-                           </div>
-                        </div>
+                      <div className="hidden sm:flex items-center gap-2">
+                        <Badge
+                          variant={ROLE_VARIANT[m.role] ?? "slate"}
+                          dot={m.role === "owner"}
+                        >
+                          {m.role}
+                        </Badge>
+                        <Badge
+                          variant={STATUS_VARIANT[m.status] ?? "slate"}
+                          dot={m.status === "active"}
+                          pulse={m.status === "invited"}
+                        >
+                          {STATUS_LABEL[m.status] ?? m.status}
+                        </Badge>
+                      </div>
 
-                        <div className="col-span-2 flex justify-center">
-                           {m.status === "disabled" ? (
-                             <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/5 border border-red-500/10 text-red-400 text-[9px] font-black uppercase tracking-widest">
-                               <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                               <span>DÉSACTIVÉ</span>
-                             </div>
-                           ) : m.status === "invited" ? (
-                             <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/5 border border-amber-500/10 text-amber-400 text-[9px] font-black uppercase tracking-widest">
-                               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                               <span>INVITÉ</span>
-                             </div>
-                           ) : (
-                             <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/10 text-emerald-400 text-[9px] font-black uppercase tracking-widest">
-                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                               <span>ACTIF</span>
-                             </div>
-                           )}
-                        </div>
+                      {permissions?.can_manage_members && (
+                        <div className="flex items-center gap-1.5">
+                          {/* ACL expand toggle */}
+                          <button
+                            onClick={() => toggleExpand(m)}
+                            className={`flex h-8 w-8 items-center justify-center rounded-xl border transition-colors ${
+                              expandedMemberId === m.id
+                                ? "border-brand-primary/30 bg-brand-primary/10 text-brand-primary"
+                                : "border-border-subtle bg-bg-elevated-2 text-fg-tertiary hover:text-fg-primary"
+                            }`}
+                            aria-label="Gérer les accès aux espaces"
+                          >
+                            <Key className="h-3.5 w-3.5" />
+                          </button>
 
-                        {permissions?.can_manage_members && (
-                          <div className="col-span-1 flex justify-end items-center gap-3 relative">
-                            <button
-                              onClick={() => toggleExpand(m)}
-                              className={`glass-trigger ${expandedMemberId === m.id ? 'glass-trigger-active' : ''}`}
-                              title="Gérer l'accès aux espaces"
-                            >
-                              <Key className="w-4 h-4" />
-                            </button>
+                          {/* Actions menu */}
+                          <div className="relative">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setOpenMenuId(openMenuId === m.id ? null : m.id);
                               }}
-                              className={`glass-trigger ${openMenuId === m.id ? 'glass-trigger-active' : ''}`}
+                              className="flex h-8 w-8 items-center justify-center rounded-xl border border-border-subtle bg-bg-elevated-2 text-fg-tertiary transition-colors hover:text-fg-primary"
+                              aria-label="Actions"
                             >
-                                <MoreVertical className="w-5 h-5" />
+                              <MoreVertical className="h-4 w-4" />
                             </button>
 
-                            {openMenuId === m.id && (
-                              <div
-                                className="absolute right-0 bottom-full mb-4 w-64 bg-[#0f172a] border border-white/10 rounded-[40px] p-6 shadow-2xl z-50 animate-fluid-in backdrop-blur-3xl"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                 <div className="space-y-3">
-                                    <p className="px-2 pb-3 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 border-b border-white/5 mb-2 text-center">Gestion Membre</p>
+                            <AnimatePresence>
+                              {openMenuId === m.id && (
+                                <motion.div
+                                  initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                                  exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                                  transition={{ duration: 0.15 }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl border border-border-subtle bg-bg-elevated-2 shadow-[0_24px_48px_-16px_rgba(0,0,0,0.8)]"
+                                >
+                                  {m.role !== "owner" ? (
+                                    <>
+                                      {isOwner && (
+                                        <button
+                                          onClick={() =>
+                                            handleUpdateRole(
+                                              m.id,
+                                              m.role === "admin" ? "member" : "admin"
+                                            )
+                                          }
+                                          className="flex w-full items-center gap-3 px-4 py-3 text-xs font-semibold text-fg-secondary transition-colors hover:bg-bg-elevated-3 hover:text-fg-primary"
+                                        >
+                                          <Edit className="h-3.5 w-3.5 text-brand-primary" />
+                                          Passer en {m.role === "admin" ? "Membre" : "Admin"}
+                                        </button>
+                                      )}
 
-                                    {m.role !== 'owner' && (
-                                       <>
-                                          {/* Only owner can grant or revoke admin */}
-                                          {(permissions?.role === 'owner' || !!user?.is_superuser) && (
-                                            <button
-                                              onClick={() => handleUpdateRole(m.id, m.role === 'admin' ? 'member' : 'admin')}
-                                              className="w-full flex items-center gap-4 px-6 py-4 rounded-[20px] hover:bg-white/5 text-slate-300 hover:text-white transition-all duration-500 text-[10px] font-black uppercase tracking-widest text-left hover:scale-[1.02]"
-                                            >
-                                               <Edit className="w-4 h-4 text-indigo-400" />
-                                               <span>Passer en {m.role === 'admin' ? 'Membre' : 'Admin'}</span>
-                                            </button>
-                                          )}
+                                      {m.user.id !== user?.id && (
+                                        <button
+                                          onClick={() => handleToggleMemberStatus(m.id, m.status)}
+                                          className="flex w-full items-center gap-3 px-4 py-3 text-xs font-semibold text-warning transition-colors hover:bg-warning/10"
+                                        >
+                                          <Shield className="h-3.5 w-3.5" />
+                                          {m.status === "disabled" ? "Réactiver" : "Désactiver"}
+                                        </button>
+                                      )}
 
-                                          {/* Owner/admin can disable or reactivate members */}
-                                          {m.user.id !== user?.id && (
-                                            <button
-                                              onClick={() => handleToggleMemberStatus(m.id, m.status)}
-                                              className="w-full flex items-center gap-4 px-6 py-4 rounded-[20px] hover:bg-amber-500/5 text-amber-400 hover:text-amber-300 transition-all duration-500 text-[10px] font-black uppercase tracking-widest text-left hover:scale-[1.02]"
-                                            >
-                                               <Shield className="w-4 h-4" />
-                                               <span>{m.status === 'disabled' ? 'Réactiver' : 'Désactiver'}</span>
-                                            </button>
-                                          )}
+                                      <button
+                                        onClick={() => handleRemoveMember(m.id)}
+                                        className="flex w-full items-center gap-3 border-t border-border-subtle px-4 py-3 text-xs font-semibold text-error transition-colors hover:bg-error/10"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                        Retirer de l&apos;organisation
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <p className="px-4 py-3 text-center text-xs text-fg-tertiary italic">
+                                      Propriétaire — accès fixe
+                                    </p>
+                                  )}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        </div>
+                      )}
+                    </div>
 
-                                          <button
-                                            onClick={() => handleRemoveMember(m.id)}
-                                            className="w-full flex items-center gap-4 px-6 py-4 rounded-[20px] hover:bg-red-500/5 text-red-400 hover:text-red-300 transition-all duration-500 text-[10px] font-black uppercase tracking-widest text-left hover:scale-[1.02]"
-                                          >
-                                             <Trash2 className="w-4 h-4" />
-                                             <span>Retirer de l'organisation</span>
-                                          </button>
-                                       </>
-                                    )}
-                                    {m.role === 'owner' && (
-                                      <p className="px-4 py-4 text-[10px] font-bold text-slate-500 italic text-center">Accès Propriétaire (Fixe)</p>
-                                    )}
-                                 </div>
+                    {/* ACL Panel */}
+                    <AnimatePresence initial={false}>
+                      {expandedMemberId === m.id && (
+                        <motion.div
+                          key="acl"
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.25 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="border-t border-border-subtle bg-bg-elevated-2/40 px-5 py-5 space-y-6">
+                            {aclLoading === m.id ? (
+                              <div className="flex items-center justify-center py-6">
+                                <Loader2 className="h-5 w-5 animate-spin text-brand-primary" />
                               </div>
+                            ) : (
+                              <>
+                                {/* Direct space access */}
+                                <div className="space-y-3">
+                                  <p className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-fg-tertiary">
+                                    <Key className="h-3 w-3 text-brand-primary" />
+                                    Accès directs aux espaces
+                                  </p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {spaces.map((space) => {
+                                      const hasAccess = memberAccesses[m.id]?.some(
+                                        (a) => a.space.id === space.id
+                                      );
+                                      return (
+                                        <button
+                                          key={space.id}
+                                          onClick={() =>
+                                            hasAccess
+                                              ? handleRevokeAccess(m.id, space.id)
+                                              : handleGrantAccess(m.id, space.id)
+                                          }
+                                          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors ${
+                                            hasAccess
+                                              ? "border-brand-primary/30 bg-brand-primary/10 text-brand-primary"
+                                              : "border-border-subtle bg-bg-elevated-2 text-fg-tertiary hover:border-border-strong hover:text-fg-secondary"
+                                          }`}
+                                        >
+                                          {hasAccess && <Check className="h-3 w-3" />}
+                                          {space.name}
+                                        </button>
+                                      );
+                                    })}
+                                    {spaces.length === 0 && (
+                                      <p className="text-xs text-fg-tertiary">
+                                        Aucun espace disponible.
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Profile assignments */}
+                                <div className="space-y-3 border-t border-border-subtle pt-4">
+                                  <p className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-fg-tertiary">
+                                    <Layers className="h-3 w-3 text-brand-secondary" />
+                                    Profils assignés
+                                  </p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {profiles.map((profile) => {
+                                      const isAssigned = memberProfiles[m.id]?.some(
+                                        (a) => a.profile.id === profile.id
+                                      );
+                                      return (
+                                        <button
+                                          key={profile.id}
+                                          onClick={() =>
+                                            isAssigned
+                                              ? handleRemoveProfile(m.id, profile.id)
+                                              : handleAssignProfile(m.id, profile.id)
+                                          }
+                                          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors ${
+                                            isAssigned
+                                              ? "border-brand-secondary/30 bg-brand-secondary/10 text-brand-secondary"
+                                              : "border-border-subtle bg-bg-elevated-2 text-fg-tertiary hover:border-border-strong hover:text-fg-secondary"
+                                          }`}
+                                        >
+                                          {isAssigned && <Check className="h-3 w-3" />}
+                                          {profile.name}
+                                        </button>
+                                      );
+                                    })}
+                                    {profiles.length === 0 && (
+                                      <p className="text-xs text-fg-tertiary">
+                                        Aucun profil créé. Créez-en un dans la page Espaces.
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </>
                             )}
                           </div>
-                        )}
-                     </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </motion.section>
 
-                     {/* Space ACL Panel */}
-                     {expandedMemberId === m.id && (
-                       <div className="mt-4 mx-6 mb-6 p-8 rounded-[32px] bg-white/[0.02] border border-white/5 space-y-8 animate-fluid-in">
-                         {aclLoading === m.id ? (
-                           <div className="flex items-center justify-center py-8">
-                             <Loader2 className="w-6 h-6 animate-spin text-indigo-400" />
-                           </div>
-                         ) : (
-                           <>
-                             {/* Direct space access */}
-                             <div className="space-y-4">
-                               <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-2">
-                                 <Key className="w-3 h-3 text-indigo-400" /> Accès directs aux espaces
-                               </p>
-                               <div className="flex flex-wrap gap-3">
-                                 {spaces.map((space) => {
-                                   const hasAccess = memberAccesses[m.id]?.some(a => a.space.id === space.id);
-                                   return (
-                                     <button
-                                       key={space.id}
-                                       onClick={() => hasAccess ? handleRevokeAccess(m.id, space.id) : handleGrantAccess(m.id, space.id)}
-                                       className={`flex items-center gap-2 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all interactive-premium ${
-                                         hasAccess
-                                           ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-400"
-                                           : "bg-white/5 border-white/5 text-slate-500 hover:text-white hover:border-white/20"
-                                       }`}
-                                     >
-                                       {hasAccess && <Check className="w-3 h-3" />}
-                                       {space.name}
-                                     </button>
-                                   );
-                                 })}
-                                 {spaces.length === 0 && (
-                                   <p className="text-[10px] text-slate-600">Aucun espace disponible.</p>
-                                 )}
-                               </div>
-                             </div>
-
-                             {/* Profile assignments */}
-                             <div className="space-y-4 pt-4 border-t border-white/5">
-                               <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-2">
-                                 <Layers className="w-3 h-3 text-purple-400" /> Profils assignés
-                               </p>
-                               <div className="flex flex-wrap gap-3">
-                                 {profiles.map((profile) => {
-                                   const isAssigned = memberProfiles[m.id]?.some(a => a.profile.id === profile.id);
-                                   return (
-                                     <button
-                                       key={profile.id}
-                                       onClick={() => isAssigned ? handleRemoveProfile(m.id, profile.id) : handleAssignProfile(m.id, profile.id)}
-                                       className={`flex items-center gap-2 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all interactive-premium ${
-                                         isAssigned
-                                           ? "bg-purple-500/10 border-purple-500/30 text-purple-400"
-                                           : "bg-white/5 border-white/5 text-slate-500 hover:text-white hover:border-white/20"
-                                       }`}
-                                     >
-                                       {isAssigned && <Check className="w-3 h-3" />}
-                                       {profile.name}
-                                     </button>
-                                   );
-                                 })}
-                                 {profiles.length === 0 && (
-                                   <p className="text-[10px] text-slate-600">Aucun profil créé. Créez-en un dans la page Espaces.</p>
-                                 )}
-                               </div>
-                             </div>
-                           </>
-                         )}
-                       </div>
-                     )}
-                     </div>
-                   ))}
-                </div>
-             </div>
-           )}
-        </section>
-
-        {/* Pending Invitations */}
-        {invitations.length > 0 && (
-          <section className="animate-fluid-in" style={{ animationDelay: '500ms' }}>
-            <div className="space-y-6">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 flex items-center gap-3">
-                <Mail className="w-3.5 h-3.5 text-amber-400" />
+          {/* Pending invitations */}
+          {invitations.length > 0 && (
+            <motion.section
+              variants={shouldReduceMotion ? { hidden: { opacity: 0 }, visible: { opacity: 1 } } : fadeUp}
+              className="space-y-4"
+            >
+              <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em] text-fg-tertiary">
+                <Mail className="h-3.5 w-3.5 text-warning" />
                 Invitations en attente ({invitations.length})
-              </h3>
-              <div className="space-y-3">
+              </h2>
+              <div className="space-y-2">
                 {invitations.map((inv) => (
-                  <div key={inv.id} className="fluid-card flex items-center justify-between gap-6" style={{ padding: '1rem 2rem' }}>
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/10 flex items-center justify-center">
-                        <Mail className="w-4 h-4 text-amber-400" />
+                  <div
+                    key={inv.id}
+                    className="flex items-center justify-between gap-4 rounded-2xl border border-border-subtle bg-bg-elevated-1/60 px-4 py-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-warning/20 bg-warning/10">
+                        <Mail className="h-3.5 w-3.5 text-warning" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-white">{inv.email}</p>
-                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">{inv.role} · expire le {new Date(inv.expires_at).toLocaleDateString("fr-FR")}</p>
+                        <p className="text-sm font-semibold text-fg-primary">{inv.email}</p>
+                        <p className="text-[10px] uppercase tracking-widest text-fg-tertiary">
+                          {inv.role} · expire le{" "}
+                          {new Date(inv.expires_at).toLocaleDateString("fr-FR")}
+                        </p>
                       </div>
                     </div>
-                    {permissions?.can_manage_members && (
-                      revokeSuccessId === inv.id ? (
-                        <span className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-widest">
-                          <Check className="w-3 h-3" />
+
+                    {permissions?.can_manage_members &&
+                      (revokeSuccessId === inv.id ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-success/20 bg-success/10 px-3 py-1 text-[11px] font-semibold text-success">
+                          <CheckCircle2 className="h-3 w-3" />
                           Révoquée
                         </span>
                       ) : (
                         <button
                           onClick={() => handleRevokeInvitation(inv.id)}
-                          className="flex items-center gap-2 px-4 py-2 rounded-full bg-red-500/5 border border-red-500/10 text-red-400 hover:text-red-300 text-[9px] font-black uppercase tracking-widest transition-all interactive-premium"
+                          className="inline-flex items-center gap-1.5 rounded-full border border-error/20 bg-error/10 px-3 py-1 text-[11px] font-semibold text-error transition-colors hover:bg-error/20"
                         >
-                          <X className="w-3 h-3" />
+                          <X className="h-3 w-3" />
                           Révoquer
                         </button>
-                      )
-                    )}
+                      ))}
                   </div>
                 ))}
               </div>
-            </div>
-          </section>
-        )}
+            </motion.section>
+          )}
+        </motion.div>
       </main>
 
-      {/* Invite Modal Redesign */}
-      {showInviteModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-          <div className="absolute inset-0 bg-[#020617]/95 backdrop-blur-3xl" onClick={() => !inviting && closeInviteModal()} />
+      {/* Invite Modal */}
+      <AnimatePresence>
+        {showInviteModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-100 flex items-center justify-center p-6"
+          >
+            <div
+              className="absolute inset-0 bg-bg-base/90 backdrop-blur-md"
+              onClick={() => !inviting && closeInviteModal()}
+            />
 
-          <div className="relative w-full max-w-xl bg-white/[0.02] border border-white/10 rounded-[64px] p-16 shadow-2xl animate-fluid-in">
-             <header className="flex justify-between items-start mb-12">
-                <div className="space-y-4">
-                   <h3 className="text-4xl font-black tracking-tighter text-white uppercase text-gradient">Invitation</h3>
-                   <p className="text-slate-400 font-medium">Ajoutez un collaborateur à l'organisation.</p>
+            <motion.div
+              initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 16 }}
+              transition={{ duration: 0.25 }}
+              className="relative w-full max-w-lg overflow-hidden rounded-[32px] border border-border-subtle bg-bg-elevated-1 shadow-[0_40px_120px_-32px_rgba(0,0,0,0.9)]"
+            >
+              {/* Glow bar */}
+              <div className="h-px w-full aurora-bg" />
+
+              <div className="p-8">
+                <div className="mb-8 flex items-start justify-between">
+                  <div className="space-y-1">
+                    <h2 className="font-serif text-3xl tracking-tight text-fg-primary">
+                      Invitation
+                    </h2>
+                    <p className="text-sm text-fg-secondary">
+                      Ajoutez un collaborateur à l&apos;organisation.
+                    </p>
+                  </div>
+                  <button
+                    onClick={closeInviteModal}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-border-subtle bg-bg-elevated-2 text-fg-tertiary transition-colors hover:text-fg-primary"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
-                <button
-                  onClick={closeInviteModal}
-                  className="w-14 h-14 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all interactive-premium"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-             </header>
 
-             {inviteSent ? (
-               <div className="text-center space-y-8 py-8">
-                 <div className="w-20 h-20 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto">
-                   <Mail className="w-8 h-8 text-emerald-400" />
-                 </div>
-                 <div className="space-y-3">
-                   <p className="text-2xl font-black text-white">Invitation envoyée !</p>
-                   <p className="text-slate-400 text-sm">Un lien d'activation a été envoyé à <span className="text-white font-bold">{inviteForm.email}</span>.</p>
-                 </div>
-                 <button onClick={closeInviteModal} className="btn-magnetic px-12 py-4 interactive-premium">
-                   Fermer
-                 </button>
-               </div>
-             ) : (
-               <div className="space-y-10">
-                 <div className="space-y-4">
-                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-2 flex items-center gap-2">
-                     <Mail className="w-3 h-3" />
-                     <span>Adresse Email</span>
-                   </label>
-                   <input
-                     type="email"
-                     value={inviteForm.email}
-                     onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
-                     className="w-full bg-white/5 border border-white/5 rounded-[24px] px-8 py-5 text-white focus:outline-none focus:border-indigo-500/50 transition-all font-medium"
-                     placeholder="partenaire@entreprise.com"
-                   />
-                 </div>
+                {inviteSent ? (
+                  <div className="space-y-6 py-4 text-center">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-success/20 bg-success/10">
+                      <Mail className="h-7 w-7 text-success" />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="font-serif text-2xl text-fg-primary">Invitation envoyée !</p>
+                      <p className="text-sm text-fg-secondary">
+                        Un lien d&apos;activation a été envoyé à{" "}
+                        <span className="font-semibold text-fg-primary">{inviteForm.email}</span>.
+                      </p>
+                    </div>
+                    <Button variant="ghost" onClick={closeInviteModal}>
+                      Fermer
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <Input
+                      type="email"
+                      label="Adresse email"
+                      placeholder="partenaire@entreprise.com"
+                      value={inviteForm.email}
+                      onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
+                    />
 
-                 <div className="space-y-4">
-                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-2 flex items-center gap-2">
-                     <Shield className="w-3 h-3" />
-                     <span>Niveau d'Accès</span>
-                   </label>
-                   <div className="grid grid-cols-3 gap-4">
-                     {["member", "manager", "admin"].map((r) => (
-                       <button
-                         key={r}
-                         onClick={() => setInviteForm({ ...inviteForm, role: r })}
-                         className={`py-4 rounded-[20px] text-[10px] font-black uppercase tracking-widest border transition-all interactive-premium ${
-                           inviteForm.role === r
-                           ? "bg-white text-indigo-950 border-white shadow-xl shadow-white/10"
-                           : "bg-white/5 text-slate-500 border-white/5 hover:bg-white/10"
-                         }`}
-                       >
-                         {r}
-                       </button>
-                     ))}
-                   </div>
-                 </div>
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-fg-tertiary">
+                        Niveau d&apos;accès
+                      </p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {["member", "manager", "admin"].map((r) => (
+                          <button
+                            key={r}
+                            onClick={() => setInviteForm({ ...inviteForm, role: r })}
+                            className={`rounded-xl py-2.5 text-[11px] font-semibold uppercase tracking-widest border transition-colors ${
+                              inviteForm.role === r
+                                ? "border-brand-primary/40 bg-brand-primary/10 text-brand-primary"
+                                : "border-border-subtle bg-bg-elevated-2 text-fg-tertiary hover:border-border-strong hover:text-fg-secondary"
+                            }`}
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-                 {inviteError && (
-                   <div className="p-5 bg-red-500/5 border border-red-500/10 rounded-[28px] text-red-400 text-sm font-bold animate-pulse">
-                     {inviteError}
-                   </div>
-                 )}
+                    {inviteError && <ErrorBanner message={inviteError} dismissible={false} />}
 
-                 <button
-                   onClick={handleInvite}
-                   disabled={inviting || !inviteForm.email.trim()}
-                   className="btn-magnetic w-full py-6 interactive-premium"
-                 >
-                   {inviting ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : "Envoyer l'Invitation"}
-                 </button>
-               </div>
-             )}
-          </div>
-        </div>
-      )}
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      className="w-full"
+                      onClick={handleInvite}
+                      loading={inviting}
+                      disabled={inviting || !inviteForm.email.trim()}
+                    >
+                      Envoyer l&apos;invitation
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

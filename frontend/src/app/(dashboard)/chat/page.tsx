@@ -1,8 +1,8 @@
-// src/app/(dashboard)/chat/page.tsx
 "use client";
 
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { tenantService } from "@/services/tenant.service";
 import {
@@ -12,6 +12,7 @@ import {
 } from "@/services/conversation.service";
 import type { TenantMembership } from "@/types/tenant.types";
 import { TopBar } from "@/components/layout/TopBar";
+import { PageLoader } from "@/components/ui/LoadingSpinner";
 import {
   Plus,
   Trash2,
@@ -23,9 +24,17 @@ import {
   ChevronLeft,
 } from "lucide-react";
 
+const suggestedPrompts = [
+  "Résume les points clés de ce document.",
+  "Quelles sont les obligations contractuelles mentionnées ?",
+  "Y a-t-il des dates ou délais importants ?",
+  "Identifie les risques ou points d'attention.",
+];
+
 function ChatContent() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const shouldReduceMotion = useReducedMotion();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [tenants, setTenants] = useState<TenantMembership[]>([]);
@@ -127,7 +136,10 @@ function ChatContent() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
   };
 
   const deleteConversation = async (convId: string, e: React.MouseEvent) => {
@@ -138,16 +150,10 @@ function ChatContent() {
     if (activeConversation?.id === convId) setActiveConversation(null);
   };
 
-  if (isLoading || (!isAuthenticated && !isLoading)) {
-    return (
-      <div className="h-screen bg-[#020617] flex items-center justify-center">
-        <div className="w-10 h-10 border-[3px] border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (isLoading || (!isAuthenticated && !isLoading)) return <PageLoader />;
 
   return (
-    <div className="h-screen flex flex-col bg-transparent overflow-hidden">
+    <div className="flex h-screen flex-col bg-bg-base overflow-hidden">
       <TopBar
         userEmail={user?.email}
         isSuperuser={user?.is_superuser}
@@ -158,165 +164,252 @@ function ChatContent() {
         onAdminDashboard={() => router.push("/admin/dashboard")}
       />
 
-      <div className="flex-1 flex overflow-hidden pt-28 px-6 pb-6 gap-6">
-        {/* ── Sidebar (Glass Island) ──────────────────────────── */}
-        <aside className={`flex flex-col bg-white/[0.03] backdrop-blur-3xl border border-white/5 rounded-[40px] transition-all duration-700 overflow-hidden ${sidebarOpen ? "w-80" : "w-0 p-0 opacity-0"}`}>
-           <div className="p-8 space-y-8 flex flex-col h-full">
-              <button
-                onClick={() => { setActiveConversation(null); setInput(""); }}
-                className="btn-magnetic w-full py-4 flex items-center justify-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Nouveau Chat</span>
-              </button>
+      <div className="flex flex-1 overflow-hidden pt-14 gap-0">
+        {/* Sidebar */}
+        <AnimatePresence initial={false}>
+          {sidebarOpen && (
+            <motion.aside
+              key="sidebar"
+              initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, x: -16 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, x: -16 }}
+              transition={{ duration: 0.25 }}
+              className="flex w-72 shrink-0 flex-col border-r border-border-subtle bg-bg-elevated-1/60 backdrop-blur-sm"
+            >
+              <div className="flex flex-col gap-4 p-4 h-full">
+                <button
+                  onClick={() => {
+                    setActiveConversation(null);
+                    setInput("");
+                  }}
+                  className="flex items-center justify-center gap-2 rounded-2xl border border-brand-primary/20 bg-brand-primary/10 py-2.5 text-sm font-semibold text-brand-primary transition-colors hover:bg-brand-primary/20"
+                >
+                  <Plus className="h-4 w-4" />
+                  Nouveau chat
+                </button>
 
-              <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hidden">
-                 {conversations.map((c) => (
-                   <div
-                     key={c.id}
-                     onClick={() => openConversation(c.id)}
-                     className={`w-full group flex items-start gap-4 p-5 rounded-[28px] transition-all duration-500 cursor-pointer ${
-                       activeConversation?.id === c.id
-                         ? "bg-white/10 border-white/10 shadow-xl"
-                         : "hover:bg-white/[0.05] border border-transparent"
-                     }`}
-                   >
-                     <div className={`p-2 rounded-[14px] ${activeConversation?.id === c.id ? "bg-indigo-500/20 text-indigo-400" : "bg-white/5 text-slate-500"}`}>
-                       <FileText className="w-4 h-4" />
-                     </div>
-                     <div className="min-w-0 flex-1">
-                        <p className={`font-bold truncate text-[13px] ${activeConversation?.id === c.id ? "text-white" : "text-slate-400"}`}>
-                          {c.title || "Discussion"}
-                        </p>
-                        <p className="text-[9px] font-black tracking-widest text-slate-600 uppercase mt-1">
-                          {c.message_count || 0} MESSAGES
-                        </p>
-                     </div>
-                     <button onClick={(e) => deleteConversation(c.id, e)} className="opacity-0 group-hover:opacity-50 hover:!opacity-100 hover:text-red-400 transition-all">
-                       <Trash2 className="w-4 h-4" />
-                     </button>
-                   </div>
-                 ))}
-              </div>
-           </div>
-        </aside>
-
-        {/* ── Main Chat Area (Fluid) ───────────────────── */}
-        <main className="flex-1 flex flex-col relative bg-white/[0.01] border border-white/5 backdrop-blur-3xl rounded-[40px] overflow-hidden">
-           {/* Sidebar Toggle */}
-           <button 
-             onClick={() => setSidebarOpen(!sidebarOpen)}
-             className="absolute top-6 left-6 z-20 p-3 rounded-full bg-white/5 border border-white/5 text-slate-400 hover:text-white transition-all shadow-xl"
-           >
-              <ChevronLeft className={`w-4 h-4 transition-transform duration-500 ${sidebarOpen ? "" : "rotate-180"}`} />
-           </button>
-
-           <div className="flex-1 overflow-y-auto px-10 py-20 space-y-12 scrollbar-hidden">
-              {!activeConversation && (
-                <div className="h-full flex flex-col items-center justify-center text-center max-w-xl mx-auto space-y-10 animate-fluid-in">
-                   <div className="w-24 h-24 rounded-[36px] bg-gradient-brand flex items-center justify-center shadow-2xl shadow-indigo-500/20">
-                      <Bot className="w-12 h-12 text-white" />
-                   </div>
-                   <div className="space-y-4">
-                      <h2 className="text-4xl font-black tracking-tighter text-white">Interface Cognitive</h2>
-                      <p className="text-slate-500 text-lg font-medium leading-relaxed">
-                        Exploration documentaire assistée par RAG. <br /> Posez votre question pour commencer l'analyse.
-                      </p>
-                   </div>
-                </div>
-              )}
-
-              {(activeConversation?.messages || []).map((msg) => (
-                <div key={msg.id} className={`flex gap-6 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"} animate-fluid-in`}>
-                   <div className={`w-12 h-12 rounded-[18px] flex items-center justify-center shrink-0 border shadow-2xl ${
-                     msg.role === "user" ? "bg-white/5 border-white/10 text-indigo-400" : "bg-gradient-brand text-white border-transparent"
-                   }`}>
-                      {msg.role === "user" ? <User className="w-6 h-6" /> : <Bot className="w-6 h-6" />}
-                   </div>
-
-                   <div className={`flex flex-col gap-6 max-w-[75%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
-                      <div className={`p-8 rounded-[36px] text-base leading-relaxed font-medium shadow-2xl ${
-                        msg.role === "user" 
-                        ? "bg-white/5 text-white border border-white/10 rounded-tr-lg" 
-                        : "bg-indigo-500/10 border border-indigo-500/10 text-slate-200 rounded-tl-lg"
-                      }`}>
-                         {msg.content}
-                      </div>
-
-                      {msg.citations && msg.citations.length > 0 && (
-                        <div className="w-full bg-white/[0.02] border border-white/5 rounded-[28px] p-6 space-y-4">
-                           <div className="flex items-center gap-2 text-[9px] font-black tracking-widest text-indigo-400 uppercase">
-                              <Paperclip className="w-4 h-4" />
-                              <span>Sources vérifiées</span>
-                           </div>
-                           <div className="grid grid-cols-1 gap-2">
-                             {msg.citations.map((cit, i) => (
-                               <div key={cit.id || i} className="flex items-center gap-4 p-4 rounded-[18px] bg-white/[0.01] border border-white/5 text-xs">
-                                  <span className="font-black text-indigo-500/50">0{i + 1}</span>
-                                  <span className="flex-1 font-bold text-slate-300 truncate">{cit.document_title}</span>
-                                  <span className="text-[9px] font-black uppercase text-emerald-400 bg-emerald-500/5 px-2 py-1 rounded-lg">
-                                    {(cit.similarity * 100).toFixed(0)}% Precise
-                                  </span>
-                               </div>
-                             ))}
-                           </div>
+                <div className="flex-1 overflow-y-auto space-y-1 scrollbar-hidden pr-1">
+                  {loadingConversations ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="h-5 w-5 rounded-full border-2 border-bg-elevated-3 border-t-brand-primary animate-spin" />
+                    </div>
+                  ) : conversations.length === 0 ? (
+                    <p className="px-3 py-4 text-center text-xs text-fg-tertiary">
+                      Aucune conversation
+                    </p>
+                  ) : (
+                    conversations.map((c) => (
+                      <div
+                        key={c.id}
+                        onClick={() => openConversation(c.id)}
+                        className={`group flex cursor-pointer items-start gap-3 rounded-xl p-3 transition-colors ${
+                          activeConversation?.id === c.id
+                            ? "bg-brand-primary/10 border border-brand-primary/20"
+                            : "border border-transparent hover:bg-bg-elevated-2"
+                        }`}
+                      >
+                        <FileText
+                          className={`mt-0.5 h-4 w-4 shrink-0 ${
+                            activeConversation?.id === c.id ? "text-brand-primary" : "text-fg-tertiary"
+                          }`}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p
+                            className={`truncate text-xs font-semibold ${
+                              activeConversation?.id === c.id ? "text-fg-primary" : "text-fg-secondary"
+                            }`}
+                          >
+                            {c.title || "Discussion"}
+                          </p>
+                          <p className="text-[10px] text-fg-tertiary">
+                            {c.message_count || 0} messages
+                          </p>
                         </div>
-                      )}
-                   </div>
+                        <button
+                          onClick={(e) => deleteConversation(c.id, e)}
+                          className="shrink-0 opacity-0 group-hover:opacity-100 text-fg-tertiary hover:text-error transition-all"
+                          aria-label="Supprimer"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))
+                  )}
                 </div>
-              ))}
-              
-              {sending && (
-                <div className="flex gap-6 animate-pulse">
-                   <div className="w-12 h-12 rounded-[18px] bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
-                      <Bot className="w-6 h-6" />
-                   </div>
-                   <div className="p-8 rounded-[36px] rounded-tl-lg bg-indigo-500/5 border border-white/5 space-x-2 flex items-center">
-                      <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" />
-                      <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:0.2s]" />
-                      <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:0.4s]" />
-                   </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} className="h-4" />
-           </div>
-
-           {/* Input Pill */}
-           <div className="p-10 bg-gradient-to-t from-[#131722]/80 to-transparent">
-              <div className="max-w-4xl mx-auto relative group">
-                 <div className="absolute -inset-1 bg-gradient-brand opacity-0 group-focus-within:opacity-20 blur-2xl transition-all duration-700 pointer-events-none rounded-[36px]" />
-                 <div className="relative flex items-center">
-                    <textarea
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      placeholder="Analyse documentaire..."
-                      rows={1}
-                      className="w-full bg-[#1e2330]/60 border border-white/5 rounded-[36px] py-6 pl-10 pr-24 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/30 shadow-2xl transition-all resize-none min-h-[84px] max-h-64 font-medium"
-                    />
-                    <button
-                      onClick={handleSend}
-                      disabled={!input.trim() || sending}
-                      className="absolute right-4 p-5 rounded-[28px] text-white bg-gradient-brand shadow-2xl disabled:opacity-30 hover:shadow-indigo-500/40 active:scale-90 transition-all"
-                    >
-                       <Send className="w-5 h-5" />
-                    </button>
-                 </div>
               </div>
-           </div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
+
+        {/* Main chat */}
+        <main className="relative flex flex-1 flex-col overflow-hidden" id="main">
+          {/* Sidebar toggle */}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="absolute left-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-xl border border-border-subtle bg-bg-elevated-1 text-fg-tertiary transition-colors hover:text-fg-primary"
+            aria-label={sidebarOpen ? "Masquer le panneau" : "Afficher le panneau"}
+          >
+            <ChevronLeft
+              className={`h-4 w-4 transition-transform duration-300 ${sidebarOpen ? "" : "rotate-180"}`}
+            />
+          </button>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 scrollbar-hidden">
+            {!activeConversation ? (
+              <div className="flex h-full flex-col items-center justify-center text-center max-w-lg mx-auto space-y-8 pt-8">
+                <div className="flex h-20 w-20 items-center justify-center rounded-[28px] aurora-bg shadow-[0_24px_64px_-16px_rgba(99,102,241,0.5)]">
+                  <Bot className="h-10 w-10 text-white" />
+                </div>
+                <div className="space-y-3">
+                  <h2 className="font-serif text-3xl tracking-tight text-fg-primary">
+                    Interface Cognitive
+                  </h2>
+                  <p className="text-sm leading-7 text-fg-secondary">
+                    Exploration documentaire assistée par RAG.<br />
+                    Posez votre question pour commencer l'analyse.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2 w-full sm:grid-cols-2">
+                  {suggestedPrompts.map((prompt) => (
+                    <button
+                      key={prompt}
+                      onClick={() => setInput(prompt)}
+                      className="rounded-2xl border border-border-subtle bg-bg-elevated-1 px-4 py-3 text-left text-xs font-medium text-fg-secondary transition-colors hover:border-brand-primary/30 hover:bg-brand-primary/5 hover:text-fg-primary"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <>
+                {(activeConversation?.messages || []).map((msg) => (
+                  <MessageBubble key={msg.id} msg={msg} shouldReduceMotion={!!shouldReduceMotion} />
+                ))}
+
+                {sending && (
+                  <div className="flex gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl aurora-bg">
+                      <Bot className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-sm border border-border-subtle bg-bg-elevated-1 px-4 py-3">
+                      {[0, 0.15, 0.3].map((delay, i) => (
+                        <span
+                          key={i}
+                          className="h-1.5 w-1.5 rounded-full bg-brand-primary animate-bounce"
+                          style={{ animationDelay: `${delay}s` }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {error && (
+                  <p className="text-center text-xs text-error">{error}</p>
+                )}
+
+                <div ref={messagesEndRef} className="h-2" />
+              </>
+            )}
+          </div>
+
+          {/* Input */}
+          <div className="border-t border-border-subtle bg-bg-base/80 p-4 backdrop-blur-sm">
+            <div className="relative mx-auto max-w-3xl">
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Analyse documentaire…"
+                rows={1}
+                className="w-full resize-none rounded-2xl border border-border-subtle bg-bg-elevated-1 py-3.5 pl-4 pr-14 text-sm text-fg-primary placeholder:text-fg-tertiary focus:border-brand-primary/50 focus:outline-none transition-colors min-h-13 max-h-48"
+              />
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() || sending}
+                className="absolute bottom-2.5 right-2.5 flex h-9 w-9 items-center justify-center rounded-xl aurora-bg text-white shadow-[0_4px_16px_-4px_rgba(99,102,241,0.5)] transition-opacity disabled:opacity-30"
+                aria-label="Envoyer"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
         </main>
       </div>
     </div>
   );
 }
 
+function MessageBubble({
+  msg,
+  shouldReduceMotion,
+}: {
+  msg: Message;
+  shouldReduceMotion: boolean;
+}) {
+  const isUser = msg.role === "user";
+  return (
+    <motion.div
+      initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
+      className={`flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"}`}
+    >
+      <div
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl ${
+          isUser
+            ? "border border-border-subtle bg-bg-elevated-2 text-brand-primary"
+            : "aurora-bg text-white"
+        }`}
+      >
+        {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+      </div>
+
+      <div className={`flex max-w-[75%] flex-col gap-3 ${isUser ? "items-end" : "items-start"}`}>
+        <div
+          className={`rounded-2xl px-4 py-3 text-sm leading-7 ${
+            isUser
+              ? "rounded-tr-sm border border-border-subtle bg-bg-elevated-1 text-fg-primary"
+              : "rounded-tl-sm border border-brand-primary/15 bg-brand-primary/8 text-fg-secondary"
+          }`}
+        >
+          {msg.content}
+        </div>
+
+        {msg.citations && msg.citations.length > 0 && (
+          <div className="w-full rounded-2xl border border-border-subtle bg-bg-elevated-1/60 p-4 space-y-3">
+            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-brand-primary">
+              <Paperclip className="h-3.5 w-3.5" />
+              Sources vérifiées
+            </div>
+            <div className="space-y-2">
+              {msg.citations.map((cit, i) => (
+                <div
+                  key={cit.id || i}
+                  className="flex items-center gap-3 rounded-xl border border-border-subtle bg-bg-elevated-2/60 px-3 py-2 text-xs"
+                >
+                  <span className="font-mono text-brand-primary/50">0{i + 1}</span>
+                  <span className="flex-1 truncate font-semibold text-fg-secondary">
+                    {cit.document_title}
+                  </span>
+                  <span className="shrink-0 rounded-lg bg-success/10 px-2 py-0.5 font-mono text-[10px] font-semibold text-success">
+                    {(cit.similarity * 100).toFixed(0)}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 export default function ChatPage() {
   return (
-    <Suspense fallback={
-      <div className="h-screen bg-[#020617] flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-      </div>
-    }>
+    <Suspense fallback={<PageLoader />}>
       <ChatContent />
     </Suspense>
   );

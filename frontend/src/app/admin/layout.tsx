@@ -1,9 +1,10 @@
-// src/app/admin/layout.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import { PageLoader } from "@/components/ui/LoadingSpinner";
 import {
   LayoutDashboard,
   Users,
@@ -22,20 +23,17 @@ export default function AdminLayout({
   const { user, logout, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const shouldReduceMotion = useReducedMotion();
   const [isSidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     if (!isLoading && (!user || !user.is_superuser)) {
-        router.push("/dashboard");
+      router.push("/dashboard");
     }
   }, [user, isLoading, router]);
 
   if (isLoading || !user || !user.is_superuser) {
-    return (
-      <div className="h-screen bg-[#020617] flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-      </div>
-    );
+    return <PageLoader />;
   }
 
   const navItems = [
@@ -46,83 +44,147 @@ export default function AdminLayout({
   ];
 
   return (
-    <div className="h-screen flex text-slate-200 overflow-hidden bg-transparent">
-      {/* Mesh background handled by root layout */}
-
-      {/* Admin Floating Sidebar */}
-      <aside className={`flex flex-col bg-white/[0.03] backdrop-blur-3xl border-r border-white/5 transition-all duration-700 m-6 rounded-[48px] ${isSidebarOpen ? "w-80" : "w-24 overflow-hidden"}`}>
-         <div className="p-10 flex flex-col h-full gap-12">
-            <div className="flex items-center gap-6 px-2">
-               <div className="w-12 h-12 rounded-2xl bg-gradient-brand flex items-center justify-center shadow-2xl">
-                  <Shield className="w-6 h-6 text-white" />
-               </div>
-               {isSidebarOpen && (
-                 <h1 className="text-xl font-black tracking-tighter text-white">
-                   CENTRAL <span className="text-indigo-400">ADMIN</span>
-                 </h1>
-               )}
+    <div className="flex h-screen overflow-hidden bg-bg-base">
+      {/* Sidebar */}
+      <motion.aside
+        animate={{ width: isSidebarOpen ? 256 : 80 }}
+        transition={{ duration: shouldReduceMotion ? 0 : 0.3, ease: [0.4, 0, 0.2, 1] }}
+        className="relative flex shrink-0 flex-col border-r border-border-subtle bg-bg-elevated-1/60 backdrop-blur-sm overflow-hidden"
+      >
+        <div className="flex h-full flex-col gap-6 p-4">
+          {/* Brand */}
+          <div className="flex h-14 items-center gap-3 px-2">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl aurora-bg shadow-[0_4px_16px_-4px_rgba(99,102,241,0.5)]">
+              <Shield className="h-4 w-4 text-white" />
             </div>
+            <AnimatePresence initial={false}>
+              {isSidebarOpen && (
+                <motion.span
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -8 }}
+                  transition={{ duration: 0.2 }}
+                  className="font-display text-sm font-bold text-fg-primary whitespace-nowrap"
+                >
+                  Admin Console
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </div>
 
-            <nav className="flex-1 space-y-3">
-              {navItems.map((item) => {
-                const active = pathname === item.href;
-                if (!item.available) {
-                  return (
-                    <div
-                      key={item.label}
-                      className="flex items-center gap-4 p-5 rounded-[28px] text-slate-700 cursor-not-allowed whitespace-nowrap"
-                    >
-                      <item.icon className="w-5 h-5 flex-shrink-0" />
-                      {isSidebarOpen && (
-                        <span className="flex-1 flex items-center justify-between">
-                          <span className="font-bold text-[13px] tracking-tight">{item.label}</span>
-                          <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/5 text-slate-600">Bientôt</span>
-                        </span>
-                      )}
-                    </div>
-                  );
-                }
+          {/* Nav */}
+          <nav className="flex-1 space-y-1">
+            {navItems.map((item) => {
+              const active = pathname === item.href;
+              if (!item.available) {
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href!}
-                    className={`flex items-center gap-4 p-5 rounded-[28px] transition-all duration-500 whitespace-nowrap ${
-                      active
-                      ? "bg-white/10 border border-white/10 text-white shadow-xl"
-                      : "text-slate-500 hover:text-white hover:bg-white/[0.05]"
-                    }`}
+                  <div
+                    key={item.label}
+                    className="flex h-10 items-center gap-3 rounded-xl px-3 text-fg-muted cursor-not-allowed"
                   >
-                    <item.icon className="w-5 h-5 flex-shrink-0" />
-                    {isSidebarOpen && <span className="font-bold text-[13px] tracking-tight">{item.label}</span>}
-                  </Link>
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    <AnimatePresence initial={false}>
+                      {isSidebarOpen && (
+                        <motion.span
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="flex flex-1 items-center justify-between text-xs font-semibold whitespace-nowrap"
+                        >
+                          {item.label}
+                          <span className="rounded-md border border-border-subtle bg-bg-elevated-2 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-fg-muted">
+                            Bientôt
+                          </span>
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 );
-              })}
-            </nav>
+              }
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href!}
+                  className={`relative flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition-colors ${
+                    active
+                      ? "bg-brand-primary/10 text-fg-primary"
+                      : "text-fg-tertiary hover:bg-bg-elevated-2 hover:text-fg-primary"
+                  }`}
+                >
+                  {active && (
+                    <motion.div
+                      layoutId="admin-nav-indicator"
+                      className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full aurora-bg"
+                      transition={{ duration: 0.25 }}
+                    />
+                  )}
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  <AnimatePresence initial={false}>
+                    {isSidebarOpen && (
+                      <motion.span
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="whitespace-nowrap"
+                      >
+                        {item.label}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </Link>
+              );
+            })}
+          </nav>
 
-            <div className="space-y-3">
-               <button
-                 onClick={() => setSidebarOpen(!isSidebarOpen)}
-                 className="w-full flex items-center gap-4 p-5 rounded-[28px] text-slate-500 hover:text-white hover:bg-white/[0.05] transition-all"
-               >
-                 <ChevronLeft className={`w-5 h-5 transition-transform duration-500 ${isSidebarOpen ? "" : "rotate-180"}`} />
-                 {isSidebarOpen && <span className="font-bold text-[13px]">Réduire</span>}
-               </button>
-               
-               <button
-                 onClick={async () => { await logout(); router.push("/login"); }}
-                 className="w-full flex items-center gap-4 p-5 rounded-[28px] text-red-400/60 hover:text-red-400 hover:bg-red-500/5 transition-all"
-               >
-                 <LogOut className="w-5 h-5" />
-                 {isSidebarOpen && <span className="font-bold text-[13px]">Quitter</span>}
-               </button>
-            </div>
-         </div>
-      </aside>
+          {/* Footer actions */}
+          <div className="space-y-1">
+            <button
+              onClick={() => setSidebarOpen(!isSidebarOpen)}
+              className="flex h-10 w-full items-center gap-3 rounded-xl px-3 text-fg-tertiary transition-colors hover:bg-bg-elevated-2 hover:text-fg-primary"
+            >
+              <ChevronLeft
+                className={`h-4 w-4 shrink-0 transition-transform duration-300 ${isSidebarOpen ? "" : "rotate-180"}`}
+              />
+              <AnimatePresence initial={false}>
+                {isSidebarOpen && (
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="text-xs font-semibold whitespace-nowrap"
+                  >
+                    Réduire
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </button>
 
-      {/* Main Content Area */}
-      <main className="flex-1 relative overflow-y-auto p-12 scrollbar-hidden">
-        <div className="max-w-7xl mx-auto space-y-12 animate-fluid-in">
-           {children}
+            <button
+              onClick={async () => { await logout(); router.push("/login"); }}
+              className="flex h-10 w-full items-center gap-3 rounded-xl px-3 text-fg-tertiary transition-colors hover:bg-error/5 hover:text-error"
+            >
+              <LogOut className="h-4 w-4 shrink-0" />
+              <AnimatePresence initial={false}>
+                {isSidebarOpen && (
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="text-xs font-semibold whitespace-nowrap"
+                  >
+                    Quitter
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </button>
+          </div>
+        </div>
+      </motion.aside>
+
+      {/* Main content */}
+      <main className="flex-1 overflow-y-auto scrollbar-hidden">
+        <div className="mx-auto max-w-7xl px-8 py-8">
+          {children}
         </div>
       </main>
     </div>
