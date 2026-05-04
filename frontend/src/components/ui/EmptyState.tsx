@@ -37,7 +37,7 @@ export function EmptyState({
           {icon ?? <FolderOpen className="w-9 h-9 text-fg-muted" />}
         </div>
       )}
-      <h3 className="text-hero text-2xl mb-2 text-fg-primary">{title}</h3>
+      <h3 className="font-serif text-2xl mb-2 text-fg-primary">{title}</h3>
       {description && (
         <p className="text-sm text-fg-secondary max-w-sm mb-6 leading-relaxed">
           {description}

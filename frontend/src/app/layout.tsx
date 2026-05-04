@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter, Outfit, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ThemeProvider } from "@/components/ui/ThemeProvider";
+import { Toaster } from "sonner";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -64,10 +66,13 @@ export default function RootLayout({
         <a href="#main" className="skip-link">
           Aller au contenu principal
         </a>
-        <AuthProvider>
-          <div className="bg-mesh-dynamic" />
-          {children}
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <div className="bg-mesh-dynamic" />
+            {children}
+            <Toaster position="bottom-right" theme="dark" richColors />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

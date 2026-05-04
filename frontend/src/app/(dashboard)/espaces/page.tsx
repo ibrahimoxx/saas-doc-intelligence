@@ -212,13 +212,8 @@ export default function EspacesPage() {
                   illustration={<EmptySpaces className="mx-auto" />}
                   title="Prêt à uploader ?"
                   description="Créez votre premier espace de travail pour indexer vos documents PDF."
-                  action={
-                    permissions?.can_upload ? (
-                      <Button variant="primary" onClick={() => setShowCreateModal(true)}>
-                        Démarrer l&apos;aventure
-                      </Button>
-                    ) : undefined
-                  }
+                  actionLabel={permissions?.can_upload ? "Démarrer l'aventure" : undefined}
+                  onAction={permissions?.can_upload ? () => setShowCreateModal(true) : undefined}
                 />
               </div>
             ) : (
