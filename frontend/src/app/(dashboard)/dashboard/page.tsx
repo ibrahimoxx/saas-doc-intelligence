@@ -1,12 +1,14 @@
-// src/app/(dashboard)/dashboard/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { tenantService } from "@/services/tenant.service";
 import type { TenantMembership, TenantSummary, TenantPermissions } from "@/types/tenant.types";
 import { TopBar } from "@/components/layout/TopBar";
+import { PageLoader } from "@/components/ui/LoadingSpinner";
+import { staggerContainer, fadeUp } from "@/lib/motion";
 import {
   FileText,
   MessageSquare,
@@ -15,9 +17,28 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 
+const reducedFadeUp: Variants = { hidden: { opacity: 0 }, visible: { opacity: 1 } };
+const reducedStagger: Variants = { hidden: {}, visible: {} };
+
+const TILE_ICONS = {
+  documents: FileText,
+  chat: MessageSquare,
+  membres: Users,
+  espaces: Database,
+};
+
+const TILE_COLORS: Record<string, string> = {
+  documents: "rgba(163,85,247,0.15)",
+  chat: "rgba(59,130,246,0.15)",
+  membres: "rgba(236,72,153,0.15)",
+  espaces: "rgba(16,185,129,0.15)",
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const shouldReduceMotion = useReducedMotion();
+
   const [tenants, setTenants] = useState<TenantMembership[]>([]);
   const [selectedTenant, setSelectedTenant] = useState<string | null>(null);
   const [loadingTenants, setLoadingTenants] = useState(true);
@@ -65,61 +86,55 @@ export default function DashboardPage() {
     setSelectedTenant(id);
   };
 
-  if (isLoading || (!isAuthenticated && !isLoading)) {
-    return (
-      <div className="min-h-screen bg-[#020617] flex items-center justify-center">
-        <div className="w-10 h-10 border-[3px] border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (isLoading || (!isAuthenticated && !isLoading)) return <PageLoader />;
 
   const currentTenant = tenants.find((m) => m.tenant.id === selectedTenant);
-  const isAdmin = permissions?.role === "admin" || permissions?.role === "owner" || permissions?.can_manage_members;
+  const isAdmin =
+    permissions?.role === "admin" ||
+    permissions?.role === "owner" ||
+    permissions?.can_manage_members;
 
   const allTiles = [
     {
       key: "documents",
       label: "Documents",
-      icon: FileText,
       href: "/documents",
-      color: "#8b5cf6",
-      count: summary?.documents ?? "...",
+      count: summary?.documents ?? "—",
       restricted: false,
     },
     {
       key: "chat",
       label: "Conversations",
-      icon: MessageSquare,
       href: "/chat",
-      color: "#3b82f6",
-      count: summary?.conversations ?? "...",
+      count: summary?.conversations ?? "—",
       restricted: false,
     },
     {
       key: "membres",
       label: "Membres",
-      icon: Users,
       href: "/membres",
-      color: "#ec4899",
-      count: summary?.members ?? "...",
-      restricted: true, // Admin/Owner only
+      count: summary?.members ?? "—",
+      restricted: true,
     },
     {
       key: "espaces",
       label: "Espaces",
-      icon: Database,
       href: "/espaces",
-      color: "#10b981",
-      count: summary?.spaces ?? "...",
-      restricted: true, // Admin/Owner only
+      count: summary?.spaces ?? "—",
+      restricted: true,
     },
   ];
 
-  // Filter tiles based on permissions
-  const tiles = allTiles.filter((tile) => !tile.restricted || isAdmin);
+  const tiles = allTiles.filter((t) => !t.restricted || isAdmin);
+
+  const firstName = user?.full_name?.split(" ")[0] || user?.email?.split("@")[0];
+
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12 ? "Bonjour" : hour < 18 ? "Bon après-midi" : "Bonsoir";
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-bg-base">
       <TopBar
         userEmail={user?.email}
         isSuperuser={user?.is_superuser}
@@ -130,69 +145,101 @@ export default function DashboardPage() {
         onAdminDashboard={() => router.push("/admin/dashboard")}
       />
 
-      <main className="max-w-[1400px] mx-auto px-8 py-32 md:py-48 lg:py-56 space-y-24">
-        {/* Subtle Hero Header */}
-        <section className="text-center space-y-6 animate-fluid-in">
-           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/5 text-[10px] uppercase font-black tracking-[0.3em] text-indigo-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-              Intelligence Documentaire
-           </div>
-           <h2 className="text-hero">
-              Bienvenue, <br />
-              <span className="text-gradient">{user?.full_name?.split(' ')[0] || user?.email?.split('@')[0]}</span>
-           </h2>
-           <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed font-medium">
-              Explorez vos documents avec la précision de l'intelligence artificielle générative. 
-              {currentTenant && (
-                <> Organisation active : <span className="text-white font-bold">{currentTenant.tenant.name}</span></>
-              )}
-           </p>
-        </section>
-
-        {/* Fluid Metrics Grid — dynamically sized based on role */}
-        <section
-          className={`grid grid-cols-1 gap-10 animate-fluid-in ${
-            tiles.length === 4
-              ? "md:grid-cols-2 lg:grid-cols-4"
-              : tiles.length === 2
-              ? "md:grid-cols-2 max-w-2xl mx-auto"
-              : "md:grid-cols-2 lg:grid-cols-3 max-w-4xl mx-auto"
-          }`}
-          style={{ animationDelay: '200ms' }}
+      <main id="main" className="mx-auto max-w-6xl px-6 pt-28 pb-16">
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={shouldReduceMotion ? reducedStagger : staggerContainer}
+          className="space-y-12"
         >
-          {tiles.map((tile, i) => (
-            <div
-              key={tile.key}
-              onClick={() => router.push(tile.href)}
-              className="fluid-card group cursor-pointer"
-              style={{ animationDelay: `${(i+2)*100}ms` }}
-            >
-              <div 
-                className="absolute inset-0 rounded-[48px] opacity-0 group-hover:opacity-10 transition-opacity duration-700 pointer-events-none"
-                style={{ background: `radial-gradient(circle at center, ${tile.color}, transparent 70%)` }}
-              />
+          {/* Hero greeting */}
+          <motion.section
+            variants={shouldReduceMotion ? reducedFadeUp : fadeUp}
+            className="space-y-4"
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-fg-tertiary">
+              Intelligence Documentaire
+            </p>
+            <h1 className="font-serif text-5xl tracking-tight text-fg-primary sm:text-6xl">
+              {greeting},{" "}
+              <span className="text-gradient">{firstName}</span>
+            </h1>
+            {currentTenant && (
+              <p className="text-sm text-fg-secondary">
+                Organisation active :{" "}
+                <span className="font-semibold text-fg-primary">
+                  {currentTenant.tenant.name}
+                </span>
+              </p>
+            )}
+          </motion.section>
 
-              <div className="relative z-10 flex flex-col items-center text-center gap-8">
-                <div className="w-16 h-16 rounded-[24px] bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
-                  <tile.icon className="w-8 h-8" style={{ color: tile.color }} />
-                </div>
-                
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 group-hover:text-white transition-colors">
-                    {tile.label}
-                  </p>
-                  <div className={`text-6xl font-black text-white tracking-tighter tabular-nums leading-none ${loadingSummary ? 'animate-pulse opacity-50' : ''}`}>
-                    {tile.count}
+          {/* Metric tiles bento */}
+          <motion.section
+            variants={shouldReduceMotion ? reducedFadeUp : fadeUp}
+            className={`grid gap-4 ${
+              tiles.length === 4
+                ? "grid-cols-2 lg:grid-cols-4"
+                : tiles.length === 3
+                ? "grid-cols-1 sm:grid-cols-3"
+                : "grid-cols-1 sm:grid-cols-2 max-w-lg"
+            }`}
+          >
+            {tiles.map((tile) => {
+              const Icon = TILE_ICONS[tile.key as keyof typeof TILE_ICONS];
+              const glow = TILE_COLORS[tile.key];
+              return (
+                <motion.button
+                  key={tile.key}
+                  onClick={() => router.push(tile.href)}
+                  whileHover={shouldReduceMotion ? {} : { y: -4, scale: 1.02 }}
+                  whileTap={shouldReduceMotion ? {} : { scale: 0.98 }}
+                  transition={{ duration: 0.2 }}
+                  className="group relative flex flex-col items-start gap-6 overflow-hidden rounded-[28px] border border-border-subtle bg-bg-elevated-1/80 p-6 text-left shadow-card backdrop-blur-sm transition-shadow hover:shadow-card-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base"
+                  aria-label={`Accéder aux ${tile.label}`}
+                >
+                  <div
+                    className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                    style={{
+                      background: `radial-gradient(circle at 30% 30%, ${glow}, transparent 70%)`,
+                    }}
+                  />
+                  <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-border-strong bg-bg-elevated-2">
+                    <Icon className="h-5 w-5 text-brand-primary" />
                   </div>
-                </div>
+                  <div className="relative space-y-1">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-fg-tertiary">
+                      {tile.label}
+                    </p>
+                    <p
+                      className={`font-display text-5xl font-bold tabular-nums text-fg-primary tracking-tight ${
+                        loadingSummary ? "animate-pulse opacity-50" : ""
+                      }`}
+                    >
+                      {tile.count}
+                    </p>
+                  </div>
+                  <div className="relative mt-auto flex items-center gap-1 text-xs font-semibold text-fg-tertiary group-hover:text-brand-primary transition-colors">
+                    <span>Voir</span>
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </div>
+                </motion.button>
+              );
+            })}
+          </motion.section>
 
-                <div className="w-12 h-12 rounded-full border border-white/5 flex items-center justify-center text-slate-600 group-hover:text-white group-hover:border-white/20 group-hover:bg-white/5 transition-all">
-                   <ArrowUpRight className="w-5 h-5" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </section>
+          {/* Quick info card */}
+          {loadingTenants ? null : tenants.length === 0 ? (
+            <motion.div
+              variants={shouldReduceMotion ? reducedFadeUp : fadeUp}
+              className="rounded-[28px] border border-border-subtle bg-bg-elevated-1/60 p-8 text-center"
+            >
+              <p className="text-sm text-fg-secondary">
+                Aucune organisation disponible. Contactez un administrateur.
+              </p>
+            </motion.div>
+          ) : null}
+        </motion.div>
       </main>
     </div>
   );
