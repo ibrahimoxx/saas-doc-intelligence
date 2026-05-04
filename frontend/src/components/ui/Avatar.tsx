@@ -1,5 +1,6 @@
-// src/components/ui/Avatar.tsx
 "use client";
+
+import { cn } from "@/lib/cn";
 
 export type AvatarSize = "xs" | "sm" | "md" | "lg" | "xl";
 
@@ -11,45 +12,45 @@ interface AvatarProps {
 }
 
 const sizeClasses: Record<AvatarSize, string> = {
-  xs: "w-6 h-6 text-[10px] rounded-md",
-  sm: "w-8 h-8 text-xs rounded-lg",
+  xs: "w-6 h-6 text-[10px] rounded-lg",
+  sm: "w-8 h-8 text-xs rounded-xl",
   md: "w-10 h-10 text-sm rounded-xl",
-  lg: "w-12 h-12 text-base rounded-xl",
+  lg: "w-12 h-12 text-base rounded-2xl",
   xl: "w-16 h-16 text-xl rounded-2xl",
 };
 
-/** Returns a deterministic gradient based on the first letter */
+const gradients = [
+  "from-indigo-500 via-purple-500 to-purple-600",
+  "from-purple-500 via-fuchsia-500 to-pink-600",
+  "from-blue-500 via-indigo-500 to-indigo-600",
+  "from-teal-500 via-emerald-500 to-blue-600",
+  "from-violet-500 via-purple-500 to-indigo-600",
+  "from-fuchsia-500 via-purple-500 to-violet-600",
+  "from-cyan-500 via-blue-500 to-indigo-600",
+  "from-amber-500 via-orange-500 to-rose-600",
+];
+
 function pickGradient(char: string): string {
-  const gradients = [
-    "from-indigo-500 to-purple-600",
-    "from-purple-500 to-pink-600",
-    "from-blue-500 to-indigo-600",
-    "from-teal-500 to-blue-600",
-    "from-violet-500 to-indigo-600",
-    "from-fuchsia-500 to-purple-600",
-  ];
-  const index = char.charCodeAt(0) % gradients.length;
-  return gradients[index];
+  return gradients[char.charCodeAt(0) % gradients.length];
 }
 
 function getInitial(name?: string, email?: string): string {
-  const source = name || email || "?";
-  return source.charAt(0).toUpperCase();
+  return (name || email || "?").charAt(0).toUpperCase();
 }
 
-export function Avatar({ name, email, size = "md", className = "" }: AvatarProps) {
+export function Avatar({ name, email, size = "md", className }: AvatarProps) {
   const initial = getInitial(name, email);
   const gradient = pickGradient(initial);
 
   return (
     <div
-      className={[
+      className={cn(
         "bg-gradient-to-br flex items-center justify-center shrink-0",
-        "font-bold text-white select-none",
+        "font-bold text-white select-none ring-1 ring-white/10",
         gradient,
         sizeClasses[size],
-        className,
-      ].join(" ")}
+        className
+      )}
       title={name || email}
       aria-label={name || email}
     >
