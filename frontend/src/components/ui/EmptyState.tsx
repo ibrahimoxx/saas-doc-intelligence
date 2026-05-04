@@ -1,7 +1,7 @@
-// src/components/ui/EmptyState.tsx
 "use client";
 
 import { FolderOpen } from "lucide-react";
+import { cn } from "@/lib/cn";
 import { Button } from "./Button";
 
 interface EmptyStateProps {
@@ -10,6 +10,8 @@ interface EmptyStateProps {
   actionLabel?: string;
   onAction?: () => void;
   icon?: React.ReactNode;
+  illustration?: React.ReactNode;
+  className?: string;
 }
 
 export function EmptyState({
@@ -18,15 +20,28 @@ export function EmptyState({
   actionLabel,
   onAction,
   icon,
+  illustration,
+  className,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
-      <div className="w-20 h-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 animate-glow">
-        {icon ?? <FolderOpen className="w-9 h-9 text-slate-500" />}
-      </div>
-      <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
+    <div
+      className={cn(
+        "flex flex-col items-center justify-center py-20 px-4 text-center",
+        className
+      )}
+    >
+      {illustration ? (
+        <div className="mb-8 opacity-80">{illustration}</div>
+      ) : (
+        <div className="w-20 h-20 rounded-3xl surface-glass flex items-center justify-center mb-6">
+          {icon ?? <FolderOpen className="w-9 h-9 text-fg-muted" />}
+        </div>
+      )}
+      <h3 className="text-hero text-2xl mb-2 text-fg-primary">{title}</h3>
       {description && (
-        <p className="text-sm text-slate-500 max-w-sm mb-6">{description}</p>
+        <p className="text-sm text-fg-secondary max-w-sm mb-6 leading-relaxed">
+          {description}
+        </p>
       )}
       {actionLabel && onAction && (
         <Button variant="primary" onClick={onAction}>
