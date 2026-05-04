@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Outfit, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
@@ -30,6 +30,10 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+export const viewport: Viewport = {
+  themeColor: "#08090f",
+};
+
 export const metadata: Metadata = {
   title: {
     template: "%s · DocPilot AI",
@@ -37,7 +41,6 @@ export const metadata: Metadata = {
   },
   description:
     "Plateforme SaaS de Document Intelligence : réponses IA sourcées, traçables et sécurisées pour les équipes ambitieuses.",
-  themeColor: "#08090f",
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_APP_URL ?? "https://docpilot.ai"
   ),

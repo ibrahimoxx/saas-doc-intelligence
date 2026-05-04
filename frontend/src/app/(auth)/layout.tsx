@@ -109,7 +109,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
 
-        <style jsx>{`
+        <style>{`
           .auth-floating-doc {
             animation: auth-float 12s ease-in-out infinite;
           }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -20,9 +20,9 @@ const invitationErrors: Record<string, string> = {
   revoked: "Cette invitation a été révoquée.",
 };
 
-export default function InvitePage({ params }: { params: { token: string } }) {
+export default function InvitePage({ params }: { params: Promise<{ token: string }> }) {
   const router = useRouter();
-  const { token } = params;
+  const { token } = use(params);
   const [invitation, setInvitation] = useState<InvitationData | null>(null);
   const [form, setForm] = useState<FormState>({ full_name: "", password: "", password_confirm: "" });
   const [loadingInvitation, setLoadingInvitation] = useState(true);
