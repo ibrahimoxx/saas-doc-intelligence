@@ -19,3 +19,7 @@ export { LoadingSpinner, PageLoader } from "./LoadingSpinner";
 export { EmptyState } from "./EmptyState";
 
 export { ErrorBanner } from "./ErrorBanner";
+
+export { Stat } from "./Stat";
+export { Sparkline } from "./Sparkline";
+export { CommandPalette } from "./CommandPalette";
