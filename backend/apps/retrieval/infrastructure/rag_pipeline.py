@@ -68,14 +68,48 @@ def _build_citations(chunks: list[dict]) -> list[dict]:
 
 def _get_ai_provider() -> str:
     """Detect which AI provider to use based on env config."""
+    ollama_url = getattr(settings, "OLLAMA_BASE_URL", "")  # [OLLAMA_SWAP]
     gemini_key = getattr(settings, "GEMINI_API_KEY", "")
     openai_key = getattr(settings, "OPENAI_API_KEY", "")
 
+    if ollama_url:  # [OLLAMA_SWAP]
+        return "ollama"  # [OLLAMA_SWAP]
     if gemini_key:
         return "gemini"
     if openai_key:
         return "openai"
     return "dev"
+
+
+def _ask_ollama(question: str, context: str, model: str, temperature: float) -> dict:  # [OLLAMA_SWAP]
+    """Call local Ollama via OpenAI-compatible API."""  # [OLLAMA_SWAP]
+    from openai import OpenAI  # [OLLAMA_SWAP]
+
+    base_url = getattr(settings, "OLLAMA_BASE_URL", "http://localhost:11434/v1")  # [OLLAMA_SWAP]
+    client = OpenAI(base_url=base_url, api_key="ollama")  # [OLLAMA_SWAP]
+    system_message = SYSTEM_PROMPT.format(context=context)  # [OLLAMA_SWAP]
+
+    response = client.chat.completions.create(  # [OLLAMA_SWAP]
+        model=model,  # [OLLAMA_SWAP]
+        temperature=temperature,  # [OLLAMA_SWAP]
+        messages=[  # [OLLAMA_SWAP]
+            {"role": "system", "content": system_message},  # [OLLAMA_SWAP]
+            {"role": "user", "content": question},  # [OLLAMA_SWAP]
+        ],  # [OLLAMA_SWAP]
+    )  # [OLLAMA_SWAP]
+
+    answer = response.choices[0].message.content or ""  # [OLLAMA_SWAP]
+    usage = response.usage  # [OLLAMA_SWAP]
+
+    return {  # [OLLAMA_SWAP]
+        "answer": answer,  # [OLLAMA_SWAP]
+        "model": model,  # [OLLAMA_SWAP]
+        "tokens_used": {  # [OLLAMA_SWAP]
+            "prompt": usage.prompt_tokens if usage else 0,  # [OLLAMA_SWAP]
+            "completion": usage.completion_tokens if usage else 0,  # [OLLAMA_SWAP]
+            "total": usage.total_tokens if usage else 0,  # [OLLAMA_SWAP]
+        },  # [OLLAMA_SWAP]
+    }  # [OLLAMA_SWAP]
 
 
 def _ask_openai(question: str, context: str, model: str, temperature: float) -> dict:
@@ -226,7 +260,10 @@ def ask_question(
     context = build_context(chunks)
 
     try:
-        if provider == "gemini":
+        if provider == "ollama":  # [OLLAMA_SWAP]
+            model = model or getattr(settings, "OLLAMA_LLM_MODEL", "llama3.2")  # [OLLAMA_SWAP]
+            result = _ask_ollama(question, context, model, temperature)  # [OLLAMA_SWAP]
+        elif provider == "gemini":
             model = model or "gemini-2.0-flash"
             result = _ask_gemini(question, context, model, temperature)
         elif provider == "openai":

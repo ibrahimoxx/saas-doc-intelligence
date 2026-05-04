@@ -19,9 +19,12 @@ logger = logging.getLogger("apps.ingestion")
 
 def _get_embedding_provider() -> str:
     """Detect which embedding provider to use."""
+    ollama_url = getattr(settings, "OLLAMA_BASE_URL", "")  # [OLLAMA_SWAP]
     gemini_key = getattr(settings, "GEMINI_API_KEY", "")
     openai_key = getattr(settings, "OPENAI_API_KEY", "")
 
+    if ollama_url:  # [OLLAMA_SWAP]
+        return "ollama"  # [OLLAMA_SWAP]
     if gemini_key:
         return "gemini"
     if openai_key:
@@ -42,13 +45,38 @@ def generate_embeddings(
 
     provider = _get_embedding_provider()
 
-    if provider == "gemini":
+    if provider == "ollama":  # [OLLAMA_SWAP]
+        return _embed_ollama(texts)  # [OLLAMA_SWAP]
+    elif provider == "gemini":
         return _embed_gemini(texts)
     elif provider == "openai":
         return _embed_openai(texts, model)
     else:
         logger.warning("No API key set — returning zero vectors for dev")
         return [[0.0] * 1536 for _ in texts]
+
+
+def _embed_ollama(texts: list[str]) -> list[list[float]]:  # [OLLAMA_SWAP]
+    """Generate embeddings using local Ollama (OpenAI-compatible API)."""  # [OLLAMA_SWAP]
+    from openai import OpenAI  # [OLLAMA_SWAP]
+
+    base_url = getattr(settings, "OLLAMA_BASE_URL", "http://localhost:11434/v1")  # [OLLAMA_SWAP]
+    embed_model = getattr(settings, "OLLAMA_EMBED_MODEL", "nomic-embed-text")  # [OLLAMA_SWAP]
+    client = OpenAI(base_url=base_url, api_key="ollama")  # [OLLAMA_SWAP]
+
+    response = client.embeddings.create(model=embed_model, input=texts)  # [OLLAMA_SWAP]
+    embeddings = []  # [OLLAMA_SWAP]
+    for item in response.data:  # [OLLAMA_SWAP]
+        vec = item.embedding  # [OLLAMA_SWAP]
+        # Pad or truncate to 1536 dims for pgvector schema compatibility  # [OLLAMA_SWAP]
+        if len(vec) > 1536:  # [OLLAMA_SWAP]
+            vec = vec[:1536]  # [OLLAMA_SWAP]
+        elif len(vec) < 1536:  # [OLLAMA_SWAP]
+            vec = vec + [0.0] * (1536 - len(vec))  # [OLLAMA_SWAP]
+        embeddings.append(vec)  # [OLLAMA_SWAP]
+
+    logger.info(f"Ollama: Generated {len(embeddings)} embeddings (model={embed_model})")  # [OLLAMA_SWAP]
+    return embeddings  # [OLLAMA_SWAP]
 
 
 def _embed_openai(texts: list[str], model: Optional[str] = None) -> list[list[float]]:

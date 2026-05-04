@@ -360,6 +360,11 @@ RAG_TEMPERATURE = 0.1
 GEMINI_API_KEY = config("GEMINI_API_KEY", default="")
 OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
 
+# Ollama — local testing only  # [OLLAMA_SWAP]
+OLLAMA_BASE_URL = config("OLLAMA_BASE_URL", default="")  # [OLLAMA_SWAP]
+OLLAMA_LLM_MODEL = config("OLLAMA_LLM_MODEL", default="llama3.2")  # [OLLAMA_SWAP]
+OLLAMA_EMBED_MODEL = config("OLLAMA_EMBED_MODEL", default="nomic-embed-text")  # [OLLAMA_SWAP]
+
 # ===========================
 # Storage
 # ===========================
