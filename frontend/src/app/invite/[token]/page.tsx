@@ -1,15 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { authService } from "@/services/auth.service";
-import { ArrowRight, CheckCircle, XCircle } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { PageLoader } from "@/components/ui/LoadingSpinner";
+import { Input } from "@/components/ui/Input";
+import { LoadingSpinner, PageLoader } from "@/components/ui/LoadingSpinner";
+import { authService } from "@/services/auth.service";
+import { ArrowRight, CalendarClock, CheckCircle2, Mail, Shield, UserPlus, X } from "lucide-react";
+
 type InvitationData = { email: string; role: string; tenant_name: string; expires_at: string };
 type FormState = { full_name: string; password: string; password_confirm: string };
 
@@ -18,19 +18,6 @@ const invitationErrors: Record<string, string> = {
   already_consumed: "Cette invitation a déjà été utilisée. Connectez-vous.",
   expired: "Ce lien a expiré. Demandez une nouvelle invitation.",
   revoked: "Cette invitation a été révoquée.",
-};
-
-const errorTitles: Record<string, string> = {
-  invalid_token: "Lien invalide",
-  already_consumed: "Invitation utilisée",
-  expired: "Lien expiré",
-  revoked: "Invitation révoquée",
-};
-
-const roleLabels: Record<string, string> = {
-  admin: "Administrateur",
-  manager: "Manager",
-  member: "Membre",
 };
 
 export default function InvitePage({ params }: { params: { token: string } }) {
@@ -113,131 +100,193 @@ export default function InvitePage({ params }: { params: { token: string } }) {
     setSubmitting(false);
   };
 
-  /* ── Loading state ── */
-  if (loadingInvitation) return <PageLoader />;
+  const errorTitle =
+    errorCode === "expired"
+      ? "Lien expiré"
+      : errorCode === "revoked"
+        ? "Invitation révoquée"
+        : errorCode === "already_consumed"
+          ? "Invitation utilisée"
+          : "Invitation invalide";
 
-  /* ── Error state ── */
-  const isError = !invitation || (
-    errorCode === "invalid_token" ||
-    errorCode === "already_consumed" ||
-    errorCode === "expired" ||
-    errorCode === "revoked"
-  );
+  const roleVariant =
+    invitation?.role === "admin"
+      ? "indigo"
+      : invitation?.role === "manager"
+        ? "blue"
+        : invitation?.role === "viewer"
+          ? "slate"
+          : "purple";
 
-  if (isError) {
+  const formattedExpiry = invitation
+    ? new Intl.DateTimeFormat("fr-FR", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }).format(new Date(invitation.expires_at))
+    : null;
+
+  if (loadingInvitation) {
+    return <PageLoader />;
+  }
+
+  if (!invitation || errorCode === "invalid_token" || errorCode === "already_consumed" || errorCode === "expired" || errorCode === "revoked") {
     return (
-      <div className="min-h-screen flex items-center justify-center p-8 bg-bg-base">
-        <div className="w-full max-w-md text-center space-y-8">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-error/10 border border-error/20 flex items-center justify-center">
-            <XCircle className="w-8 h-8 text-red-400" />
+      <div className="mx-auto flex min-h-screen w-full max-w-xl items-center justify-center px-8 py-16">
+        <div className="surface-glass w-full rounded-[32px] border border-border-subtle px-8 py-10 text-center shadow-[0_40px_120px_-56px_rgba(0,0,0,0.95)]">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl aurora-bg shadow-[0_24px_64px_-32px_rgba(99,102,241,0.7)]">
+            <X className="h-8 w-8 text-white" />
           </div>
-          <div className="space-y-3">
-            <h1 className="font-serif text-3xl text-fg-primary">
-              {errorCode ? (errorTitles[errorCode] ?? "Invitation indisponible") : "Invitation indisponible"}
-            </h1>
-            <p className="text-sm text-fg-secondary">
-              {error ?? "Lien invalide ou expiré."}
-            </p>
+          <div className="mt-6 space-y-3">
+            <h1 className="font-serif text-4xl tracking-tight text-fg-primary">{errorTitle}</h1>
+            <p className="text-sm leading-7 text-fg-secondary">{error ?? "Lien invalide ou expiré."}</p>
           </div>
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 text-sm text-fg-secondary hover:text-fg-primary transition-colors"
-          >
-            Retour à la connexion <ArrowRight className="w-4 h-4" />
-          </Link>
+          <div className="mt-8 flex justify-center">
+            <Button
+              type="button"
+              variant="ghost"
+              size="lg"
+              rightIcon={<ArrowRight className="h-4 w-4" />}
+              onClick={() => router.push("/login")}
+            >
+              Retour à la connexion
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
-  /* ── Success state ── */
-  if (success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-8 bg-bg-base">
-        <div className="text-center space-y-6">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-success/10 border border-success/20 flex items-center justify-center">
-            <CheckCircle className="w-8 h-8 text-emerald-400" />
-          </div>
-          <h1 className="font-serif text-3xl text-fg-primary">
-            Bienvenue dans {invitation.tenant_name}
-          </h1>
-          <p className="text-sm text-fg-secondary">{success}</p>
-        </div>
-      </div>
-    );
-  }
-
-  /* ── Form state ── */
   return (
-    <div className="min-h-screen flex items-center justify-center p-8 bg-bg-base">
-      <div className="w-full max-w-md space-y-10">
-        {/* Header */}
-        <header className="space-y-4">
-          <p className="text-xs font-mono tracking-widest text-brand-primary uppercase">
-            Invitation d&apos;accès
-          </p>
-          <h1 className="font-serif text-4xl text-fg-primary leading-tight">
-            Rejoindre {invitation.tenant_name}
-          </h1>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm text-fg-secondary">{invitation.email}</span>
-            <span className="text-fg-muted">·</span>
-            <Badge variant="indigo">
-              {roleLabels[invitation.role] ?? invitation.role}
-            </Badge>
+    <div className="mx-auto flex min-h-screen w-full max-w-6xl items-center px-8 py-12">
+      <div className="grid w-full gap-8 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
+        <aside className="hidden lg:block">
+          <div className="surface-glass sticky top-12 overflow-hidden rounded-[32px] border border-border-subtle p-7">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-28 aurora-bg opacity-30 blur-3xl" />
+            <div className="relative z-10 space-y-6">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-bg-elevated-2 text-brand-primary shadow-[0_24px_64px_-32px_rgba(99,102,241,0.7)]">
+                <UserPlus className="h-6 w-6" />
+              </div>
+              <div className="space-y-3">
+                <Badge variant="indigo" dot>
+                  Invitation active
+                </Badge>
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-fg-tertiary">Invité par email</p>
+                  <p className="flex items-center gap-2 text-sm text-fg-secondary">
+                    <Mail className="h-4 w-4 text-brand-primary" />
+                    {invitation.email}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-fg-tertiary">Espace</p>
+                  <p className="mt-2 font-serif text-3xl tracking-tight text-fg-primary">{invitation.tenant_name}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4 rounded-2xl border border-border-subtle bg-bg-elevated-2/70 p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-fg-secondary">Rôle attribué</span>
+                  <Badge variant={roleVariant} dot>
+                    {invitation.role}
+                  </Badge>
+                </div>
+                <div className="flex items-start gap-3 text-sm text-fg-secondary">
+                  <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-brand-accent" />
+                  <div className="space-y-1">
+                    <p className="text-fg-primary">Valable jusqu&apos;au {formattedExpiry}</p>
+                    <p className="text-xs leading-6 text-fg-tertiary">
+                      Finalisez la création de votre compte pour rejoindre immédiatement l&apos;espace partagé.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </header>
+        </aside>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <Input
-            type="text"
-            label="Nom complet"
-            required
-            value={form.full_name}
-            onChange={(e) => handleChange("full_name", e.target.value)}
-            placeholder="Votre nom complet"
-            autoComplete="name"
-          />
-          <Input
-            type="password"
-            label="Mot de passe"
-            required
-            minLength={8}
-            value={form.password}
-            onChange={(e) => handleChange("password", e.target.value)}
-            autoComplete="new-password"
-          />
-          <Input
-            type="password"
-            label="Confirmer le mot de passe"
-            required
-            value={form.password_confirm}
-            onChange={(e) => handleChange("password_confirm", e.target.value)}
-            autoComplete="new-password"
-          />
+        <section className="surface-glass rounded-[32px] border border-border-subtle p-6 shadow-[0_40px_120px_-56px_rgba(0,0,0,0.95)] sm:p-8 lg:p-10">
+          <div className="space-y-8">
+            <header className="space-y-5">
+              <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-border-strong bg-bg-elevated-2 text-brand-primary shadow-[0_24px_64px_-32px_rgba(99,102,241,0.65)]">
+                <Shield className="h-6 w-6" />
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-fg-tertiary">Invitation d&apos;accès</p>
+                <h1 className="font-serif text-4xl tracking-tight text-fg-primary sm:text-5xl">
+                  Rejoindre {invitation.tenant_name}
+                </h1>
+                <p className="text-sm leading-7 text-fg-secondary">
+                  Créez votre compte pour accéder à l&apos;espace invité avec l&apos;adresse {invitation.email}.
+                </p>
+              </div>
+            </header>
 
-          {error && <ErrorBanner message={error} dismissible={false} />}
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-4">
+                <Input
+                  type="text"
+                  required
+                  label="Nom complet"
+                  value={form.full_name}
+                  onChange={(e) => handleChange("full_name", e.target.value)}
+                  placeholder="Votre nom complet"
+                  className="bg-bg-elevated-2/70"
+                />
+                <Input
+                  type="password"
+                  required
+                  minLength={8}
+                  label="Mot de passe"
+                  value={form.password}
+                  onChange={(e) => handleChange("password", e.target.value)}
+                  className="bg-bg-elevated-2/70"
+                />
+                <Input
+                  type="password"
+                  required
+                  label="Confirmer le mot de passe"
+                  value={form.password_confirm}
+                  onChange={(e) => handleChange("password_confirm", e.target.value)}
+                  className="bg-bg-elevated-2/70"
+                />
+              </div>
 
-          {errorCode === "email_exists" && (
-            <p className="text-sm text-center">
-              <Link href="/login" className="text-brand-primary hover:text-brand-secondary transition-colors">
-                Aller à la connexion →
-              </Link>
-            </p>
-          )}
+              {error && (
+                <div className="space-y-3">
+                  <ErrorBanner message={error} dismissible={false} />
+                  {errorCode === "email_exists" && (
+                    <div className="flex justify-start">
+                      <Button type="button" variant="ghost" onClick={() => router.push("/login")}>
+                        Aller à la connexion
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
 
-          <Button
-            type="submit"
-            variant="primary"
-            size="lg"
-            loading={submitting}
-            className="w-full"
-            rightIcon={<ArrowRight className="w-4 h-4" />}
-          >
-            Créer mon compte
-          </Button>
-        </form>
+              {success && (
+                <div className="flex items-center gap-3 rounded-2xl border border-success/20 bg-success/10 px-4 py-4 text-sm text-success">
+                  <CheckCircle2 className="h-5 w-5 shrink-0" />
+                  <p className="font-medium">Compte créé. Redirection...</p>
+                  <LoadingSpinner size="sm" className="ml-auto" />
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                loading={submitting}
+                disabled={submitting}
+                rightIcon={<ArrowRight className="h-4 w-4" />}
+                className="w-full"
+              >
+                Rejoindre {invitation.tenant_name}
+              </Button>
+            </form>
+          </div>
+        </section>
       </div>
     </div>
   );
