@@ -10,8 +10,6 @@ import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
-import { cn } from "@/lib/cn";
-
 type InvitationData = { email: string; role: string; tenant_name: string; expires_at: string };
 type FormState = { full_name: string; password: string; password_confirm: string };
 
@@ -141,11 +139,12 @@ export default function InvitePage({ params }: { params: { token: string } }) {
               {error ?? "Lien invalide ou expiré."}
             </p>
           </div>
-          <Button variant="ghost" asChild>
-            <Link href="/login">
-              Retour à la connexion <ArrowRight className="w-4 h-4 ml-1" />
-            </Link>
-          </Button>
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 text-sm text-fg-secondary hover:text-fg-primary transition-colors"
+          >
+            Retour à la connexion <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
       </div>
     );
