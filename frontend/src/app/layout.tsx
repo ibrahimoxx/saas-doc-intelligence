@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/components/ui/ThemeProvider";
 import { Toaster } from "sonner";
+import { StructuredData, organizationSchema } from "@/components/seo/StructuredData";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -69,6 +70,7 @@ export default function RootLayout({
         <a href="#main" className="skip-link">
           Aller au contenu principal
         </a>
+        <StructuredData data={organizationSchema} />
         <ThemeProvider>
           <AuthProvider>
             <div className="bg-mesh-dynamic" />
