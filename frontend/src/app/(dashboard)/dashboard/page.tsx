@@ -160,6 +160,22 @@ export default function DashboardPage() {
             )}
           </motion.section>
 
+          {/* Suspension banner */}
+          {currentTenant?.tenant.status === "suspended" && (
+            <motion.div
+              variants={shouldReduceMotion ? reducedFadeUp : fadeUp}
+              className="flex items-start gap-3 rounded-2xl border border-error/30 bg-error/10 px-5 py-4"
+            >
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-error/20 text-[10px] font-bold text-error">!</span>
+              <div>
+                <p className="text-sm font-semibold text-error">Organisation suspendue</p>
+                <p className="text-xs text-fg-secondary mt-0.5">
+                  Cette organisation est suspendue. Les membres ne peuvent plus se connecter ni utiliser la plateforme. Réactivez-la depuis la console admin.
+                </p>
+              </div>
+            </motion.div>
+          )}
+
           {/* Metric tiles bento */}
           <motion.section
             variants={shouldReduceMotion ? reducedFadeUp : fadeUp}

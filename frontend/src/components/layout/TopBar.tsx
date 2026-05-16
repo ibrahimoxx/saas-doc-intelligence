@@ -53,7 +53,7 @@ export function TopBar({
             >
               {tenants.map((m) => (
                 <option key={m.tenant.id} value={m.tenant.id} className="bg-bg-elevated-2">
-                  {m.tenant.name}
+                  {m.tenant.status === "suspended" ? `⚠ ${m.tenant.name}` : m.tenant.name}
                 </option>
               ))}
             </select>
