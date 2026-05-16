@@ -26,7 +26,7 @@ class MessageSerializer(serializers.ModelSerializer):
 class ConversationListSerializer(serializers.ModelSerializer):
     message_count = serializers.IntegerField(read_only=True)
     last_message = serializers.SerializerMethodField()
-    user_id = serializers.UUIDField(source="user_id", read_only=True)
+    user_id = serializers.UUIDField(read_only=True)
     user_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -50,7 +50,7 @@ class ConversationListSerializer(serializers.ModelSerializer):
 
 class ConversationDetailSerializer(serializers.ModelSerializer):
     messages = MessageSerializer(many=True, read_only=True)
-    user_id = serializers.UUIDField(source="user_id", read_only=True)
+    user_id = serializers.UUIDField(read_only=True)
     user_name = serializers.SerializerMethodField()
 
     class Meta:
