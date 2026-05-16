@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { tenantService } from "@/services/tenant.service";
-import type { TenantMembership, TenantSummary, TenantPermissions } from "@/types/tenant.types";
+import { useTenants } from "@/hooks/useTenants";
+import type { TenantSummary, TenantPermissions } from "@/types/tenant.types";
 import { TopBar } from "@/components/layout/TopBar";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
 import { staggerContainer, fadeUp } from "@/lib/motion";
@@ -39,9 +40,7 @@ export default function DashboardPage() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const shouldReduceMotion = useReducedMotion();
 
-  const [tenants, setTenants] = useState<TenantMembership[]>([]);
-  const [selectedTenant, setSelectedTenant] = useState<string | null>(null);
-  const [loadingTenants, setLoadingTenants] = useState(true);
+  const { tenants, selectedTenantId: selectedTenant, setSelectedTenantId: setSelectedTenant, loading: loadingTenants } = useTenants();
   const [summary, setSummary] = useState<TenantSummary | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [permissions, setPermissions] = useState<TenantPermissions | null>(null);
@@ -49,19 +48,6 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push("/login");
   }, [isLoading, isAuthenticated, router]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      tenantService.myTenants().then((res) => {
-        if (res.data) {
-          const data = res.data as unknown as TenantMembership[];
-          setTenants(data);
-          if (data.length > 0) setSelectedTenant(data[0].tenant.id);
-        }
-        setLoadingTenants(false);
-      });
-    }
-  }, [isAuthenticated]);
 
   useEffect(() => {
     if (selectedTenant) {

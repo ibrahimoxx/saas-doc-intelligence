@@ -4,13 +4,12 @@ import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { tenantService } from "@/services/tenant.service";
+import { useTenants } from "@/hooks/useTenants";
 import {
   conversationService,
   type Conversation,
   type Message,
 } from "@/services/conversation.service";
-import type { TenantMembership } from "@/types/tenant.types";
 import { TopBar } from "@/components/layout/TopBar";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
 import {
@@ -37,8 +36,7 @@ function ChatContent() {
   const shouldReduceMotion = useReducedMotion();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const [tenants, setTenants] = useState<TenantMembership[]>([]);
-  const [selectedTenant, setSelectedTenant] = useState<string | null>(null);
+  const { tenants, selectedTenantId: selectedTenant, setSelectedTenantId: setSelectedTenant, loading: loadingTenants } = useTenants();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [input, setInput] = useState("");
@@ -57,18 +55,8 @@ function ChatContent() {
   };
 
   useEffect(() => {
-    if (isAuthenticated) {
-      tenantService.myTenants().then((res) => {
-        if (res.data?.length) {
-          const memberships = res.data as unknown as TenantMembership[];
-          setTenants(memberships);
-          setSelectedTenant(memberships[0].tenant.id);
-        } else {
-          setLoadingConversations(false);
-        }
-      });
-    }
-  }, [isAuthenticated]);
+    if (!loadingTenants && tenants.length === 0) setLoadingConversations(false);
+  }, [loadingTenants, tenants.length]);
 
   const loadConversations = async (tid: string) => {
     setLoadingConversations(true);

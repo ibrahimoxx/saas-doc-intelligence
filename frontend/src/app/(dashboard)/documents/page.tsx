@@ -4,8 +4,9 @@ import { useEffect, useState, Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import { useTenants } from "@/hooks/useTenants";
 import { tenantService } from "@/services/tenant.service";
-import type { TenantMembership, KnowledgeSpace, Document, TenantPermissions } from "@/types/tenant.types";
+import type { KnowledgeSpace, Document, TenantPermissions } from "@/types/tenant.types";
 import { TopBar } from "@/components/layout/TopBar";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -59,8 +60,7 @@ function DocumentsContent() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const shouldReduceMotion = useReducedMotion();
 
-  const [tenants, setTenants] = useState<TenantMembership[]>([]);
-  const [selectedTenant, setSelectedTenant] = useState<string | null>(null);
+  const { tenants, selectedTenantId: selectedTenant, setSelectedTenantId: setSelectedTenant } = useTenants();
   const [spaces, setSpaces] = useState<KnowledgeSpace[]>([]);
   const [currentSpaceId, setCurrentSpaceId] = useState<string | null>(searchParams.get("space"));
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -72,18 +72,6 @@ function DocumentsContent() {
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push("/login");
   }, [isLoading, isAuthenticated, router]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      tenantService.myTenants().then((res) => {
-        if (res.data?.length) {
-          const memberships = res.data as unknown as TenantMembership[];
-          setTenants(memberships);
-          setSelectedTenant(memberships[0].tenant.id);
-        }
-      });
-    }
-  }, [isAuthenticated]);
 
   const loadData = useCallback(async (tid: string) => {
     const [spacesRes, permsRes] = await Promise.all([

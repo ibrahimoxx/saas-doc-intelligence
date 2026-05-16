@@ -4,9 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import { useTenants } from "@/hooks/useTenants";
 import { tenantService } from "@/services/tenant.service";
 import type {
-  TenantMembership,
   TenantMember,
   TenantPermissions,
   KnowledgeSpace,
@@ -64,8 +64,7 @@ export default function MembresPage() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const shouldReduceMotion = useReducedMotion();
 
-  const [tenants, setTenants] = useState<TenantMembership[]>([]);
-  const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
+  const { tenants, selectedTenantId, setSelectedTenantId } = useTenants();
   const [members, setMembers] = useState<TenantMember[]>([]);
   const [permissions, setPermissions] = useState<TenantPermissions | null>(null);
   const [loadingMembers, setLoadingMembers] = useState(false);
@@ -100,18 +99,6 @@ export default function MembresPage() {
       router.replace("/dashboard");
     }
   }, [permissions, router]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      tenantService.myTenants().then((res) => {
-        if (res.data?.length) {
-          const data = res.data as unknown as TenantMembership[];
-          setTenants(data);
-          setSelectedTenantId(data[0].tenant.id);
-        }
-      });
-    }
-  }, [isAuthenticated]);
 
   const loadMembers = useCallback(async (tid: string) => {
     setLoadingMembers(true);
