@@ -11,7 +11,7 @@ from rest_framework.views import APIView
 
 from apps.audit_observability.services import log_action
 from apps.core.constants import AuditAction, ConversationStatus, MessageRole
-from apps.core.permissions import IsTenantMember, get_user_tenant_role, user_can_access_space
+from apps.core.permissions import IsTenantAdmin, IsTenantMember, get_user_tenant_role, user_can_access_space
 from apps.tenancy.models import TenantMembership
 from apps.conversations.api.serializers import (
     ConversationDetailSerializer,
@@ -39,15 +39,7 @@ def _member_user_ids(tenant_id: str) -> list:
 
 
 def _accessible_qs(tenant_id: str, user, role: str | None):
-    """Base queryset of conversations the caller is allowed to see."""
-    if role == "owner":
-        return Conversation.objects.filter(tenant_id=tenant_id)
-    if role == "admin":
-        member_ids = _member_user_ids(tenant_id)
-        return Conversation.objects.filter(
-            tenant_id=tenant_id,
-            user_id__in=member_ids + [user.id],
-        )
+    """Base queryset — always user-scoped for /chat endpoint."""
     return Conversation.objects.filter(
         tenant_id=tenant_id,
         user=user,
