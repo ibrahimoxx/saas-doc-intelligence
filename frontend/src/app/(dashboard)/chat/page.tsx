@@ -37,6 +37,9 @@ function ChatContent() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { tenants, selectedTenantId: selectedTenant, setSelectedTenantId: setSelectedTenant, loading: loadingTenants } = useTenants();
+  const currentRole = tenants.find((t) => t.tenant.id === selectedTenant)?.role ?? "member";
+  const isAdminOrOwner = currentRole === "admin" || currentRole === "owner";
+
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [input, setInput] = useState("");
@@ -130,12 +133,18 @@ function ChatContent() {
     }
   };
 
-  const deleteConversation = async (convId: string, e: React.MouseEvent) => {
+  const canDeleteConversation = (conv: Conversation): boolean => {
+    if (currentRole === "owner") return true;
+    return !conv.user_id || conv.user_id === user?.id;
+  };
+
+  const deleteConversation = async (conv: Conversation, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!selectedTenant || !confirm("Supprimer l'historique ?")) return;
-    await conversationService.archive(selectedTenant, convId);
-    setConversations((prev) => prev.filter((c) => c.id !== convId));
-    if (activeConversation?.id === convId) setActiveConversation(null);
+    if (!selectedTenant || !canDeleteConversation(conv)) return;
+    if (!confirm("Supprimer l'historique ?")) return;
+    await conversationService.archive(selectedTenant, conv.id);
+    setConversations((prev) => prev.filter((c) => c.id !== conv.id));
+    if (activeConversation?.id === conv.id) setActiveConversation(null);
   };
 
   if (isLoading || (!isAuthenticated && !isLoading)) return <PageLoader />;
@@ -186,42 +195,44 @@ function ChatContent() {
                       Aucune conversation
                     </p>
                   ) : (
-                    conversations.map((c) => (
-                      <div
-                        key={c.id}
-                        onClick={() => openConversation(c.id)}
-                        className={`group flex cursor-pointer items-start gap-3 rounded-xl p-3 transition-colors ${
-                          activeConversation?.id === c.id
-                            ? "bg-brand-primary/10 border border-brand-primary/20"
-                            : "border border-transparent hover:bg-bg-elevated-2"
-                        }`}
-                      >
-                        <FileText
-                          className={`mt-0.5 h-4 w-4 shrink-0 ${
-                            activeConversation?.id === c.id ? "text-brand-primary" : "text-fg-tertiary"
-                          }`}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p
-                            className={`truncate text-xs font-semibold ${
-                              activeConversation?.id === c.id ? "text-fg-primary" : "text-fg-secondary"
-                            }`}
-                          >
-                            {c.title || "Discussion"}
-                          </p>
-                          <p className="text-[10px] text-fg-tertiary">
-                            {c.message_count || 0} messages
-                          </p>
-                        </div>
-                        <button
-                          onClick={(e) => deleteConversation(c.id, e)}
-                          className="shrink-0 opacity-0 group-hover:opacity-100 text-fg-tertiary hover:text-error transition-all"
-                          aria-label="Supprimer"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ))
+                    <>
+                      {isAdminOrOwner && conversations.some((c) => !c.user_id || c.user_id === user?.id) && (
+                        <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-fg-tertiary">
+                          Mes conversations
+                        </p>
+                      )}
+                      {conversations
+                        .filter((c) => !isAdminOrOwner || !c.user_id || c.user_id === user?.id)
+                        .map((c) => (
+                          <ConversationRow
+                            key={c.id}
+                            conv={c}
+                            active={activeConversation?.id === c.id}
+                            canDelete={canDeleteConversation(c)}
+                            onOpen={() => openConversation(c.id)}
+                            onDelete={(e) => deleteConversation(c, e)}
+                          />
+                        ))}
+
+                      {isAdminOrOwner && conversations.some((c) => c.user_id && c.user_id !== user?.id) && (
+                        <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-fg-tertiary">
+                          Conversations membres
+                        </p>
+                      )}
+                      {isAdminOrOwner &&
+                        conversations
+                          .filter((c) => c.user_id && c.user_id !== user?.id)
+                          .map((c) => (
+                            <ConversationRow
+                              key={c.id}
+                              conv={c}
+                              active={activeConversation?.id === c.id}
+                              canDelete={canDeleteConversation(c)}
+                              onOpen={() => openConversation(c.id)}
+                              onDelete={(e) => deleteConversation(c, e)}
+                            />
+                          ))}
+                    </>
                   )}
                 </div>
               </div>
@@ -326,6 +337,59 @@ function ChatContent() {
           </div>
         </main>
       </div>
+    </div>
+  );
+}
+
+function ConversationRow({
+  conv,
+  active,
+  canDelete,
+  onOpen,
+  onDelete,
+}: {
+  conv: Conversation;
+  active: boolean;
+  canDelete: boolean;
+  onOpen: () => void;
+  onDelete: (e: React.MouseEvent) => void;
+}) {
+  return (
+    <div
+      onClick={onOpen}
+      className={`group flex cursor-pointer items-start gap-3 rounded-xl p-3 transition-colors ${
+        active
+          ? "bg-brand-primary/10 border border-brand-primary/20"
+          : "border border-transparent hover:bg-bg-elevated-2"
+      }`}
+    >
+      <FileText
+        className={`mt-0.5 h-4 w-4 shrink-0 ${active ? "text-brand-primary" : "text-fg-tertiary"}`}
+      />
+      <div className="min-w-0 flex-1">
+        <p
+          className={`truncate text-xs font-semibold ${
+            active ? "text-fg-primary" : "text-fg-secondary"
+          }`}
+        >
+          {conv.title || "Discussion"}
+        </p>
+        {conv.user_name && (
+          <p className="truncate text-[10px] text-brand-primary/60 font-medium">
+            {conv.user_name}
+          </p>
+        )}
+        <p className="text-[10px] text-fg-tertiary">{conv.message_count || 0} messages</p>
+      </div>
+      {canDelete && (
+        <button
+          onClick={onDelete}
+          className="shrink-0 opacity-0 group-hover:opacity-100 text-fg-tertiary hover:text-error transition-all"
+          aria-label="Supprimer"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>
   );
 }

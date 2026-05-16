@@ -64,13 +64,19 @@ class ConversationListView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsTenantMember]
 
     def get(self, request, tenant_id):
-        """List user's conversations for this tenant."""
-        qs = Conversation.objects.filter(
-            tenant_id=tenant_id,
-            user=request.user,
-            status=ConversationStatus.ACTIVE,
-        ).prefetch_related("messages")
+        """List conversations — scope depends on role.
 
+        owner: all tenant conversations.
+        admin: own + all member conversations (traceability).
+        manager/member: own non-hidden conversations only.
+        """
+        role = _get_role(request, tenant_id)
+        qs = (
+            _accessible_qs(tenant_id, request.user, role)
+            .filter(status=ConversationStatus.ACTIVE)
+            .select_related("user")
+            .prefetch_related("messages")
+        )
         serializer = ConversationListSerializer(qs, many=True)
         return Response(serializer.data)
 
@@ -180,14 +186,17 @@ class ConversationDetailView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsTenantMember]
 
     def get(self, request, tenant_id, conversation_id):
-        """Get conversation with all messages + citations."""
+        """Get conversation with all messages + citations.
+
+        Scope mirrors list: owner sees any, admin sees own + member, others see own.
+        """
+        role = _get_role(request, tenant_id)
         try:
-            conversation = Conversation.objects.prefetch_related(
-                "messages__citations"
-            ).get(
-                id=conversation_id,
-                tenant_id=tenant_id,
-                user=request.user,
+            conversation = (
+                _accessible_qs(tenant_id, request.user, role)
+                .select_related("user")
+                .prefetch_related("messages__citations")
+                .get(id=conversation_id)
             )
         except Conversation.DoesNotExist:
             return Response(
@@ -198,21 +207,32 @@ class ConversationDetailView(APIView):
         return Response(ConversationDetailSerializer(conversation).data)
 
     def delete(self, request, tenant_id, conversation_id):
-        """Archive a conversation."""
+        """Delete a conversation — behaviour depends on role.
+
+        owner: true archive (status=ARCHIVED, removed for everyone).
+        admin: can only hide their own; member convos are read-only.
+        member/manager: hides for themselves, admin/owner retain traceability.
+        """
+        role = _get_role(request, tenant_id)
         try:
-            conversation = Conversation.objects.get(
-                id=conversation_id,
-                tenant_id=tenant_id,
-                user=request.user,
-            )
+            conversation = _accessible_qs(tenant_id, request.user, role).get(id=conversation_id)
         except Conversation.DoesNotExist:
             return Response(
                 {"error": {"code": "not_found", "message": "Conversation non trouvée."}},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        conversation.status = ConversationStatus.ARCHIVED
-        conversation.save(update_fields=["status", "updated_at"])
+        if role == "owner":
+            conversation.status = ConversationStatus.ARCHIVED
+            conversation.save(update_fields=["status", "updated_at"])
+        elif role == "admin" and str(conversation.user_id) != str(request.user.id):
+            return Response(
+                {"error": {"code": "forbidden", "message": "Les conversations membres sont en lecture seule pour les administrateurs."}},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        else:
+            conversation.hidden_for_user = True
+            conversation.save(update_fields=["hidden_for_user", "updated_at"])
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 

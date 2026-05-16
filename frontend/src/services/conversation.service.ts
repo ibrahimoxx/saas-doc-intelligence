@@ -29,6 +29,8 @@ export interface Conversation {
   title: string;
   status: string;
   knowledge_space_id: string | null;
+  user_id?: string;
+  user_name?: string;
   messages?: Message[];
   message_count?: number;
   last_message?: { role: string; content: string; created_at: string } | null;

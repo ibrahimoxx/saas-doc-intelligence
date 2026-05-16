@@ -7,6 +7,8 @@ export interface Conversation {
   tenant_id: string;
   title: string;
   status: "active" | "archived";
+  user_id?: string;
+  user_name?: string;
   created_at: string;
   updated_at: string;
 }
