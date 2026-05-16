@@ -6,6 +6,7 @@ import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { tenantService } from "@/services/tenant.service";
 import { useTenants } from "@/hooks/useTenants";
+import { adminService } from "@/services/admin.service";
 import type { TenantSummary, TenantPermissions } from "@/types/tenant.types";
 import { TopBar } from "@/components/layout/TopBar";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
@@ -50,8 +51,29 @@ export default function DashboardPage() {
   }, [isLoading, isAuthenticated, router]);
 
   useEffect(() => {
-    if (selectedTenant) {
-      setLoadingSummary(true);
+    if (!selectedTenant) return;
+    setSummary(null);
+    setPermissions(null);
+    setLoadingSummary(true);
+
+    if (user?.is_superuser) {
+      Promise.all([
+        adminService.getTenant(selectedTenant),
+        tenantService.myPermissions(selectedTenant),
+      ]).then(([tenantRes, permsRes]) => {
+        if (tenantRes.data) {
+          setSummary({
+            documents: tenantRes.data.document_count,
+            conversations: 0,
+            members: tenantRes.data.member_count,
+            spaces: tenantRes.data.space_count,
+          });
+        }
+        if (permsRes.data) setPermissions(permsRes.data);
+        else setPermissions({ role: "owner", can_upload: true, can_delete_documents: true, can_manage_members: true, can_view_admin: true, accessible_space_ids: [] });
+        setLoadingSummary(false);
+      });
+    } else {
       Promise.all([
         tenantService.getTenantSummary(selectedTenant),
         tenantService.myPermissions(selectedTenant),
@@ -61,7 +83,7 @@ export default function DashboardPage() {
         setLoadingSummary(false);
       });
     }
-  }, [selectedTenant]);
+  }, [selectedTenant, user?.is_superuser]);
 
   const handleLogout = async () => {
     await logout();
