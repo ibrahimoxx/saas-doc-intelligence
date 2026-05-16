@@ -332,3 +332,48 @@ class ConversationMessageView(APIView):
             "user_message": MessageSerializer(user_msg).data,
             "assistant_message": MessageSerializer(assistant_msg).data,
         })
+
+
+class ConversationHistoryView(APIView):
+    """
+    GET /api/v1/tenants/{tenant_id}/conversations/history/
+
+    Traceability endpoint — admin/owner only, read-only.
+    Owner sees all roles. Admin sees members only.
+
+    Query params:
+      ?role=member|admin   further filter by role
+      ?user_id=<uuid>      filter to a specific user
+    """
+
+    permission_classes = [permissions.IsAuthenticated, IsTenantAdmin]
+
+    def get(self, request, tenant_id):
+        role = _get_role(request, tenant_id)
+        role_filter = request.query_params.get("role")
+        user_id = request.query_params.get("user_id")
+
+        if role == "owner":
+            base_qs = Conversation.objects.filter(
+                tenant_id=tenant_id, status=ConversationStatus.ACTIVE
+            )
+        else:
+            member_ids = _member_user_ids(tenant_id)
+            base_qs = Conversation.objects.filter(
+                tenant_id=tenant_id,
+                status=ConversationStatus.ACTIVE,
+                user_id__in=member_ids,
+            )
+
+        if user_id:
+            base_qs = base_qs.filter(user_id=user_id)
+        elif role_filter:
+            filtered_ids = list(
+                TenantMembership.objects.filter(
+                    tenant_id=tenant_id, role=role_filter, status="active"
+                ).values_list("user_id", flat=True)
+            )
+            base_qs = base_qs.filter(user_id__in=filtered_ids)
+
+        qs = base_qs.select_related("user").prefetch_related("messages")
+        return Response(ConversationListSerializer(qs, many=True).data)

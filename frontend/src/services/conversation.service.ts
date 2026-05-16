@@ -2,7 +2,7 @@
  * DocPilot AI — Conversations Service
  */
 
-import { apiClient, type ApiResponse } from "@/lib/api-client";
+import { apiClient } from "@/lib/api-client";
 
 export interface Citation {
   id: string;
@@ -56,4 +56,13 @@ export const conversationService = {
 
   archive: (tenantId: string, conversationId: string) =>
     apiClient.delete(`/tenants/${tenantId}/conversations/${conversationId}/`),
+
+  history: (tenantId: string, params?: { role?: string; user_id?: string }) => {
+    const query = params
+      ? "?" + new URLSearchParams(params as Record<string, string>).toString()
+      : "";
+    return apiClient.get<Conversation[]>(
+      `/tenants/${tenantId}/conversations/history/${query}`
+    );
+  },
 };
