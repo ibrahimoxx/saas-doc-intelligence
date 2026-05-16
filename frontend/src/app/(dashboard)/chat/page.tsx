@@ -115,12 +115,40 @@ function ChatContent() {
         setError(res.error?.message || "Erreur lors de l'envoi.");
       }
     } else {
-      const res = await conversationService.create(selectedTenant, { first_message: question });
-      if (res.data) {
-        setActiveConversation(res.data);
-        setConversations((prev) => [res.data!, ...prev]);
-      } else {
-        setError(res.error?.message || "Erreur fatale.");
+      // Show user message immediately — don't wait for Ollama
+      const tempId = "temp-conv-" + Date.now();
+      const tempUserMsg: Message = {
+        id: "temp-" + Date.now(),
+        role: "user",
+        content: question,
+        model_name: "",
+        total_tokens: 0,
+        latency_ms: 0,
+        citations: [],
+        created_at: new Date().toISOString(),
+      };
+      setActiveConversation({
+        id: tempId,
+        title: question.slice(0, 80),
+        status: "active",
+        knowledge_space_id: null,
+        messages: [tempUserMsg],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+
+      try {
+        const res = await conversationService.create(selectedTenant, { first_message: question });
+        if (res.data) {
+          setActiveConversation(res.data);
+          setConversations((prev) => [res.data!, ...prev]);
+        } else {
+          setError(res.error?.message || "Erreur fatale.");
+          setActiveConversation(null);
+        }
+      } catch {
+        setError("Erreur réseau. Réessayez.");
+        setActiveConversation(null);
       }
     }
     setSending(false);
