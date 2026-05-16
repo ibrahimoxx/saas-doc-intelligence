@@ -26,10 +26,16 @@ class MessageSerializer(serializers.ModelSerializer):
 class ConversationListSerializer(serializers.ModelSerializer):
     message_count = serializers.IntegerField(read_only=True)
     last_message = serializers.SerializerMethodField()
+    user_id = serializers.UUIDField(source="user_id", read_only=True)
+    user_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Conversation
-        fields = ["id", "title", "status", "knowledge_space_id", "message_count", "last_message", "created_at", "updated_at"]
+        fields = [
+            "id", "title", "status", "knowledge_space_id",
+            "user_id", "user_name",
+            "message_count", "last_message", "created_at", "updated_at",
+        ]
         read_only_fields = fields
 
     def get_last_message(self, obj):
@@ -38,14 +44,26 @@ class ConversationListSerializer(serializers.ModelSerializer):
             return {"role": last.role, "content": last.content[:100], "created_at": last.created_at}
         return None
 
+    def get_user_name(self, obj):
+        return getattr(obj.user, "full_name", "") or ""
+
 
 class ConversationDetailSerializer(serializers.ModelSerializer):
     messages = MessageSerializer(many=True, read_only=True)
+    user_id = serializers.UUIDField(source="user_id", read_only=True)
+    user_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Conversation
-        fields = ["id", "title", "status", "knowledge_space_id", "messages", "created_at", "updated_at"]
+        fields = [
+            "id", "title", "status", "knowledge_space_id",
+            "user_id", "user_name",
+            "messages", "created_at", "updated_at",
+        ]
         read_only_fields = fields
+
+    def get_user_name(self, obj):
+        return getattr(obj.user, "full_name", "") or ""
 
 
 class SendMessageSerializer(serializers.Serializer):

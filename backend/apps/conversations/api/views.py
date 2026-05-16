@@ -11,7 +11,8 @@ from rest_framework.views import APIView
 
 from apps.audit_observability.services import log_action
 from apps.core.constants import AuditAction, ConversationStatus, MessageRole
-from apps.core.permissions import IsTenantMember, user_can_access_space
+from apps.core.permissions import IsTenantMember, get_user_tenant_role, user_can_access_space
+from apps.tenancy.models import TenantMembership
 from apps.conversations.api.serializers import (
     ConversationDetailSerializer,
     ConversationListSerializer,
@@ -23,6 +24,35 @@ from apps.retrieval.infrastructure.rag_pipeline import ask_question
 from apps.retrieval.infrastructure.vector_search import search_chunks
 
 logger = logging.getLogger("apps.conversations")
+
+
+def _get_role(request, tenant_id: str) -> str | None:
+    return get_user_tenant_role(request.user, tenant_id)
+
+
+def _member_user_ids(tenant_id: str) -> list:
+    return list(
+        TenantMembership.objects.filter(
+            tenant_id=tenant_id, role="member", status="active"
+        ).values_list("user_id", flat=True)
+    )
+
+
+def _accessible_qs(tenant_id: str, user, role: str | None):
+    """Base queryset of conversations the caller is allowed to see."""
+    if role == "owner":
+        return Conversation.objects.filter(tenant_id=tenant_id)
+    if role == "admin":
+        member_ids = _member_user_ids(tenant_id)
+        return Conversation.objects.filter(
+            tenant_id=tenant_id,
+            user_id__in=member_ids + [user.id],
+        )
+    return Conversation.objects.filter(
+        tenant_id=tenant_id,
+        user=user,
+        hidden_for_user=False,
+    )
 
 
 class ConversationListView(APIView):

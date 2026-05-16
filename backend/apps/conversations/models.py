@@ -39,6 +39,11 @@ class Conversation(BaseUUIDModel):
         default=ConversationStatus.ACTIVE,
         db_index=True,
     )
+    hidden_for_user = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="When True, the owner hid this conversation. Admins/owners still see it.",
+    )
 
     class Meta:
         db_table = "conversations"
