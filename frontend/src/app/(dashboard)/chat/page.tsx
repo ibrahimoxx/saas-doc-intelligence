@@ -216,44 +216,15 @@ function ChatContent() {
                       Aucune conversation
                     </p>
                   ) : (
-                    <>
-                      {isAdminOrOwner && conversations.some((c) => !c.user_id || c.user_id === user?.id) && (
-                        <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-fg-tertiary">
-                          Mes conversations
-                        </p>
-                      )}
-                      {conversations
-                        .filter((c) => !isAdminOrOwner || !c.user_id || c.user_id === user?.id)
-                        .map((c) => (
-                          <ConversationRow
-                            key={c.id}
-                            conv={c}
-                            active={activeConversation?.id === c.id}
-                            canDelete={canDeleteConversation(c)}
-                            onOpen={() => openConversation(c.id)}
-                            onDelete={(e) => deleteConversation(c, e)}
-                          />
-                        ))}
-
-                      {isAdminOrOwner && conversations.some((c) => c.user_id && c.user_id !== user?.id) && (
-                        <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-fg-tertiary">
-                          Conversations membres
-                        </p>
-                      )}
-                      {isAdminOrOwner &&
-                        conversations
-                          .filter((c) => c.user_id && c.user_id !== user?.id)
-                          .map((c) => (
-                            <ConversationRow
-                              key={c.id}
-                              conv={c}
-                              active={activeConversation?.id === c.id}
-                              canDelete={canDeleteConversation(c)}
-                              onOpen={() => openConversation(c.id)}
-                              onDelete={(e) => deleteConversation(c, e)}
-                            />
-                          ))}
-                    </>
+                    conversations.map((c) => (
+                      <ConversationRow
+                        key={c.id}
+                        conv={c}
+                        active={activeConversation?.id === c.id}
+                        onOpen={() => openConversation(c.id)}
+                        onDelete={(e) => deleteConversation(c, e)}
+                      />
+                    ))
                   )}
                 </div>
               </div>
@@ -365,13 +336,11 @@ function ChatContent() {
 function ConversationRow({
   conv,
   active,
-  canDelete,
   onOpen,
   onDelete,
 }: {
   conv: Conversation;
   active: boolean;
-  canDelete: boolean;
   onOpen: () => void;
   onDelete: (e: React.MouseEvent) => void;
 }) {
@@ -395,22 +364,15 @@ function ConversationRow({
         >
           {conv.title || "Discussion"}
         </p>
-        {conv.user_name && (
-          <p className="truncate text-[10px] text-brand-primary/60 font-medium">
-            {conv.user_name}
-          </p>
-        )}
         <p className="text-[10px] text-fg-tertiary">{conv.message_count || 0} messages</p>
       </div>
-      {canDelete && (
-        <button
-          onClick={onDelete}
-          className="shrink-0 opacity-0 group-hover:opacity-100 text-fg-tertiary hover:text-error transition-all"
-          aria-label="Supprimer"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
-      )}
+      <button
+        onClick={onDelete}
+        className="shrink-0 opacity-0 group-hover:opacity-100 text-fg-tertiary hover:text-error transition-all"
+        aria-label="Supprimer"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }
