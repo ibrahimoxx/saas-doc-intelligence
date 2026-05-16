@@ -12,6 +12,7 @@ import {
   Shield,
   LogOut,
   ChevronLeft,
+  ArrowLeft,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -138,6 +139,25 @@ export default function AdminLayout({
 
           {/* Footer actions */}
           <div className="space-y-1">
+            <Link
+              href="/dashboard"
+              className="flex h-10 w-full items-center gap-3 rounded-xl px-3 text-fg-tertiary transition-colors hover:bg-bg-elevated-2 hover:text-brand-primary"
+            >
+              <ArrowLeft className="h-4 w-4 shrink-0" />
+              <AnimatePresence initial={false}>
+                {isSidebarOpen && (
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="text-xs font-semibold whitespace-nowrap"
+                  >
+                    Tableau de bord
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </Link>
+
             <button
               onClick={() => setSidebarOpen(!isSidebarOpen)}
               className="flex h-10 w-full items-center gap-3 rounded-xl px-3 text-fg-tertiary transition-colors hover:bg-bg-elevated-2 hover:text-fg-primary"
