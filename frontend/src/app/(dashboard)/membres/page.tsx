@@ -321,7 +321,7 @@ export default function MembresPage() {
                     initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
-                    className="overflow-hidden rounded-[20px] border border-border-subtle bg-bg-elevated-1/60"
+                    className="rounded-[20px] border border-border-subtle bg-bg-elevated-1/60"
                   >
                     {/* Member row */}
                     <div className="flex items-center gap-4 px-5 py-4">
