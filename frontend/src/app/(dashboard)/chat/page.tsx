@@ -37,8 +37,6 @@ function ChatContent() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { tenants, selectedTenantId: selectedTenant, setSelectedTenantId: setSelectedTenant, loading: loadingTenants } = useTenants();
-  const currentRole = tenants.find((t) => t.tenant.id === selectedTenant)?.role ?? "member";
-  const isAdminOrOwner = currentRole === "admin" || currentRole === "owner";
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
@@ -161,14 +159,9 @@ function ChatContent() {
     }
   };
 
-  const canDeleteConversation = (conv: Conversation): boolean => {
-    if (currentRole === "owner") return true;
-    return !conv.user_id || conv.user_id === user?.id;
-  };
-
   const deleteConversation = async (conv: Conversation, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!selectedTenant || !canDeleteConversation(conv)) return;
+    if (!selectedTenant) return;
     if (!confirm("Supprimer l'historique ?")) return;
     await conversationService.archive(selectedTenant, conv.id);
     setConversations((prev) => prev.filter((c) => c.id !== conv.id));
