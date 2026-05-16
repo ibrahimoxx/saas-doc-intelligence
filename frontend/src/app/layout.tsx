@@ -1,10 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Outfit, Instrument_Serif, JetBrains_Mono } from "next/font/google";
+import {
+  Inter,
+  Instrument_Serif,
+  JetBrains_Mono,
+  Outfit,
+} from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/components/ui/ThemeProvider";
 import { Toaster } from "sonner";
-import { StructuredData, organizationSchema } from "@/components/seo/StructuredData";
+import {
+  StructuredData,
+  organizationSchema,
+} from "@/components/seo/StructuredData";
 
 const inter = Inter({
   subsets: ["latin"],
