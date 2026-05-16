@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { tenantService } from "@/services/tenant.service";
 import { adminService } from "@/services/admin.service";
 import type { TenantMembership } from "@/types/tenant.types";
+
+const STORAGE_KEY = "docpilot_selected_tenant";
 
 interface UseTenantsResult {
   tenants: TenantMembership[];
@@ -16,8 +18,20 @@ interface UseTenantsResult {
 export function useTenants(): UseTenantsResult {
   const { user, isAuthenticated } = useAuth();
   const [tenants, setTenants] = useState<TenantMembership[]>([]);
-  const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
+  const [selectedTenantId, setSelectedTenantIdState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const setSelectedTenantId = useCallback((id: string) => {
+    localStorage.setItem(STORAGE_KEY, id);
+    setSelectedTenantIdState(id);
+  }, []);
+
+  const pickDefault = useCallback((data: TenantMembership[]) => {
+    if (data.length === 0) return;
+    const saved = localStorage.getItem(STORAGE_KEY);
+    const match = saved && data.find((m) => m.tenant.id === saved);
+    setSelectedTenantIdState(match ? saved! : data[0].tenant.id);
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -32,7 +46,7 @@ export function useTenants(): UseTenantsResult {
             status: "active" as const,
           }));
           setTenants(data);
-          if (data.length > 0) setSelectedTenantId(data[0].tenant.id);
+          pickDefault(data);
         }
         setLoading(false);
       });
@@ -41,12 +55,12 @@ export function useTenants(): UseTenantsResult {
         if (res.data) {
           const data = res.data as unknown as TenantMembership[];
           setTenants(data);
-          if (data.length > 0) setSelectedTenantId(data[0].tenant.id);
+          pickDefault(data);
         }
         setLoading(false);
       });
     }
-  }, [isAuthenticated, user?.is_superuser]);
+  }, [isAuthenticated, user?.is_superuser, pickDefault]);
 
   return { tenants, selectedTenantId, setSelectedTenantId, loading };
 }
