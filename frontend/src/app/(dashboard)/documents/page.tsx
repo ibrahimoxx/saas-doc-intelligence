@@ -391,6 +391,43 @@ function DocumentsContent() {
           </motion.section>
         </motion.div>
       </main>
+      {/* Delete confirmation modal */}
+      <Modal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        width="max-w-sm"
+      >
+        <div className="space-y-5">
+          <div className="flex items-center gap-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-error/20 bg-error/10">
+              <Trash2 className="h-5 w-5 text-error" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-fg-primary">Supprimer le document</p>
+              <p className="text-xs text-fg-tertiary mt-0.5 line-clamp-2">
+                {deleteTarget?.title}
+              </p>
+            </div>
+          </div>
+          <p className="text-sm text-fg-secondary leading-6">
+            Ce document sera supprimé définitivement ainsi que tous ses chunks indexés. Cette action est irréversible.
+          </p>
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={() => setDeleteTarget(null)}
+              className="rounded-xl border border-border-subtle bg-bg-elevated-2 px-4 py-2 text-sm font-semibold text-fg-secondary transition-colors hover:text-fg-primary"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={confirmDelete}
+              className="rounded-xl bg-error/15 border border-error/20 px-4 py-2 text-sm font-semibold text-error transition-colors hover:bg-error/25"
+            >
+              Supprimer
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
