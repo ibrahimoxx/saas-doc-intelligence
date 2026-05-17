@@ -9,6 +9,7 @@ import {
   FileText,
   Users,
   Database,
+  History,
   ArrowLeft,
   Zap,
 } from "lucide-react";
@@ -29,12 +30,16 @@ interface SidebarProps {
   backLabel?: string;
 }
 
-const NAV_LINKS: SidebarLink[] = [
+const BASE_NAV_LINKS: SidebarLink[] = [
   { href: "/dashboard",  label: "Dashboard",      icon: <LayoutDashboard className="w-4 h-4" /> },
   { href: "/chat",       label: "Chat IA",        icon: <MessageSquare className="w-4 h-4" /> },
   { href: "/documents",  label: "Documents",      icon: <FileText className="w-4 h-4" /> },
   { href: "/membres",    label: "Membres",        icon: <Users className="w-4 h-4" /> },
   { href: "/espaces",    label: "Espaces",        icon: <Database className="w-4 h-4" /> },
+];
+
+const ADMIN_NAV_LINKS: SidebarLink[] = [
+  { href: "/historique", label: "Historique",     icon: <History className="w-4 h-4" /> },
 ];
 
 export function Sidebar({
@@ -75,7 +80,10 @@ export function Sidebar({
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
-        {NAV_LINKS.map((link) => {
+        {[
+          ...BASE_NAV_LINKS,
+          ...(role === "admin" || role === "owner" ? ADMIN_NAV_LINKS : []),
+        ].map((link) => {
           const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
           return (
             <Link

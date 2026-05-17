@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Users,
   Database,
+  History,
   ArrowUpRight,
 } from "lucide-react";
 
@@ -27,6 +28,7 @@ const TILE_ICONS = {
   chat: MessageSquare,
   membres: Users,
   espaces: Database,
+  historique: History,
 };
 
 const TILE_COLORS: Record<string, string> = {
@@ -34,6 +36,7 @@ const TILE_COLORS: Record<string, string> = {
   chat: "rgba(59,130,246,0.15)",
   membres: "rgba(236,72,153,0.15)",
   espaces: "rgba(16,185,129,0.15)",
+  historique: "rgba(168,85,247,0.15)",
 };
 
 export default function DashboardPage() {
@@ -131,6 +134,13 @@ export default function DashboardPage() {
       count: summary?.spaces ?? "—",
       restricted: true,
     },
+    {
+      key: "historique",
+      label: "Historique",
+      href: "/historique",
+      count: summary?.conversations ?? "—",
+      restricted: true,
+    },
   ];
 
   const tiles = allTiles.filter((t) => !t.restricted || isAdmin);
@@ -202,7 +212,7 @@ export default function DashboardPage() {
           <motion.section
             variants={shouldReduceMotion ? reducedFadeUp : fadeUp}
             className={`grid gap-4 ${
-              tiles.length === 4
+              tiles.length >= 4
                 ? "grid-cols-2 lg:grid-cols-4"
                 : tiles.length === 3
                 ? "grid-cols-1 sm:grid-cols-3"
