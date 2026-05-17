@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { adminService, type AdminRecentQuery } from "@/services/admin.service";
 import { staggerContainer, fadeUp } from "@/lib/motion";
@@ -16,6 +17,7 @@ const reducedFadeUp: Variants = { hidden: { opacity: 0 }, visible: { opacity: 1 
 const reducedStagger: Variants = { hidden: {}, visible: {} };
 
 export default function AdminDashboardPage() {
+  const router = useRouter();
   const shouldReduceMotion = useReducedMotion();
 
   const [stats, setStats] = useState({
@@ -46,10 +48,10 @@ export default function AdminDashboardPage() {
   }, []);
 
   const metricCards = [
-    { label: "Utilisateurs Globaux", val: stats.total_users, icon: Users, glow: "rgba(99,102,241,0.15)" },
-    { label: "Organisations", val: stats.total_tenants, icon: Shield, glow: "rgba(168,85,247,0.15)" },
-    { label: "Index Global (Docs)", val: stats.total_documents, icon: Database, glow: "rgba(6,182,212,0.15)" },
-    { label: "Requêtes Système", val: stats.total_queries, icon: Activity, glow: "rgba(236,72,153,0.15)" },
+    { label: "Utilisateurs Globaux", val: stats.total_users, icon: Users, glow: "rgba(99,102,241,0.15)", href: "/admin/users" },
+    { label: "Organisations", val: stats.total_tenants, icon: Shield, glow: "rgba(168,85,247,0.15)", href: "/admin/tenants" },
+    { label: "Index Global (Docs)", val: stats.total_documents, icon: Database, glow: "rgba(6,182,212,0.15)", href: "/admin/tenants" },
+    { label: "Requêtes Système", val: stats.total_queries, icon: Activity, glow: "rgba(236,72,153,0.15)", href: "/admin/activites" },
   ];
 
   if (loading) {

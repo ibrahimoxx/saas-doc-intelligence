@@ -76,9 +76,9 @@ class AdminRecentQueriesView(views.APIView):
     permission_classes = [permissions.IsAuthenticated, IsSuperUser]
 
     def get(self, request, *args, **kwargs):
-        # Fetch the 20 most recent queries from QueryLog
-        recent_queries = QueryLog.objects.select_related('user', 'tenant').order_by('-created_at')[:20]
-        
+        limit = min(int(request.query_params.get("limit", 20)), 500)
+
+        recent_queries = QueryLog.objects.select_related('user', 'tenant').order_by('-created_at')[:limit]
         data = []
         for query in recent_queries:
             data.append({
@@ -92,11 +92,9 @@ class AdminRecentQueriesView(views.APIView):
                 "created_at": query.created_at.isoformat(),
             })
 
-        # Also fetch recent messages from the new Phase 7 conversations
-        # We will fetch ASSISTANT messages to get token usage/model and pair them with the previous USER message conceptually,
-        # but for simplicity we can just fetch USER messages and show the question.
-        recent_messages = Message.objects.filter(role=MessageRole.USER).select_related('conversation__user', 'conversation__tenant').order_by('-created_at')[:20]
-        
+        recent_messages = Message.objects.filter(role=MessageRole.USER).select_related(
+            'conversation__user', 'conversation__tenant'
+        ).order_by('-created_at')[:limit]
         for msg in recent_messages:
             data.append({
                 "id": str(msg.id),
@@ -104,12 +102,10 @@ class AdminRecentQueriesView(views.APIView):
                 "user_email": msg.conversation.user.email if msg.conversation.user else "Anonymous",
                 "question": msg.content,
                 "answer_preview": "Voir la conversation pour la réponse complète.",
-                "model_used": "N/A",  # The user message doesn't have the model, it's on the assistant message
+                "model_used": "N/A",
                 "total_tokens": 0,
                 "created_at": msg.created_at.isoformat(),
             })
-            
-        # Sort combined data descending by created_at and limit back to 20
-        data = sorted(data, key=lambda x: x["created_at"], reverse=True)[:20]
 
+        data = sorted(data, key=lambda x: x["created_at"], reverse=True)[:limit]
         return response.Response(data)

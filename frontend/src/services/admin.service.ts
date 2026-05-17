@@ -38,8 +38,8 @@ export const adminService = {
   /**
    * Get recent queries across all tenants (Superuser only)
    */
-  getRecentQueries: (): Promise<ApiResponse<AdminRecentQuery[]>> => {
-    return apiClient.get<AdminRecentQuery[]>("/admin/queries/recent/");
+  getRecentQueries: (limit = 20): Promise<ApiResponse<AdminRecentQuery[]>> => {
+    return apiClient.get<AdminRecentQuery[]>(`/admin/queries/recent/?limit=${limit}`);
   },
 
   // TENANT MANAGEMENT
