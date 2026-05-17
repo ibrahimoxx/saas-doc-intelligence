@@ -47,6 +47,23 @@ def _accessible_qs(tenant_id: str, user, role: str | None):
     )
 
 
+def _detail_qs(tenant_id: str, user, role: str | None):
+    """Queryset for single-conversation access — role-aware so admin/owner can open any conversation."""
+    if role == "owner":
+        return Conversation.objects.filter(tenant_id=tenant_id)
+    if role == "admin":
+        member_ids = _member_user_ids(tenant_id)
+        return Conversation.objects.filter(
+            tenant_id=tenant_id,
+            user_id__in=member_ids + [user.id],
+        )
+    return Conversation.objects.filter(
+        tenant_id=tenant_id,
+        user=user,
+        hidden_for_user=False,
+    )
+
+
 class ConversationListView(APIView):
     """
     GET  /api/v1/tenants/{tenant_id}/conversations/        — List conversations
@@ -180,12 +197,13 @@ class ConversationDetailView(APIView):
     def get(self, request, tenant_id, conversation_id):
         """Get conversation with all messages + citations.
 
-        Scope mirrors list: owner sees any, admin sees own + member, others see own.
+        Uses role-aware queryset so admin/owner can read any conversation
+        (used by /historique traceability page). Members see own only.
         """
         role = _get_role(request, tenant_id)
         try:
             conversation = (
-                _accessible_qs(tenant_id, request.user, role)
+                _detail_qs(tenant_id, request.user, role)
                 .select_related("user")
                 .prefetch_related("messages__citations")
                 .get(id=conversation_id)
