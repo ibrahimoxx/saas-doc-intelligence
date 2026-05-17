@@ -9,6 +9,7 @@ import { tenantService } from "@/services/tenant.service";
 import type { KnowledgeSpace, Document, TenantPermissions } from "@/types/tenant.types";
 import { TopBar } from "@/components/layout/TopBar";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
+import { Modal } from "@/components/ui/Modal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyDocs } from "@/components/illustrations/EmptyDocs";
 import { staggerContainer, fadeUp } from "@/lib/motion";
@@ -68,6 +69,7 @@ function DocumentsContent() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push("/login");
@@ -127,11 +129,16 @@ function DocumentsContent() {
     setUploading(false);
   };
 
-  const handleDelete = async (docId: string) => {
-    if (!selectedTenant || !currentSpaceId || !confirm("Supprimer ce document ?")) return;
-    await tenantService.deleteDocument(selectedTenant, currentSpaceId, docId);
-    loadDocs();
+  const handleDelete = (docId: string, docTitle: string) => {
+    setDeleteTarget({ id: docId, title: docTitle });
     setOpenMenuId(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedTenant || !currentSpaceId || !deleteTarget) return;
+    await tenantService.deleteDocument(selectedTenant, currentSpaceId, deleteTarget.id);
+    setDeleteTarget(null);
+    loadDocs();
   };
 
   const handleDownload = async (docId: string, fileName: string) => {
