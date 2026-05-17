@@ -148,6 +148,34 @@
     outline: 2px solid var(--color-brand-primary);
     outline-offset: 2px;
   }
+
+  /* Pointer cursor on all interactive elements */
+  button,
+  [role="button"],
+  a[href],
+  label[for],
+  select,
+  [tabindex]:not([tabindex="-1"]) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  /* Press effect — brightness only so Framer Motion transforms are unaffected */
+  button:not(:disabled):active,
+  [role="button"]:not([aria-disabled="true"]):active {
+    filter: brightness(0.82);
+    transition: filter 0.08s ease;
+  }
+
+  /* Hover ripple glow on generic buttons (non-Framer-Motion) */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    transition: filter 0.15s ease;
+  }
 }
 
 @layer utilities {
