@@ -363,7 +363,7 @@ function DocumentsContent() {
                                   </button>
                                   {permissions?.can_delete_documents && (
                                     <button
-                                      onClick={() => handleDelete(doc.id)}
+                                      onClick={() => handleDelete(doc.id, doc.title)}
                                       className="flex w-full items-center gap-3 px-4 py-3 text-xs font-semibold text-error transition-colors hover:bg-error/10"
                                     >
                                       <Trash2 className="h-3.5 w-3.5" />
