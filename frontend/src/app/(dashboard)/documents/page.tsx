@@ -101,9 +101,22 @@ function DocumentsContent() {
     setLoading(false);
   };
 
+  const silentRefresh = useCallback(async (tid: string, spaceId: string) => {
+    const res = await tenantService.listDocuments(tid, spaceId);
+    if (res.data) setDocuments(res.data);
+  }, []);
+
   useEffect(() => {
     if (selectedTenant && currentSpaceId) loadDocs();
   }, [selectedTenant, currentSpaceId]);
+
+  // Poll every 3s while any doc is processing/queued
+  useEffect(() => {
+    const hasPending = documents.some((d) => d.status === "processing" || d.status === "queued");
+    if (!hasPending || !selectedTenant || !currentSpaceId) return;
+    const id = setInterval(() => silentRefresh(selectedTenant, currentSpaceId), 3000);
+    return () => clearInterval(id);
+  }, [documents, selectedTenant, currentSpaceId, silentRefresh]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
