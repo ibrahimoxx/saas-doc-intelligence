@@ -12,6 +12,7 @@ import {
 } from "@/services/conversation.service";
 import { TopBar } from "@/components/layout/TopBar";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
+import { Modal } from "@/components/ui/Modal";
 import {
   Plus,
   Trash2,
@@ -45,6 +46,7 @@ function ChatContent() {
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [error, setError] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<Conversation | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push("/login");
@@ -159,13 +161,17 @@ function ChatContent() {
     }
   };
 
-  const deleteConversation = async (conv: Conversation, e: React.MouseEvent) => {
+  const deleteConversation = (conv: Conversation, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!selectedTenant) return;
-    if (!confirm("Supprimer l'historique ?")) return;
-    await conversationService.archive(selectedTenant, conv.id);
-    setConversations((prev) => prev.filter((c) => c.id !== conv.id));
-    if (activeConversation?.id === conv.id) setActiveConversation(null);
+    setDeleteTarget(conv);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedTenant || !deleteTarget) return;
+    await conversationService.archive(selectedTenant, deleteTarget.id);
+    setConversations((prev) => prev.filter((c) => c.id !== deleteTarget.id));
+    if (activeConversation?.id === deleteTarget.id) setActiveConversation(null);
+    setDeleteTarget(null);
   };
 
   if (isLoading || (!isAuthenticated && !isLoading)) return <PageLoader />;
@@ -329,6 +335,44 @@ function ChatContent() {
           </div>
         </main>
       </div>
+
+      {/* Delete confirmation modal */}
+      <Modal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        width="max-w-sm"
+      >
+        <div className="space-y-5">
+          <div className="flex items-center gap-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-error/20 bg-error/10">
+              <Trash2 className="h-5 w-5 text-error" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-fg-primary">Supprimer la conversation</p>
+              <p className="text-xs text-fg-tertiary mt-0.5 line-clamp-2">
+                {deleteTarget?.title || "Discussion"}
+              </p>
+            </div>
+          </div>
+          <p className="text-sm text-fg-secondary leading-6">
+            Cette conversation sera supprimée de votre historique. Cette action est irréversible.
+          </p>
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={() => setDeleteTarget(null)}
+              className="rounded-xl border border-border-subtle bg-bg-elevated-2 px-4 py-2 text-sm font-semibold text-fg-secondary transition-colors hover:text-fg-primary"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={confirmDelete}
+              className="rounded-xl bg-error/15 border border-error/20 px-4 py-2 text-sm font-semibold text-error transition-colors hover:bg-error/25"
+            >
+              Supprimer
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
