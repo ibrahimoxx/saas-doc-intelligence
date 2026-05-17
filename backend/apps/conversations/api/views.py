@@ -81,7 +81,7 @@ class ConversationListView(APIView):
         """
         role = _get_role(request, tenant_id)
         qs = (
-            _accessible_qs(tenant_id, request.user, role)
+            _detail_qs(tenant_id, request.user, role)
             .filter(status=ConversationStatus.ACTIVE)
             .select_related("user")
             .prefetch_related("messages")
