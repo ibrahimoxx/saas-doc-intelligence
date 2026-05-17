@@ -225,6 +225,14 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-4">
                 <Input
+                  type="email"
+                  label="Adresse email"
+                  value={invitation.email}
+                  readOnly
+                  onChange={() => undefined}
+                  className="bg-bg-elevated-2/30 cursor-not-allowed select-none opacity-70"
+                />
+                <Input
                   type="text"
                   required
                   label="Nom complet"
