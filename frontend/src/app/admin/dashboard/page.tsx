@@ -96,13 +96,15 @@ export default function AdminDashboardPage() {
         className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
       >
         {metricCards.map((card, i) => (
-          <motion.div
+          <motion.button
             key={i}
+            onClick={() => router.push(card.href)}
             initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.07 }}
             whileHover={shouldReduceMotion ? {} : { y: -4 }}
-            className="group relative flex flex-col gap-6 overflow-hidden rounded-[28px] border border-border-subtle bg-bg-elevated-1/80 p-6 shadow-card"
+            whileTap={shouldReduceMotion ? {} : { scale: 0.98 }}
+            className="group relative flex flex-col gap-6 overflow-hidden rounded-[28px] border border-border-subtle bg-bg-elevated-1/80 p-6 shadow-card text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
           >
             <div
               className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
@@ -124,7 +126,7 @@ export default function AdminDashboardPage() {
                 {card.val}
               </p>
             </div>
-          </motion.div>
+          </motion.button>
         ))}
       </motion.section>
 
@@ -137,6 +139,13 @@ export default function AdminDashboardPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-fg-tertiary">
             Flux d'activités récentes
           </p>
+          <button
+            onClick={() => router.push("/admin/activites")}
+            className="flex items-center gap-1.5 rounded-xl border border-border-subtle bg-bg-elevated-1 px-3 py-1.5 text-xs font-semibold text-fg-secondary transition-colors hover:text-brand-primary hover:border-brand-primary/30"
+          >
+            Voir toutes
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </button>
         </div>
 
         <div className="rounded-[28px] border border-border-subtle bg-bg-elevated-1/60 overflow-hidden">
