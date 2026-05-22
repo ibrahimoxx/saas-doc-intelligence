@@ -1,4 +1,10 @@
 # ===========================
+# Graphify (AI-generated, never commit)
+# ===========================
+graphify-out/
+graph.html
+
+# ===========================
 # Python
 # ===========================
 __pycache__/
