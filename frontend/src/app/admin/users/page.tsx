@@ -1,15 +1,11 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { motion, useReducedMotion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { adminService } from "@/services/admin.service";
 import type { AdminUser } from "@/types/admin.types";
-import { staggerContainer, fadeUp } from "@/lib/motion";
-import { Loader2, ShieldCheck, Users, Search } from "lucide-react";
-
-const reducedFadeUp = { hidden: { opacity: 0 }, visible: { opacity: 1 } };
-const reducedStagger = { hidden: {}, visible: {} };
+import { Avatar } from "@/components/ui/Avatar";
+import { Loader2, ShieldCheck, Search } from "lucide-react";
 
 const PAGE_SIZE = 20;
 const ACTIVE_FILTERS: { label: string; value: "" | "true" | "false" }[] = [
@@ -20,7 +16,6 @@ const ACTIVE_FILTERS: { label: string; value: "" | "true" | "false" }[] = [
 
 export default function AdminUsersPage() {
   const { user: me } = useAuth();
-  const shouldReduceMotion = useReducedMotion();
 
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [total, setTotal] = useState(0);
@@ -70,189 +65,204 @@ export default function AdminUsersPage() {
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={shouldReduceMotion ? reducedStagger : staggerContainer}
-      className="space-y-8"
-    >
+    <div className="px-8 pb-12 pt-7">
       {/* Header */}
-      <motion.div
-        variants={shouldReduceMotion ? reducedFadeUp : fadeUp}
-        className="flex items-center gap-3"
-      >
-        <h1 className="font-serif text-3xl tracking-tight text-fg-primary">Utilisateurs</h1>
-        {!loading && (
-          <span className="rounded-full border border-border-subtle bg-bg-elevated-2 px-2.5 py-1 text-[10px] font-semibold text-fg-tertiary">
-            {total}
-          </span>
-        )}
-      </motion.div>
+      <div className="mb-[18px]">
+        <h1 className="text-[22px] font-bold text-fg-primary">Utilisateurs</h1>
+        <p className="mt-1 text-[13px] text-fg-secondary">
+          {total} compte{total === 1 ? "" : "s"} sur la plateforme
+        </p>
+      </div>
 
       {/* Filters */}
-      <motion.div
-        variants={shouldReduceMotion ? reducedFadeUp : fadeUp}
-        className="flex flex-wrap items-center gap-3"
-      >
+      <div className="mb-3.5 flex flex-wrap items-center gap-2">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-fg-tertiary" />
+          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-fg-tertiary" />
           <input
             type="text"
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Rechercher par email ou nom..."
-            className="rounded-2xl border border-border-subtle bg-bg-elevated-1 pl-9 pr-4 py-2.5 text-sm text-fg-primary placeholder:text-fg-tertiary focus:border-brand-primary/50 focus:outline-none transition-colors w-72"
+            placeholder="Rechercher par email ou nom…"
+            className="dc-input w-72 pl-8"
           />
         </div>
+
         <div className="flex items-center gap-1.5">
           {ACTIVE_FILTERS.map((f) => (
             <button
               key={f.value}
-              onClick={() => { setFilterActive(f.value); setPage(1); }}
-              className={`rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${
+              onClick={() => {
+                setFilterActive(f.value);
+                setPage(1);
+              }}
+              className={`rounded-md border px-2.5 py-1.5 text-[12px] font-semibold transition-colors ${
                 filterActive === f.value
-                  ? "border-brand-primary/30 bg-brand-primary/15 text-brand-primary"
-                  : "border-border-subtle bg-bg-elevated-1 text-fg-tertiary hover:text-fg-primary"
+                  ? "border-brand-primary bg-brand-soft text-brand-primary"
+                  : "border-border-subtle bg-bg-elevated-2 text-fg-secondary hover:border-border-strong hover:text-fg-primary"
               }`}
             >
               {f.label}
             </button>
           ))}
         </div>
+
         <button
-          onClick={() => { setFilterSuper(filterSuper === "true" ? "" : "true"); setPage(1); }}
-          className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${
+          onClick={() => {
+            setFilterSuper(filterSuper === "true" ? "" : "true");
+            setPage(1);
+          }}
+          className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[12px] font-semibold transition-colors ${
             filterSuper === "true"
-              ? "border-warning/20 bg-warning/10 text-warning"
-              : "border-border-subtle bg-bg-elevated-1 text-fg-tertiary hover:text-fg-primary"
+              ? "border-warning-border bg-warning-bg text-warning"
+              : "border-border-subtle bg-bg-elevated-2 text-fg-secondary hover:border-border-strong hover:text-fg-primary"
           }`}
         >
           <ShieldCheck className="h-3.5 w-3.5" />
           Super Owner
         </button>
-      </motion.div>
+      </div>
 
-      {/* List */}
-      <motion.div variants={shouldReduceMotion ? reducedFadeUp : fadeUp}>
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="h-6 w-6 rounded-full border-2 border-bg-elevated-3 border-t-brand-primary animate-spin" />
-          </div>
-        ) : users.length === 0 ? (
-          <div className="flex items-center justify-center py-20 text-sm font-semibold text-fg-tertiary">
-            Aucun utilisateur trouvé.
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {users.map((u, i) => {
-              const isMe = me?.id === u.id;
-              const isBusy = toggling === u.id;
-              return (
-                <motion.div
-                  key={u.id}
-                  initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.03 }}
-                  className={`flex items-center gap-4 rounded-[20px] border bg-bg-elevated-1/60 px-5 py-4 transition-colors ${
-                    isMe ? "border-brand-primary/20 bg-brand-primary/5" : "border-border-subtle hover:border-border-strong"
-                  }`}
-                >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl aurora-bg text-sm font-bold text-white">
-                    {u.email[0].toUpperCase()}
-                  </div>
+      {/* Table */}
+      {loading ? (
+        <div className="dc-card flex items-center justify-center py-24">
+          <Loader2 className="h-5 w-5 animate-spin text-brand-primary" />
+        </div>
+      ) : users.length === 0 ? (
+        <div className="dc-card flex items-center justify-center py-20 text-[13px] text-fg-tertiary">
+          Aucun utilisateur trouvé.
+        </div>
+      ) : (
+        <div className="dc-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[860px] border-collapse">
+              <thead>
+                <tr>
+                  <th className="dc-th text-left">Utilisateur</th>
+                  <th className="dc-th text-right">Organisations</th>
+                  <th className="dc-th text-left">Statut</th>
+                  <th className="dc-th text-left">Rôle plateforme</th>
+                  <th className="dc-th text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => {
+                  const isMe = me?.id === u.id;
+                  const isBusy = toggling === u.id;
+                  return (
+                    <tr key={u.id} className={`dc-row ${isMe ? "bg-brand-soft" : ""}`}>
+                      <td className="dc-td">
+                        <div className="flex items-center gap-2.5">
+                          <Avatar name={u.full_name} email={u.email} size="sm" />
+                          <div className="min-w-0">
+                            <p className="truncate text-[12.5px] font-semibold text-fg-primary">
+                              {u.email}
+                              {isMe && (
+                                <span className="ml-2 rounded-[5px] border border-transparent bg-brand-soft px-1.5 py-px text-[10px] font-bold uppercase text-brand-primary">
+                                  Vous
+                                </span>
+                              )}
+                            </p>
+                            <p className="truncate text-[11.5px] text-fg-tertiary">
+                              {u.full_name || "—"}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-semibold text-fg-primary truncate">{u.email}</p>
-                      {u.is_superuser && (
-                        <span className="flex items-center gap-1 rounded-lg border border-warning/20 bg-warning/10 px-2 py-0.5 text-[9px] font-bold uppercase text-warning">
-                          <ShieldCheck className="h-2.5 w-2.5" /> Super Owner
-                        </span>
-                      )}
-                      {isMe && (
-                        <span className="rounded-lg border border-brand-primary/20 bg-brand-primary/10 px-2 py-0.5 text-[9px] font-bold uppercase text-brand-primary">
-                          Vous
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 mt-0.5">
-                      <p className="text-[10px] text-fg-tertiary">{u.full_name || "—"}</p>
-                      <span className="flex items-center gap-1 text-[10px] text-fg-tertiary">
-                        <Users className="h-2.5 w-2.5" />{u.membership_count}
-                      </span>
-                    </div>
-                  </div>
+                      <td className="dc-td text-right font-mono text-[11.5px] tabular-nums">
+                        {u.membership_count}
+                      </td>
 
-                  <div className="flex flex-wrap items-center gap-2 justify-end">
-                    <span className={`rounded-lg border px-2.5 py-1 text-[9px] font-bold uppercase ${
-                      u.is_active
-                        ? "border-success/20 bg-success/10 text-success"
-                        : "border-error/20 bg-error/10 text-error"
-                    }`}>
-                      {u.is_active ? "Actif" : "Désactivé"}
-                    </span>
-
-                    {!isMe && (
-                      <>
-                        <button
-                          onClick={() => handleToggleActive(u)}
-                          disabled={isBusy}
-                          className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50 ${
+                      <td className="dc-td">
+                        <span
+                          className={`inline-flex rounded-[5px] border px-2 py-0.5 text-[11px] font-semibold ${
                             u.is_active
-                              ? "border-error/20 bg-error/5 text-error hover:bg-error/10"
-                              : "border-success/20 bg-success/5 text-success hover:bg-success/10"
+                              ? "border-success-border bg-success-bg text-success"
+                              : "border-error-border bg-error-bg text-error"
                           }`}
                         >
-                          {isBusy && <Loader2 className="h-3 w-3 animate-spin" />}
-                          {u.is_active ? "Désactiver" : "Réactiver"}
-                        </button>
-                        <button
-                          onClick={() => handleToggleSuper(u)}
-                          disabled={isBusy}
-                          className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50 ${
-                            u.is_superuser
-                              ? "border-warning/20 bg-warning/5 text-warning hover:bg-warning/10"
-                              : "border-border-subtle bg-bg-elevated-2 text-fg-tertiary hover:text-fg-primary"
-                          }`}
-                        >
-                          {isBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <ShieldCheck className="h-3 w-3" />}
-                          {u.is_superuser ? "Révoquer" : "Promouvoir"}
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
-      </motion.div>
+                          {u.is_active ? "Actif" : "Désactivé"}
+                        </span>
+                      </td>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <motion.div
-          variants={shouldReduceMotion ? reducedFadeUp : fadeUp}
-          className="flex items-center justify-center gap-3 pt-2"
-        >
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="rounded-xl border border-border-subtle bg-bg-elevated-2 px-4 py-2 text-xs font-semibold text-fg-tertiary transition-colors hover:text-fg-primary disabled:opacity-30"
-          >
-            Précédent
-          </button>
-          <span className="text-xs font-semibold text-fg-tertiary">
-            {page} / {totalPages}
-          </span>
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            className="rounded-xl border border-border-subtle bg-bg-elevated-2 px-4 py-2 text-xs font-semibold text-fg-tertiary transition-colors hover:text-fg-primary disabled:opacity-30"
-          >
-            Suivant
-          </button>
-        </motion.div>
+                      <td className="dc-td">
+                        {u.is_superuser ? (
+                          <span className="inline-flex items-center gap-1 rounded-[5px] border border-warning-border bg-warning-bg px-2 py-0.5 text-[11px] font-semibold text-warning">
+                            <ShieldCheck className="h-2.5 w-2.5" />
+                            Super Owner
+                          </span>
+                        ) : (
+                          <span className="text-[12px] text-fg-tertiary">Standard</span>
+                        )}
+                      </td>
+
+                      <td className="dc-td text-right">
+                        {!isMe && (
+                          <div className="inline-flex items-center gap-1.5">
+                            <button
+                              onClick={() => handleToggleActive(u)}
+                              disabled={isBusy}
+                              className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11.5px] font-semibold transition-colors disabled:opacity-50 ${
+                                u.is_active
+                                  ? "border-error-border bg-error-bg text-error hover:brightness-95"
+                                  : "border-success-border bg-success-bg text-success hover:brightness-95"
+                              }`}
+                            >
+                              {isBusy && <Loader2 className="h-3 w-3 animate-spin" />}
+                              {u.is_active ? "Désactiver" : "Réactiver"}
+                            </button>
+                            <button
+                              onClick={() => handleToggleSuper(u)}
+                              disabled={isBusy}
+                              className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11.5px] font-semibold transition-colors disabled:opacity-50 ${
+                                u.is_superuser
+                                  ? "border-warning-border bg-warning-bg text-warning hover:brightness-95"
+                                  : "border-border-subtle bg-bg-elevated-1 text-fg-secondary hover:border-border-strong hover:text-fg-primary"
+                              }`}
+                            >
+                              {isBusy ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <ShieldCheck className="h-3 w-3" />
+                              )}
+                              {u.is_superuser ? "Révoquer" : "Promouvoir"}
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-border-subtle px-[18px] py-3">
+              <span className="text-[12px] text-fg-tertiary">
+                Page {page} / {totalPages}
+              </span>
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="dc-btn"
+                >
+                  Précédent
+                </button>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="dc-btn"
+                >
+                  Suivant
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
-    </motion.div>
+    </div>
   );
 }

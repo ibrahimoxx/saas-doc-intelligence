@@ -48,7 +48,7 @@ function CommandPaletteEntry({
           onOpenChange(false);
         }}
         asChild
-        className="flex cursor-pointer items-center gap-3 rounded-lg px-4 py-2.5 text-sm text-fg-secondary transition-colors aria-selected:bg-white/8 aria-selected:text-fg-primary"
+        className="flex cursor-pointer items-center gap-3 rounded-lg px-4 py-2.5 text-sm text-fg-secondary transition-colors aria-selected:bg-bg-elevated-1 aria-selected:text-fg-primary"
       >
         <a href={item.href} className="mx-2 flex items-center gap-3">
           {content}
@@ -64,7 +64,7 @@ function CommandPaletteEntry({
         item.onSelect?.();
         onOpenChange(false);
       }}
-      className="mx-2 flex cursor-pointer items-center gap-3 rounded-lg px-4 py-2.5 text-sm text-fg-secondary transition-colors aria-selected:bg-white/8 aria-selected:text-fg-primary"
+      className="mx-2 flex cursor-pointer items-center gap-3 rounded-lg px-4 py-2.5 text-sm text-fg-secondary transition-colors aria-selected:bg-bg-elevated-1 aria-selected:text-fg-primary"
     >
       {content}
     </Command.Item>
@@ -106,7 +106,7 @@ export function CommandPalette({
           className="surface-glass w-full overflow-hidden rounded-2xl shadow-card-lift"
         >
           <Command.Input
-            placeholder="Search actions..."
+            placeholder="Rechercher une page…"
             className={cn(
               "w-full border-b border-border-subtle bg-transparent px-4 py-3 text-sm text-fg-primary outline-none",
               "placeholder:text-fg-muted"
@@ -114,7 +114,7 @@ export function CommandPalette({
           />
           <Command.List className="scrollbar-hidden max-h-80 overflow-y-auto py-2">
             <Command.Empty className="py-8 text-center text-sm text-fg-muted">
-              No results found.
+              Aucun résultat.
             </Command.Empty>
 
             {Object.entries(groupedItems).map(([groupName, groupItems]) =>

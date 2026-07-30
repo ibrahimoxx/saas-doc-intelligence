@@ -2,23 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { adminService, type AdminRecentQuery } from "@/services/admin.service";
-import { staggerContainer, fadeUp } from "@/lib/motion";
 import {
   Users,
   Shield,
   Activity,
   Database,
   ArrowUpRight,
+  Loader2,
 } from "lucide-react";
-
-const reducedFadeUp: Variants = { hidden: { opacity: 0 }, visible: { opacity: 1 } };
-const reducedStagger: Variants = { hidden: {}, visible: {} };
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const shouldReduceMotion = useReducedMotion();
 
   const [stats, setStats] = useState({
     total_users: 0,
@@ -48,143 +43,90 @@ export default function AdminDashboardPage() {
   }, []);
 
   const metricCards = [
-    { label: "Utilisateurs Globaux", val: stats.total_users, icon: Users, glow: "rgba(99,102,241,0.15)", href: "/admin/users" },
-    { label: "Organisations", val: stats.total_tenants, icon: Shield, glow: "rgba(168,85,247,0.15)", href: "/admin/tenants" },
-    { label: "Index Global (Docs)", val: stats.total_documents, icon: Database, glow: "rgba(6,182,212,0.15)", href: "/admin/tenants" },
-    { label: "Requêtes Système", val: stats.total_queries, icon: Activity, glow: "rgba(236,72,153,0.15)", href: "/admin/activites" },
+    { label: "Utilisateurs", val: stats.total_users, icon: Users, href: "/admin/users" },
+    { label: "Organisations", val: stats.total_tenants, icon: Shield, href: "/admin/tenants" },
+    { label: "Documents indexés", val: stats.total_documents, icon: Database, href: "/admin/tenants" },
+    { label: "Requêtes système", val: stats.total_queries, icon: Activity, href: "/admin/activites" },
   ];
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 py-32">
-        <div className="h-6 w-6 rounded-full border-2 border-bg-elevated-3 border-t-brand-primary animate-spin" />
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-fg-tertiary">
-          Chargement…
-        </p>
+      <div className="flex flex-1 items-center justify-center py-32">
+        <Loader2 className="h-5 w-5 animate-spin text-brand-primary" />
       </div>
     );
   }
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={shouldReduceMotion ? reducedStagger : staggerContainer}
-      className="space-y-10"
-    >
+    <div className="px-8 pb-12 pt-7">
       {/* Header */}
-      <motion.header
-        variants={shouldReduceMotion ? reducedFadeUp : fadeUp}
-        className="space-y-3"
-      >
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 items-center gap-1.5 rounded-full border border-brand-primary/20 bg-brand-primary/10 px-3">
-            <Shield className="h-3 w-3 text-brand-primary" />
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-primary">
-              Contrôleur Central
-            </span>
-          </div>
-        </div>
-        <h1 className="font-serif text-4xl tracking-tight text-fg-primary sm:text-5xl">
-          Console de <span className="text-gradient">Supervision</span>
-        </h1>
-      </motion.header>
+      <div className="mb-5">
+        <h1 className="text-[22px] font-bold text-fg-primary">Vue d&apos;ensemble</h1>
+        <p className="mt-1 text-[13px] text-fg-secondary">
+          Supervision de la plateforme — tous tenants confondus
+        </p>
+      </div>
 
       {/* Metrics */}
-      <motion.section
-        variants={shouldReduceMotion ? reducedFadeUp : fadeUp}
-        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
-      >
-        {metricCards.map((card, i) => (
-          <motion.button
-            key={i}
+      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {metricCards.map((card) => (
+          <button
+            key={card.label}
+            type="button"
             onClick={() => router.push(card.href)}
-            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.07 }}
-            whileHover={shouldReduceMotion ? {} : { y: -4 }}
-            whileTap={shouldReduceMotion ? {} : { scale: 0.98 }}
-            className="group relative flex flex-col gap-6 overflow-hidden rounded-[28px] border border-border-subtle bg-bg-elevated-1/80 p-6 shadow-card text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+            className="dc-card group px-4 py-3.5 text-left transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
           >
-            <div
-              className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-              style={{ background: `radial-gradient(circle at 30% 30%, ${card.glow}, transparent 70%)` }}
-            />
-            <div className="relative flex items-center justify-between">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border-strong bg-bg-elevated-2">
-                <card.icon className="h-5 w-5 text-brand-primary" />
-              </div>
-              <ArrowUpRight className="h-4 w-4 text-fg-muted group-hover:text-brand-primary transition-colors" />
+            <div className="flex items-start justify-between gap-2">
+              <span className="dc-label">{card.label}</span>
+              <card.icon className="h-4 w-4 shrink-0 text-fg-tertiary" />
             </div>
-            <div className="relative space-y-1">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-fg-tertiary">{card.label}</p>
-              <p
-                className={`font-display text-5xl font-bold tabular-nums tracking-tight text-fg-primary ${
-                  loading ? "animate-pulse opacity-50" : ""
-                }`}
-              >
-                {card.val}
-              </p>
+            <div className="mt-2 text-[21px] font-bold tabular-nums text-fg-primary">{card.val}</div>
+            <div className="mt-1.5 flex items-center gap-1 text-[12px] font-semibold text-fg-tertiary transition-colors group-hover:text-brand-primary">
+              Détails
+              <ArrowUpRight className="h-3 w-3" />
             </div>
-          </motion.button>
+          </button>
         ))}
-      </motion.section>
+      </div>
 
       {/* Recent activity */}
-      <motion.section
-        variants={shouldReduceMotion ? reducedFadeUp : fadeUp}
-        className="space-y-4"
-      >
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-fg-tertiary">
-            Flux d'activités récentes
-          </p>
+      <div className="dc-card overflow-hidden">
+        <div className="dc-panel-header">
+          <span>Journal d&apos;activité plateforme</span>
           <button
+            type="button"
             onClick={() => router.push("/admin/activites")}
-            className="flex items-center gap-1.5 rounded-xl border border-border-subtle bg-bg-elevated-1 px-3 py-1.5 text-xs font-semibold text-fg-secondary transition-colors hover:text-brand-primary hover:border-brand-primary/30"
+            className="flex items-center gap-1 text-[12px] font-semibold text-brand-primary"
           >
-            Voir toutes
-            <ArrowUpRight className="h-3.5 w-3.5" />
+            Voir tout
+            <ArrowUpRight className="h-3 w-3" />
           </button>
         </div>
 
-        <div className="rounded-[28px] border border-border-subtle bg-bg-elevated-1/60 overflow-hidden">
-          {recentQueries.length === 0 ? (
-            <div className="flex items-center justify-center py-16 text-xs font-semibold uppercase tracking-widest text-fg-muted">
-              Aucune requête enregistrée
-            </div>
-          ) : (
-            <div className="divide-y divide-border-subtle">
-              {recentQueries.map((q, i) => (
-                <motion.div
-                  key={q.id}
-                  initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + i * 0.05 }}
-                  className="flex items-center justify-between gap-4 px-6 py-4"
-                >
-                  <div className="flex min-w-0 items-center gap-4">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-border-strong bg-bg-elevated-2">
-                      <Activity className="h-4 w-4 text-brand-primary" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-fg-primary max-w-md">
-                        {q.question}
-                      </p>
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-fg-tertiary">
-                        {q.user_email} · {q.tenant_name}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="shrink-0 rounded-lg border border-border-subtle bg-bg-elevated-2 px-2 py-1 font-mono text-[10px] text-fg-tertiary">
-                    {q.model_used}
-                  </span>
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </div>
-      </motion.section>
-    </motion.div>
+        {recentQueries.length === 0 ? (
+          <div className="flex items-center justify-center py-14 text-[12.5px] text-fg-tertiary">
+            Aucune requête enregistrée
+          </div>
+        ) : (
+          <div>
+            {recentQueries.map((q) => (
+              <div
+                key={q.id}
+                className="flex items-baseline gap-3.5 border-b border-border-subtle px-4 py-2.5 last:border-b-0"
+              >
+                <span className="w-[190px] shrink-0 truncate font-mono text-[10.5px] text-fg-tertiary">
+                  {q.user_email}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-[12px] text-fg-secondary">
+                  <span className="font-semibold text-fg-primary">{q.tenant_name}</span> ·{" "}
+                  {q.question}
+                </span>
+                <span className="dc-badge shrink-0 font-mono text-[10.5px]">{q.model_used}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

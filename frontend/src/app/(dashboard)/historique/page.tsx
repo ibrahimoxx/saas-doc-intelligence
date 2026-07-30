@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { motion, useReducedMotion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useTenants } from "@/hooks/useTenants";
 import { tenantService } from "@/services/tenant.service";
@@ -12,20 +11,17 @@ import {
   type Message,
 } from "@/services/conversation.service";
 import type { TenantMember } from "@/types/tenant.types";
-import { TopBar } from "@/components/layout/TopBar";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
-import { Bot, FileText, MessageSquare, Paperclip, User } from "lucide-react";
+import { Bot, FileText, Loader2, MessageSquare, Paperclip, User } from "lucide-react";
 
 export default function HistoriquePage() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading, logout } = useAuth();
-  const shouldReduceMotion = useReducedMotion();
+  const { isAuthenticated, isLoading } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const {
     tenants,
     selectedTenantId: selectedTenant,
-    setSelectedTenantId: setSelectedTenant,
     loading: loadingTenants,
   } = useTenants();
 
@@ -97,11 +93,6 @@ export default function HistoriquePage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [activeConv?.messages]);
 
-  const handleLogout = async () => {
-    await logout();
-    router.push("/login");
-  };
-
   const filteredMembers = members.filter((m) => {
     if (roleFilter === "admin") return m.role === "admin";
     return m.role === "member" || m.role === "manager";
@@ -111,32 +102,20 @@ export default function HistoriquePage() {
   if (!loadingTenants && !isAdminOrOwner) return <PageLoader />;
 
   return (
-    <div className="flex h-screen flex-col bg-bg-base overflow-hidden">
-      <TopBar
-        userEmail={user?.email}
-        isSuperuser={user?.is_superuser}
-        tenants={tenants}
-        selectedTenantId={selectedTenant}
-        onTenantChange={setSelectedTenant}
-        onLogout={handleLogout}
-        onAdminDashboard={() => router.push("/admin/dashboard")}
-      />
-
-      <div className="flex flex-1 overflow-hidden pt-14">
+    <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
+      <div className="flex flex-1 overflow-hidden">
         {/* Panel 1: Users */}
-        <div className="w-56 shrink-0 flex flex-col border-r border-border-subtle bg-bg-elevated-1/60 backdrop-blur-sm">
-          <div className="p-4 border-b border-border-subtle space-y-3">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-fg-tertiary">
-              Utilisateurs
-            </p>
-            <div className="flex gap-1 rounded-xl border border-border-subtle bg-bg-base/60 p-1">
+        <div className="flex w-56 shrink-0 flex-col border-r border-border-subtle bg-bg-sidebar">
+          <div className="space-y-2.5 border-b border-border-subtle p-3">
+            <p className="dc-label">Utilisateurs</p>
+            <div className="flex gap-1 rounded-md border border-border-subtle bg-bg-base p-1">
               {isOwner && (
                 <button
                   onClick={() => setRoleFilter("admin")}
-                  className={`flex-1 rounded-lg py-1.5 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+                  className={`flex-1 rounded-[5px] py-1.5 text-[11px] font-semibold transition-colors ${
                     roleFilter === "admin"
-                      ? "bg-brand-primary/15 text-brand-primary"
-                      : "text-fg-tertiary hover:text-fg-secondary"
+                      ? "bg-brand-soft text-brand-primary"
+                      : "text-fg-tertiary hover:text-fg-primary"
                   }`}
                 >
                   Admins
@@ -144,10 +123,10 @@ export default function HistoriquePage() {
               )}
               <button
                 onClick={() => setRoleFilter("member")}
-                className={`flex-1 rounded-lg py-1.5 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+                className={`flex-1 rounded-[5px] py-1.5 text-[11px] font-semibold transition-colors ${
                   roleFilter === "member"
-                    ? "bg-brand-primary/15 text-brand-primary"
-                    : "text-fg-tertiary hover:text-fg-secondary"
+                    ? "bg-brand-soft text-brand-primary"
+                    : "text-fg-tertiary hover:text-fg-primary"
                 }`}
               >
                 Membres
@@ -155,13 +134,13 @@ export default function HistoriquePage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-2 space-y-0.5 scrollbar-hidden">
+          <div className="flex-1 space-y-0.5 overflow-y-auto p-2">
             {loadingMembers ? (
               <div className="flex items-center justify-center py-8">
-                <div className="h-4 w-4 rounded-full border-2 border-bg-elevated-3 border-t-brand-primary animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin text-brand-primary" />
               </div>
             ) : filteredMembers.length === 0 ? (
-              <p className="px-3 py-8 text-center text-[10px] text-fg-tertiary">
+              <p className="px-3 py-8 text-center text-[12px] text-fg-tertiary">
                 Aucun utilisateur
               </p>
             ) : (
@@ -169,20 +148,22 @@ export default function HistoriquePage() {
                 <button
                   key={m.id}
                   onClick={() => setSelectedUserId(m.user.id)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-colors ${
-                    selectedUserId === m.user.id
-                      ? "bg-brand-primary/10 border border-brand-primary/20"
-                      : "border border-transparent hover:bg-bg-elevated-2"
+                  className={`flex w-full items-center gap-2.5 rounded-[7px] px-2.5 py-2 text-left transition-colors ${
+                    selectedUserId === m.user.id ? "bg-brand-soft" : "hover:bg-bg-elevated-1"
                   }`}
                 >
-                  <div className="h-7 w-7 shrink-0 rounded-xl bg-bg-elevated-3 flex items-center justify-center">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border-subtle bg-bg-elevated-1">
                     <User className="h-3.5 w-3.5 text-fg-tertiary" />
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-xs font-semibold text-fg-primary">
+                    <p
+                      className={`truncate text-[12.5px] font-semibold ${
+                        selectedUserId === m.user.id ? "text-brand-primary" : "text-fg-primary"
+                      }`}
+                    >
                       {m.user.full_name || m.user.email}
                     </p>
-                    <p className="text-[10px] text-fg-tertiary capitalize">{m.role}</p>
+                    <p className="text-[11px] capitalize text-fg-tertiary">{m.role}</p>
                   </div>
                 </button>
               ))
@@ -191,23 +172,21 @@ export default function HistoriquePage() {
         </div>
 
         {/* Panel 2: Conversations */}
-        <div className="w-64 shrink-0 flex flex-col border-r border-border-subtle bg-bg-elevated-1/40">
-          <div className="p-4 border-b border-border-subtle">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-fg-tertiary">
-              Conversations
-            </p>
+        <div className="flex w-64 shrink-0 flex-col border-r border-border-subtle bg-bg-sidebar">
+          <div className="border-b border-border-subtle p-3">
+            <p className="dc-label">Conversations</p>
           </div>
-          <div className="flex-1 overflow-y-auto p-2 space-y-0.5 scrollbar-hidden">
+          <div className="flex-1 space-y-0.5 overflow-y-auto p-2">
             {!selectedUserId ? (
-              <p className="px-3 py-8 text-center text-[10px] text-fg-tertiary">
+              <p className="px-3 py-8 text-center text-[12px] text-fg-tertiary">
                 Sélectionnez un utilisateur
               </p>
             ) : loadingConvs ? (
               <div className="flex items-center justify-center py-8">
-                <div className="h-4 w-4 rounded-full border-2 border-bg-elevated-3 border-t-brand-primary animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin text-brand-primary" />
               </div>
             ) : convList.length === 0 ? (
-              <p className="px-3 py-8 text-center text-[10px] text-fg-tertiary">
+              <p className="px-3 py-8 text-center text-[12px] text-fg-tertiary">
                 Aucune conversation
               </p>
             ) : (
@@ -215,18 +194,20 @@ export default function HistoriquePage() {
                 <button
                   key={c.id}
                   onClick={() => setSelectedConvId(c.id)}
-                  className={`w-full flex items-start gap-2.5 px-3 py-2.5 rounded-xl text-left transition-colors ${
-                    selectedConvId === c.id
-                      ? "bg-brand-primary/10 border border-brand-primary/20"
-                      : "border border-transparent hover:bg-bg-elevated-2"
+                  className={`flex w-full items-start gap-2.5 rounded-[7px] px-2.5 py-2 text-left transition-colors ${
+                    selectedConvId === c.id ? "bg-brand-soft" : "hover:bg-bg-elevated-1"
                   }`}
                 >
-                  <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-fg-tertiary" />
+                  <FileText className="mt-px h-3.5 w-3.5 shrink-0 text-fg-tertiary" />
                   <div className="min-w-0">
-                    <p className="truncate text-xs font-semibold text-fg-primary">
+                    <p
+                      className={`truncate text-[12.5px] font-semibold ${
+                        selectedConvId === c.id ? "text-brand-primary" : "text-fg-primary"
+                      }`}
+                    >
                       {c.title || "Discussion"}
                     </p>
-                    <p className="text-[10px] text-fg-tertiary">
+                    <p className="text-[11px] text-fg-tertiary">
                       {c.message_count || 0} messages
                     </p>
                   </div>
@@ -237,127 +218,93 @@ export default function HistoriquePage() {
         </div>
 
         {/* Panel 3: Read-only thread */}
-        <main className="flex-1 flex flex-col overflow-hidden" id="main">
+        <div className="flex flex-1 flex-col overflow-hidden">
           {!selectedConvId ? (
             <div className="flex h-full items-center justify-center">
-              <div className="text-center space-y-3">
-                <div className="flex h-16 w-16 mx-auto items-center justify-center rounded-[24px] border border-border-subtle bg-bg-elevated-2">
-                  <MessageSquare className="h-7 w-7 text-fg-tertiary" />
+              <div className="space-y-2 text-center">
+                <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-lg border border-border-subtle bg-bg-elevated-1">
+                  <MessageSquare className="h-5 w-5 text-fg-tertiary" />
                 </div>
-                <p className="text-sm font-semibold text-fg-secondary">
+                <p className="text-[13.5px] font-semibold text-fg-primary">
                   Sélectionnez une conversation
                 </p>
-                <p className="text-xs text-fg-tertiary">
+                <p className="text-[12px] text-fg-tertiary">
                   Vue en lecture seule — traçabilité
                 </p>
               </div>
             </div>
           ) : loadingConv ? (
             <div className="flex h-full items-center justify-center">
-              <div className="h-6 w-6 rounded-full border-2 border-bg-elevated-3 border-t-brand-primary animate-spin" />
+              <Loader2 className="h-5 w-5 animate-spin text-brand-primary" />
             </div>
           ) : (
             <>
-              <div className="border-b border-border-subtle px-6 py-4">
-                <p className="text-sm font-semibold text-fg-primary truncate">
+              <div className="border-b border-border-subtle px-6 py-3.5">
+                <p className="truncate text-[13.5px] font-semibold text-fg-primary">
                   {activeConv?.title || "Discussion"}
                 </p>
-                <p className="text-[10px] text-fg-tertiary mt-0.5">
+                <p className="mt-0.5 text-[11.5px] text-fg-tertiary">
                   Lecture seule · {activeConv?.messages?.length ?? 0} messages
                 </p>
               </div>
 
-              <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 scrollbar-hidden">
-                {(activeConv?.messages ?? []).map((msg) => (
-                  <ReadOnlyBubble
-                    key={msg.id}
-                    msg={msg}
-                    shouldReduceMotion={!!shouldReduceMotion}
-                  />
-                ))}
-                <div ref={messagesEndRef} className="h-2" />
+              <div className="flex-1 overflow-y-auto px-8 py-6">
+                <div className="mx-auto flex w-full max-w-[760px] flex-col gap-[18px]">
+                  {(activeConv?.messages ?? []).map((msg) => (
+                    <ReadOnlyBubble key={msg.id} msg={msg} />
+                  ))}
+                  <div ref={messagesEndRef} className="h-2" />
+                </div>
               </div>
 
-              <div className="border-t border-border-subtle bg-bg-base/80 px-6 py-3 text-center">
-                <p className="text-xs text-fg-tertiary">
+              <div className="border-t border-border-subtle px-6 py-2.5 text-center">
+                <p className="text-[11px] text-fg-tertiary">
                   Vue en lecture seule — traçabilité admin
                 </p>
               </div>
             </>
           )}
-        </main>
+        </div>
       </div>
     </div>
   );
 }
 
-function ReadOnlyBubble({
-  msg,
-  shouldReduceMotion,
-}: {
-  msg: Message;
-  shouldReduceMotion: boolean;
-}) {
+function ReadOnlyBubble({ msg }: { msg: Message }) {
   const isUser = msg.role === "user";
-  return (
-    <motion.div
-      initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
-      className={`flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"}`}
-    >
-      <div
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl ${
-          isUser
-            ? "border border-border-subtle bg-bg-elevated-2 text-brand-primary"
-            : "aurora-bg text-white"
-        }`}
-      >
-        {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
-      </div>
 
-      <div
-        className={`flex max-w-[75%] flex-col gap-3 ${
-          isUser ? "items-end" : "items-start"
-        }`}
-      >
-        <div
-          className={`rounded-2xl px-4 py-3 text-sm leading-7 ${
-            isUser
-              ? "rounded-tr-sm border border-border-subtle bg-bg-elevated-1 text-fg-primary"
-              : "rounded-tl-sm border border-brand-primary/15 bg-brand-primary/8 text-fg-secondary"
-          }`}
-        >
+  return (
+    <div className="flex gap-3">
+      {isUser ? (
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] border border-border-subtle bg-bg-elevated-1 text-fg-secondary">
+          <User className="h-3.5 w-3.5" />
+        </div>
+      ) : (
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] bg-fg-primary">
+          <Bot className="h-3.5 w-3.5 text-bg-base" />
+        </div>
+      )}
+
+      <div className={`min-w-0 ${isUser ? "max-w-[520px]" : "flex-1"}`}>
+        <div className="dc-card px-3.5 py-3 text-[13.5px] leading-relaxed text-fg-primary">
           {msg.content}
         </div>
 
         {msg.citations && msg.citations.length > 0 && (
-          <div className="w-full rounded-2xl border border-border-subtle bg-bg-elevated-1/60 p-4 space-y-3">
-            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-brand-primary">
-              <Paperclip className="h-3.5 w-3.5" />
-              Sources vérifiées
-            </div>
-            <div className="space-y-2">
-              {msg.citations.map((cit, i) => (
-                <div
-                  key={cit.id || i}
-                  className="flex items-center gap-3 rounded-xl border border-border-subtle bg-bg-elevated-2/60 px-3 py-2 text-xs"
-                >
-                  <span className="font-mono text-brand-primary/50">
-                    0{i + 1}
-                  </span>
-                  <span className="flex-1 truncate font-semibold text-fg-secondary">
-                    {cit.document_title}
-                  </span>
-                  <span className="shrink-0 rounded-lg bg-success/10 px-2 py-0.5 font-mono text-[10px] font-semibold text-success">
-                    {(cit.similarity * 100).toFixed(0)}%
-                  </span>
-                </div>
-              ))}
-            </div>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {msg.citations.map((cit, i) => (
+              <span
+                key={cit.id || i}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border-subtle bg-bg-elevated-1 px-2.5 py-1 text-[11px] font-semibold text-fg-primary"
+              >
+                <Paperclip className="h-3 w-3 shrink-0 text-fg-tertiary" />
+                <span className="max-w-[240px] truncate">{cit.document_title}</span>
+                <span className="text-fg-tertiary">· {(cit.similarity * 100).toFixed(0)}%</span>
+              </span>
+            ))}
           </div>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }

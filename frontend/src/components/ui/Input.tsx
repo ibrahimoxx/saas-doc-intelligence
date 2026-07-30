@@ -23,7 +23,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="text-xs font-semibold uppercase tracking-widest text-fg-tertiary"
+            className="dc-label"
           >
             {label}
           </label>
@@ -38,22 +38,22 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={cn(
-              "w-full bg-white/4 border border-white/8 rounded-xl",
-              "px-4 py-3 text-sm text-fg-primary placeholder-fg-muted",
-              "transition-all duration-200",
-              "focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 focus:bg-white/6",
+              "w-full bg-bg-base border border-border-subtle rounded-md",
+              "px-2.5 py-2 text-[13px] text-fg-primary placeholder-fg-tertiary",
+              "transition-colors duration-150",
+              "focus:outline-none focus:border-brand-primary",
               "disabled:opacity-50 disabled:cursor-not-allowed",
               error
-                ? "border-error/50 focus:border-error focus:ring-error/20"
+                ? "border-error focus:border-error"
                 : "",
-              leftIcon ? "pl-10" : "",
+              leftIcon ? "pl-9" : "",
               className
             )}
             {...rest}
           />
         </div>
         {error && (
-          <p className="text-xs text-error mt-0.5">{error}</p>
+          <p className="text-[11.5px] text-error">{error}</p>
         )}
       </div>
     );
@@ -69,7 +69,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="text-xs font-semibold uppercase tracking-widest text-fg-tertiary"
+            className="dc-label"
           >
             {label}
           </label>
@@ -78,20 +78,20 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           ref={ref}
           id={inputId}
           className={cn(
-            "w-full bg-white/4 border border-white/8 rounded-xl",
-            "px-4 py-3 text-sm text-fg-primary placeholder-fg-muted",
-            "transition-all duration-200 resize-none",
-            "focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 focus:bg-white/6",
+            "w-full bg-bg-base border border-border-subtle rounded-md",
+            "px-2.5 py-2 text-[13px] text-fg-primary placeholder-fg-tertiary",
+            "transition-colors duration-150 resize-none",
+            "focus:outline-none focus:border-brand-primary",
             "disabled:opacity-50 disabled:cursor-not-allowed",
             error
-              ? "border-error/50 focus:border-error focus:ring-error/20"
+              ? "border-error focus:border-error"
               : "",
             className
           )}
           {...rest}
         />
         {error && (
-          <p className="text-xs text-error mt-0.5">{error}</p>
+          <p className="text-[11.5px] text-error">{error}</p>
         )}
       </div>
     );

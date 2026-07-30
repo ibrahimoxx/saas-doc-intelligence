@@ -2,17 +2,15 @@
 
 import { useEffect, useState, Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useTenants } from "@/hooks/useTenants";
 import { tenantService } from "@/services/tenant.service";
 import type { KnowledgeSpace, Document, TenantPermissions } from "@/types/tenant.types";
-import { TopBar } from "@/components/layout/TopBar";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
 import { Modal } from "@/components/ui/Modal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyDocs } from "@/components/illustrations/EmptyDocs";
-import { staggerContainer, fadeUp } from "@/lib/motion";
 import {
   FileText,
   Upload,
@@ -29,10 +27,10 @@ import { format } from "date-fns";
 import Image from "next/image";
 
 const STATUS_CONFIG = {
-  queued: { label: "EN ATTENTE", icon: Clock, color: "text-warning", bg: "bg-warning/10", border: "border-warning/20" },
-  processing: { label: "INDEXATION", icon: Loader2, color: "text-info", bg: "bg-info/10", border: "border-info/20" },
-  indexed: { label: "PRÊT", icon: CheckCircle2, color: "text-success", bg: "bg-success/10", border: "border-success/20" },
-  failed: { label: "ERREUR", icon: AlertCircle, color: "text-error", bg: "bg-error/10", border: "border-error/20" },
+  queued: { label: "En attente", icon: Clock, color: "text-warning", bg: "bg-warning-bg", border: "border-warning-border" },
+  processing: { label: "Indexation", icon: Loader2, color: "text-info", bg: "bg-info-bg", border: "border-info-border" },
+  indexed: { label: "Indexé", icon: CheckCircle2, color: "text-success", bg: "bg-success-bg", border: "border-success-border" },
+  failed: { label: "Erreur", icon: AlertCircle, color: "text-error", bg: "bg-error-bg", border: "border-error-border" },
 };
 
 const FILE_TYPE_ICONS: Record<string, string> = {
@@ -58,10 +56,9 @@ function formatSize(bytes: number) {
 function DocumentsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, isAuthenticated, isLoading, logout } = useAuth();
-  const shouldReduceMotion = useReducedMotion();
+  const { isAuthenticated, isLoading } = useAuth();
 
-  const { tenants, selectedTenantId: selectedTenant, setSelectedTenantId: setSelectedTenant } = useTenants();
+  const { selectedTenantId: selectedTenant } = useTenants();
   const [spaces, setSpaces] = useState<KnowledgeSpace[]>([]);
   const [currentSpaceId, setCurrentSpaceId] = useState<string | null>(searchParams.get("space"));
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -170,258 +167,216 @@ function DocumentsContent() {
     return () => window.removeEventListener("click", onClick);
   }, []);
 
-  const handleLogout = async () => {
-    await logout();
-    router.push("/login");
-  };
-
   if (isLoading || (!isAuthenticated && !isLoading)) return <PageLoader />;
 
+  const currentSpace = spaces.find((s) => s.id === currentSpaceId);
+
   return (
-    <div className="min-h-screen bg-bg-base">
-      <TopBar
-        userEmail={user?.email}
-        isSuperuser={user?.is_superuser}
-        tenants={tenants}
-        selectedTenantId={selectedTenant}
-        onTenantChange={setSelectedTenant}
-        onLogout={handleLogout}
-        onAdminDashboard={() => router.push("/admin/dashboard")}
-      />
-
-      <main id="main" className="mx-auto max-w-6xl px-6 pt-28 pb-16">
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={shouldReduceMotion ? {} : staggerContainer}
-          className="space-y-8"
-        >
-          {/* Header */}
-          <motion.header
-            variants={shouldReduceMotion ? { hidden: { opacity: 0 }, visible: { opacity: 1 } } : fadeUp}
-            className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between"
-          >
-            <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-fg-tertiary">
-                Ingestion documentaire
-              </p>
-              <h1 className="font-serif text-4xl tracking-tight text-fg-primary sm:text-5xl">
-                Documents
-              </h1>
-
-              {/* Space filter chips */}
-              <div className="flex flex-wrap gap-2 pt-1">
-                {spaces.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => setCurrentSpaceId(s.id)}
-                    className={`rounded-full px-4 py-1.5 text-[11px] font-semibold uppercase tracking-widest transition-all ${
-                      currentSpaceId === s.id
-                        ? "bg-brand-primary text-white shadow-[0_4px_16px_-4px_rgba(99,102,241,0.5)]"
-                        : "border border-border-subtle bg-bg-elevated-1 text-fg-tertiary hover:border-border-strong hover:text-fg-secondary"
-                    }`}
-                  >
-                    {s.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {permissions?.can_upload && (
-              <div className="relative shrink-0">
-                <input
-                  type="file"
-                  onChange={handleUpload}
-                  disabled={uploading}
-                  className="absolute inset-0 cursor-pointer opacity-0 z-10"
-                  accept=".pdf,.txt,.docx"
-                />
-                <button
-                  disabled={uploading}
-                  className="flex items-center gap-2.5 rounded-2xl border border-brand-primary/30 bg-brand-primary/10 px-5 py-3 text-sm font-semibold text-brand-primary shadow-[0_0_24px_-8px_rgba(99,102,241,0.4)] transition-all hover:bg-brand-primary/20 disabled:opacity-50"
-                >
-                  {uploading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Upload className="h-4 w-4" />
-                  )}
-                  <span>{uploading ? "Traitement..." : "Uploader un fichier"}</span>
-                </button>
-              </div>
+    <div className="px-8 pb-12 pt-7">
+      {/* Header */}
+      <div className="mb-[18px] flex flex-wrap items-end justify-between gap-3.5">
+        <div>
+          <h1 className="text-[22px] font-bold text-fg-primary">Documents</h1>
+          <p className="mt-1 text-[13px] text-fg-secondary">
+            {documents.length} document{documents.length === 1 ? "" : "s"}
+            {currentSpace && (
+              <>
+                {" dans l'espace "}
+                <strong className="font-semibold text-fg-primary">{currentSpace.name}</strong>
+              </>
             )}
-          </motion.header>
+          </p>
+        </div>
 
-          {/* Document list */}
-          <motion.section
-            variants={shouldReduceMotion ? { hidden: { opacity: 0 }, visible: { opacity: 1 } } : fadeUp}
-          >
-            {loading ? (
-              <div className="flex flex-col items-center justify-center gap-4 py-32">
-                <div className="h-10 w-10 rounded-full border-2 border-bg-elevated-3 border-t-brand-primary animate-spin" />
-                <p className="text-xs font-semibold uppercase tracking-widest text-fg-tertiary">
-                  Lecture de la base…
-                </p>
-              </div>
-            ) : documents.length === 0 ? (
-              <div className="rounded-[28px] border border-border-subtle bg-bg-elevated-1/60 py-20">
-                <EmptyState
-                  illustration={<EmptyDocs className="mx-auto" />}
-                  title="Zone sans données"
-                  description="Cet espace est actuellement vide. Commencez l'indexation pour activer l'IA."
-                />
-              </div>
-            ) : (
-              <div className="rounded-[28px] border border-border-subtle bg-bg-elevated-1/60 overflow-hidden">
-                {/* Table header */}
-                <div className="grid grid-cols-12 border-b border-border-subtle px-6 py-3 text-[10px] font-semibold uppercase tracking-widest text-fg-tertiary">
-                  <div className="col-span-5">Document</div>
-                  <div className="col-span-2 text-center">Taille</div>
-                  <div className="col-span-2 text-center">État</div>
-                  <div className="col-span-2 text-center">Date</div>
-                  <div className="col-span-1 text-right">Action</div>
-                </div>
+        {permissions?.can_upload && (
+          <div className="relative shrink-0">
+            <input
+              type="file"
+              onChange={handleUpload}
+              disabled={uploading}
+              className="absolute inset-0 z-10 cursor-pointer opacity-0"
+              accept=".pdf,.txt,.docx"
+              aria-label="Importer un document"
+            />
+            <button disabled={uploading} className="dc-btn-primary">
+              {uploading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Upload className="h-3.5 w-3.5" />
+              )}
+              <span>{uploading ? "Traitement…" : "Importer des documents"}</span>
+            </button>
+          </div>
+        )}
+      </div>
 
-                {/* Rows */}
-                <AnimatePresence initial={false}>
-                  {documents.map((doc, i) => {
-                    const ext = doc.current_version?.file_name.split(".").pop()?.toLowerCase() ?? "pdf";
-                    const iconSrc = FILE_TYPE_ICONS[ext] ?? "/file-types/txt.svg";
-                    const status = STATUS_CONFIG[doc.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.queued;
-                    return (
-                      <motion.div
-                        key={doc.id}
-                        initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.04 }}
-                        className={`group grid grid-cols-12 items-center px-6 py-4 transition-colors hover:bg-bg-elevated-2/40 ${i < documents.length - 1 ? "border-b border-border-subtle" : ""}`}
-                      >
-                        <div className="col-span-5 flex items-center gap-4">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border-subtle bg-bg-elevated-2">
-                            <Image src={iconSrc} alt={ext} width={22} height={22} />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-fg-primary">{doc.title}</p>
-                            <p className="font-mono text-[10px] uppercase text-fg-tertiary">
-                              {ext}
-                            </p>
-                          </div>
+      {/* Space filter chips */}
+      {spaces.length > 0 && (
+        <div className="mb-3.5 flex flex-wrap gap-1.5">
+          {spaces.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setCurrentSpaceId(s.id)}
+              className={`rounded-md border px-2.5 py-1.5 text-[12px] font-semibold transition-colors ${
+                currentSpaceId === s.id
+                  ? "border-brand-primary bg-brand-soft text-brand-primary"
+                  : "border-border-subtle bg-bg-elevated-2 text-fg-secondary hover:border-border-strong hover:text-fg-primary"
+              }`}
+            >
+              {s.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Document table */}
+      {loading ? (
+        <div className="dc-card flex flex-col items-center justify-center gap-3 py-24">
+          <Loader2 className="h-5 w-5 animate-spin text-brand-primary" />
+          <p className="text-[12px] text-fg-tertiary">Lecture de la base…</p>
+        </div>
+      ) : documents.length === 0 ? (
+        <div className="dc-card py-16">
+          <EmptyState
+            illustration={<EmptyDocs className="mx-auto" />}
+            title="Aucun document"
+            description="Cet espace est vide. Importez un fichier pour lancer l'indexation."
+          />
+        </div>
+      ) : (
+        <div className="dc-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] border-collapse">
+              <thead>
+                <tr>
+                  <th className="dc-th text-left">Document</th>
+                  <th className="dc-th text-left">Type</th>
+                  <th className="dc-th text-left">Statut</th>
+                  <th className="dc-th text-right">Taille</th>
+                  <th className="dc-th text-right">Ajouté le</th>
+                  <th className="dc-th w-12 text-right" />
+                </tr>
+              </thead>
+              <tbody>
+                {documents.map((doc) => {
+                  const ext = doc.current_version?.file_name.split(".").pop()?.toLowerCase() ?? "pdf";
+                  const iconSrc = FILE_TYPE_ICONS[ext] ?? "/file-types/txt.svg";
+                  const status = STATUS_CONFIG[doc.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.queued;
+                  return (
+                    <tr key={doc.id} className="dc-row group">
+                      <td className="dc-td font-medium text-fg-primary">
+                        <div className="flex items-center gap-2">
+                          <Image src={iconSrc} alt={ext} width={15} height={15} className="shrink-0" />
+                          <span className="truncate">{doc.title}</span>
                         </div>
-
-                        <div className="col-span-2 text-center font-mono text-xs text-fg-secondary tabular-nums">
-                          {formatSize(doc.current_version?.file_size_bytes || 0)}
-                        </div>
-
-                        <div className="col-span-2 flex justify-center">
-                          <span
-                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest ${status.bg} ${status.border} ${status.color}`}
+                      </td>
+                      <td className="dc-td font-mono text-[11.5px] uppercase">{ext}</td>
+                      <td className="dc-td">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-[5px] border px-2 py-0.5 text-[11px] font-semibold ${status.bg} ${status.border} ${status.color}`}
+                        >
+                          <status.icon
+                            className={`h-3 w-3 ${doc.status === "processing" ? "animate-spin" : ""}`}
+                          />
+                          {status.label}
+                        </span>
+                      </td>
+                      <td className="dc-td text-right font-mono text-[11.5px] tabular-nums">
+                        {formatSize(doc.current_version?.file_size_bytes || 0)}
+                      </td>
+                      <td className="dc-td text-right text-[12px] text-fg-tertiary">
+                        {format(new Date(doc.created_at), "dd/MM/yyyy")}
+                      </td>
+                      <td className="dc-td text-right">
+                        <div className="relative inline-block">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuId(openMenuId === doc.id ? null : doc.id);
+                            }}
+                            className="flex h-7 w-7 items-center justify-center rounded-md border border-transparent text-fg-tertiary transition-colors hover:border-border-subtle hover:bg-bg-elevated-1 hover:text-fg-primary"
+                            aria-label="Actions"
                           >
-                            <status.icon
-                              className={`h-3 w-3 ${doc.status === "processing" ? "animate-spin" : ""}`}
-                            />
-                            {status.label}
-                          </span>
-                        </div>
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
 
-                        <div className="col-span-2 text-center font-mono text-xs text-fg-tertiary">
-                          {format(new Date(doc.created_at), "dd/MM/yyyy")}
-                        </div>
-
-                        <div className="col-span-1 flex justify-end">
-                          <div className="relative">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenMenuId(openMenuId === doc.id ? null : doc.id);
-                              }}
-                              className="flex h-8 w-8 items-center justify-center rounded-xl border border-transparent text-fg-tertiary opacity-0 transition-all group-hover:border-border-subtle group-hover:bg-bg-elevated-2 group-hover:opacity-100 hover:text-fg-primary focus-visible:opacity-100"
-                              aria-label="Actions"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </button>
-
-                            <AnimatePresence>
-                              {openMenuId === doc.id && (
-                                <motion.div
-                                  initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                                  exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                                  transition={{ duration: 0.15 }}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="absolute right-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-2xl border border-border-subtle bg-bg-elevated-2 shadow-[0_24px_48px_-16px_rgba(0,0,0,0.8)]"
+                          <AnimatePresence>
+                            {openMenuId === doc.id && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -4 }}
+                                transition={{ duration: 0.12 }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="absolute right-0 top-full z-50 mt-1.5 w-44 overflow-hidden rounded-lg border border-border-subtle bg-bg-elevated-2 text-left shadow-card-lift"
+                              >
+                                <button
+                                  onClick={() =>
+                                    handleDownload(
+                                      doc.id,
+                                      doc.current_version?.file_name || "document.pdf"
+                                    )
+                                  }
+                                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-[12px] font-semibold text-fg-secondary transition-colors hover:bg-bg-elevated-1 hover:text-fg-primary"
                                 >
+                                  <Download className="h-3.5 w-3.5 text-brand-primary" />
+                                  Télécharger
+                                </button>
+                                {permissions?.can_delete_documents && (
                                   <button
-                                    onClick={() =>
-                                      handleDownload(
-                                        doc.id,
-                                        doc.current_version?.file_name || "document.pdf"
-                                      )
-                                    }
-                                    className="flex w-full items-center gap-3 px-4 py-3 text-xs font-semibold text-fg-secondary transition-colors hover:bg-bg-elevated-3 hover:text-fg-primary"
+                                    onClick={() => handleDelete(doc.id, doc.title)}
+                                    className="flex w-full items-center gap-2.5 border-t border-border-subtle px-3 py-2.5 text-[12px] font-semibold text-error transition-colors hover:bg-error-bg"
                                   >
-                                    <Download className="h-3.5 w-3.5 text-brand-primary" />
-                                    Télécharger
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    Supprimer
                                   </button>
-                                  {permissions?.can_delete_documents && (
-                                    <button
-                                      onClick={() => handleDelete(doc.id, doc.title)}
-                                      className="flex w-full items-center gap-3 px-4 py-3 text-xs font-semibold text-error transition-colors hover:bg-error/10"
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                      Supprimer
-                                    </button>
-                                  )}
-                                  <button
-                                    onClick={() => setOpenMenuId(null)}
-                                    className="flex w-full items-center gap-3 border-t border-border-subtle px-4 py-3 text-xs font-semibold text-fg-tertiary transition-colors hover:bg-bg-elevated-3 hover:text-fg-primary"
-                                  >
-                                    <X className="h-3.5 w-3.5" />
-                                    Fermer
-                                  </button>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
+                                )}
+                                <button
+                                  onClick={() => setOpenMenuId(null)}
+                                  className="flex w-full items-center gap-2.5 border-t border-border-subtle px-3 py-2.5 text-[12px] font-semibold text-fg-tertiary transition-colors hover:bg-bg-elevated-1 hover:text-fg-primary"
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                  Fermer
+                                </button>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
-                      </motion.div>
-                    );
-                  })}
-                </AnimatePresence>
-              </div>
-            )}
-          </motion.section>
-        </motion.div>
-      </main>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Delete confirmation modal */}
-      <Modal
-        isOpen={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        width="max-w-sm"
-      >
-        <div className="space-y-5">
-          <div className="flex items-center gap-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-error/20 bg-error/10">
-              <Trash2 className="h-5 w-5 text-error" />
+      <Modal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} width="max-w-sm">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-error-border bg-error-bg">
+              <Trash2 className="h-4 w-4 text-error" />
             </div>
-            <div>
-              <p className="text-sm font-bold text-fg-primary">Supprimer le document</p>
-              <p className="text-xs text-fg-tertiary mt-0.5 line-clamp-2">
+            <div className="min-w-0">
+              <p className="text-[13.5px] font-semibold text-fg-primary">Supprimer le document</p>
+              <p className="mt-0.5 line-clamp-2 text-[12px] text-fg-tertiary">
                 {deleteTarget?.title}
               </p>
             </div>
           </div>
-          <p className="text-sm text-fg-secondary leading-6">
-            Ce document sera supprimé définitivement ainsi que tous ses chunks indexés. Cette action est irréversible.
+          <p className="text-[13px] leading-relaxed text-fg-secondary">
+            Ce document sera supprimé définitivement ainsi que tous ses chunks indexés. Cette action
+            est irréversible.
           </p>
-          <div className="flex gap-3 justify-end">
-            <button
-              onClick={() => setDeleteTarget(null)}
-              className="rounded-xl border border-border-subtle bg-bg-elevated-2 px-4 py-2 text-sm font-semibold text-fg-secondary transition-colors hover:text-fg-primary"
-            >
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setDeleteTarget(null)} className="dc-btn">
               Annuler
             </button>
             <button
               onClick={confirmDelete}
-              className="rounded-xl bg-error/15 border border-error/20 px-4 py-2 text-sm font-semibold text-error transition-colors hover:bg-error/25"
+              className="rounded-md border border-error-border bg-error-bg px-3.5 py-2 text-[12.5px] font-semibold text-error transition-colors hover:brightness-95"
             >
               Supprimer
             </button>

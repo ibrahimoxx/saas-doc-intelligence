@@ -44,37 +44,33 @@ export function Modal({
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
         onClick={onClose}
       />
 
       {/* Card */}
       <div
         className={cn(
-          "relative w-full surface-elevated overflow-hidden",
-          "animate-[fade-in-up_0.3s_cubic-bezier(0.16,1,0.3,1)_forwards]",
+          "relative w-full dc-card overflow-hidden shadow-card-lift",
           width
         )}
       >
-        {/* Top gradient bar */}
-        <div className="h-px w-full bg-linear-to-r from-brand-primary via-brand-secondary to-aurora-4" />
-
         {/* Header */}
         {(title || subtitle) && (
-          <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-border-subtle">
+          <div className="flex items-start justify-between border-b border-border-subtle px-5 py-3.5">
             <div>
               {title && (
-                <h2 className="text-base font-bold text-fg-primary font-display">
+                <h2 className="text-[15px] font-bold text-fg-primary">
                   {title}
                 </h2>
               )}
               {subtitle && (
-                <p className="text-sm text-fg-secondary mt-0.5">{subtitle}</p>
+                <p className="mt-0.5 text-[12.5px] text-fg-secondary">{subtitle}</p>
               )}
             </div>
             <button
               onClick={onClose}
-              className="ml-4 p-1.5 rounded-lg text-fg-muted hover:text-fg-primary hover:bg-white/8 transition-colors"
+              className="ml-4 p-1.5 rounded-md text-fg-tertiary hover:text-fg-primary hover:bg-bg-elevated-1 transition-colors"
               aria-label="Fermer"
             >
               <X className="w-4 h-4" />
@@ -86,7 +82,7 @@ export function Modal({
         {!title && !subtitle && (
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-lg text-fg-muted hover:text-fg-primary hover:bg-white/8 transition-colors"
+            className="absolute top-3.5 right-3.5 p-1.5 rounded-md text-fg-tertiary hover:text-fg-primary hover:bg-bg-elevated-1 transition-colors"
             aria-label="Fermer"
           >
             <X className="w-4 h-4" />
@@ -94,7 +90,7 @@ export function Modal({
         )}
 
         {/* Content */}
-        <div className="px-6 py-5">{children}</div>
+        <div className="px-5 py-4">{children}</div>
       </div>
     </div>
   );

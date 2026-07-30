@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { tenantService } from "@/services/tenant.service";
 import { adminService } from "@/services/admin.service";
@@ -15,7 +22,9 @@ interface UseTenantsResult {
   loading: boolean;
 }
 
-export function useTenants(): UseTenantsResult {
+const TenantsContext = createContext<UseTenantsResult | undefined>(undefined);
+
+function useTenantsState(): UseTenantsResult {
   const { user, isAuthenticated } = useAuth();
   const [tenants, setTenants] = useState<TenantMembership[]>([]);
   const [selectedTenantId, setSelectedTenantIdState] = useState<string | null>(null);
@@ -63,4 +72,17 @@ export function useTenants(): UseTenantsResult {
   }, [isAuthenticated, user?.is_superuser, pickDefault]);
 
   return { tenants, selectedTenantId, setSelectedTenantId, loading };
+}
+
+export function TenantsProvider({ children }: { children: ReactNode }) {
+  const value = useTenantsState();
+  return <TenantsContext.Provider value={value}>{children}</TenantsContext.Provider>;
+}
+
+export function useTenants(): UseTenantsResult {
+  const context = useContext(TenantsContext);
+  if (context === undefined) {
+    throw new Error("useTenants must be used within a TenantsProvider");
+  }
+  return context;
 }

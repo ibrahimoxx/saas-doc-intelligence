@@ -8,7 +8,7 @@ import {
 import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/components/ui/ThemeProvider";
-import { Toaster } from "sonner";
+import { Toast } from "@/components/ui/Toast";
 import {
   StructuredData,
   organizationSchema,
@@ -40,7 +40,10 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#08090f",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0b0f" },
+  ],
 };
 
 export const metadata: Metadata = {
@@ -81,9 +84,8 @@ export default function RootLayout({
         <StructuredData data={organizationSchema} />
         <ThemeProvider>
           <AuthProvider>
-            <div className="bg-mesh-dynamic" />
             {children}
-            <Toaster position="bottom-right" theme="dark" richColors />
+            <Toast />
           </AuthProvider>
         </ThemeProvider>
       </body>
