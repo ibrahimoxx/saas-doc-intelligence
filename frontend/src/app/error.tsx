@@ -48,7 +48,7 @@ export default function GlobalError({
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
             onClick={reset}
-            className="flex items-center gap-2 rounded-2xl aurora-bg px-6 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(99,102,241,0.5)] transition-opacity hover:opacity-90"
+            className="dc-btn-primary"
           >
             <RotateCcw className="h-4 w-4" />
             Réessayer

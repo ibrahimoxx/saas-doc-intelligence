@@ -37,7 +37,7 @@ export function Stat({
       )}
     >
       {icon ? (
-        <div className="absolute right-6 top-6 flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-brand-primary to-brand-secondary text-white shadow-glow-indigo">
+        <div className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-lg bg-brand-soft text-brand-primary">
           {icon}
         </div>
       ) : null}

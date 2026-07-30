@@ -26,7 +26,7 @@ export default function NotFound() {
 
       <Link
         href="/dashboard"
-        className="flex items-center gap-2 rounded-2xl aurora-bg px-6 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(99,102,241,0.5)] transition-opacity hover:opacity-90"
+        className="dc-btn-primary"
       >
         <Home className="h-4 w-4" />
         Retour à l'accueil

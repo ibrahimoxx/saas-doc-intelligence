@@ -96,14 +96,14 @@ export function CommandPalette({
       <button
         type="button"
         aria-label="Close command palette"
-        className="absolute inset-0 h-full w-full bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 h-full w-full bg-black/40 backdrop-blur-[2px]"
         onClick={() => onOpenChange(false)}
       />
 
       <div className="relative mx-auto mt-[20vh] w-full max-w-xl px-4">
         <Command
           label="Command palette"
-          className="surface-glass w-full overflow-hidden rounded-2xl shadow-card-lift"
+          className="dc-card w-full overflow-hidden shadow-card-lift"
         >
           <Command.Input
             placeholder="Rechercher une page…"
