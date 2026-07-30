@@ -134,8 +134,8 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
     return (
       <div className="mx-auto flex min-h-screen w-full max-w-xl items-center justify-center px-8 py-16">
         <div className="surface-glass w-full rounded-[32px] border border-border-subtle px-8 py-10 text-center shadow-[0_40px_120px_-56px_rgba(0,0,0,0.95)]">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl aurora-bg shadow-[0_24px_64px_-32px_rgba(99,102,241,0.7)]">
-            <X className="h-8 w-8 text-white" />
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border border-error-border bg-error-bg">
+            <X className="h-6 w-6 text-error" />
           </div>
           <div className="mt-6 space-y-3">
             <h1 className="font-serif text-4xl tracking-tight text-fg-primary">{errorTitle}</h1>

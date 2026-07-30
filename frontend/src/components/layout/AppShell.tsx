@@ -19,7 +19,7 @@ import { CommandPalette } from "@/components/ui/CommandPalette";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading, isAuthenticated } = useAuth();
   const { tenants, selectedTenantId, setSelectedTenantId } = useTenants();
   const [paletteOpen, setPaletteOpen] = useState(false);
 
@@ -54,6 +54,11 @@ export function AppShell({ children }: { children: ReactNode }) {
     await logout();
     router.push("/login");
   };
+
+  // Pages own the redirect; the shell just avoids flashing chrome to signed-out visitors.
+  if (isLoading || !isAuthenticated) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="min-h-screen bg-bg-base">
